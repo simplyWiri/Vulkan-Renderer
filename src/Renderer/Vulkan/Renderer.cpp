@@ -9,11 +9,14 @@ bool Renderer::initialiseRenderer()
 	Wrappers::buildSurface(&window, &context);
 	Wrappers::pickPhysicalDevice(&context, &window);
 	Wrappers::buildDevice(&context);
+	Wrappers::buildSwapchain(&swapchain, &context, &window);
 	return false;
 }
 
 Renderer::~Renderer()
 {
-	context.cleanup();
+	swapchain.cleanupSwapchain();
+	context.cleanupDevice();
 	window.cleanup();
+	context.cleanupInstance();
 }

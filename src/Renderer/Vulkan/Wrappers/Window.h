@@ -16,8 +16,7 @@ public:
 	VkSurfaceKHR surface;
 
 private:
-	int width = -1;
-	int height = -1;
+	int width = -1, height = -1;
 	bool outofDate = false;
 	const char* title = "Default";
 	VkInstance* instance;
@@ -38,6 +37,7 @@ public:
 	inline GLFWwindow* getWindow() const { return window; }
 	inline VkSurfaceKHR getSurface() const { return surface; }
 	inline bool needsResize() const { return outofDate; }
+
 	inline void cleanup() { vkDestroySurfaceKHR(*instance, surface, nullptr); glfwDestroyWindow(window); glfwTerminate(); }
 };
 

@@ -2,13 +2,9 @@
 #include "vulkan.h"
 #include <vector>
 
-
-
 enum class PhysicalDevicePreference {
 	None, Discrete, Integrated, Virtual, CPU, Multi
 };
-
-
 
 struct QueueFamilyIndices {
 	int graphicsFamily = -1;
@@ -27,7 +23,12 @@ struct SwapChainSupportDetails {
 };
 
 struct Window;
-
+/*
+	Context Class
+	- Contains a VkDevice, VkPhysicalDevice, VkInstance
+	- Contains information derived from the physical device (queues, swapchain capabilities)
+	- Contains cleanup functions for the above objects
+*/
 struct Context {
 public:
 	// Initialisation settings
@@ -48,23 +49,23 @@ public:
 		VkPhysicalDevice	physDevice;
 		QueueFamilyIndices	indices;
 	} gpu;
-	// Swapchain Wrapper
-	struct Swapchain {
-		VkSwapchainKHR swapchain;
-		SwapChainSupportDetails details;
-	} swapchain;
+
+	SwapChainSupportDetails swapDetails;
+
 	// Device holder
 	struct Device {
 		VkDevice device;
 		VkQueue graphicsQueue, computeQueue, presentQueue, transferQueue;
 	} device;
 
-	VkInstance			instance;
-
-
+	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;
 
-	void cleanup() {
+	inline void cleanupDevice() {
+		vkDestroyDevice(device.device, nullptr);
+	}
+	inline void cleanupInstance() {
+		// cleanup validation layers
 		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 		if (func != nullptr) {
 			func(instance, debugMessenger, nullptr);
@@ -72,22 +73,16 @@ public:
 
 		vkDestroyInstance(instance, nullptr);
 	}
+
 public:
 	inline VkDevice getDevice() const { return device.device; }
 	inline VkPhysicalDevice getPhysicalDevice() const { return gpu.physDevice; }
 	inline VkInstance getInstance() const { return instance; }
-	inline VkSwapchainKHR getSwapchainKHR() const { return swapchain.swapchain; }
+	inline SwapChainSupportDetails getSwapchainKHR() const { return swapDetails; }
 	inline VkQueue getGraphicsQueue() const { return device.graphicsQueue; }
 	inline VkQueue getTransferQueue() const { return device.transferQueue; }
 	inline VkQueue getComputeQueue() const { return device.computeQueue; }
 	inline VkQueue getPresentQueue() const { return device.presentQueue; }
-
-private:
-
-	// Device
-	// Physical Device
-	// Instance
-	// Validation Layers
 };
 
 namespace Wrappers {

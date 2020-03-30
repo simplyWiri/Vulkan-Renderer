@@ -263,7 +263,6 @@ namespace Wrappers {
 		std::cout << "	- Vender API version: " << props.apiVersion << std::endl;
 		std::cout << "	- Driver version: " << props.driverVersion << "\n\n\n";
 
-
 		if (vkCreateDevice(context->gpu.physDevice, &deviceCreateInfo, nullptr, &context->device.device) != VK_SUCCESS)
 			throw std::runtime_error("Failed to initialise logical device");
 
@@ -299,7 +298,7 @@ namespace Wrappers {
 			if (isDeviceSuitable(physDevice, context, window)) {
 				context->gpu.physDevice = physDevice;
 				context->gpu.indices = getIndices(physDevice, window);
-				context->swapchain.details = checkSwapChainSupport(physDevice, window);
+				context->swapDetails = checkSwapChainSupport(physDevice, window);
 				return true;
 			}
 		}
