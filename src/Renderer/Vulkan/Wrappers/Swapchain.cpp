@@ -15,7 +15,6 @@ VkSurfaceFormatKHR  getFormat(Swapchain* swapchain) {
 
 	return swapchain->context->swapDetails.formats[0];
 }
-
 VkPresentModeKHR getPresentMode(Swapchain* swapchain) {
 	VkPresentModeKHR optimalMode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -28,7 +27,6 @@ VkPresentModeKHR getPresentMode(Swapchain* swapchain) {
 
 	return optimalMode;
 }
-
 VkExtent2D getExtent(Swapchain* swapchain) {
 	auto capabilities = swapchain->context->swapDetails.capabilities;
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
@@ -46,6 +44,7 @@ VkExtent2D getExtent(Swapchain* swapchain) {
 
 	return curExtent;
 }
+
 bool Swapchain::recreateSwapchain(int w, int h)
 {
 	VkSwapchainKHR newSwapchain;

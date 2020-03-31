@@ -78,7 +78,27 @@ project "Vulkan Renderer"
 	links
 	{
 		(_OPTIONS["vulkanPath"] .. "/Lib/vulkan-1.lib"),
-		("externals/glfw/src/Debug/glfw3.lib")
+		"externals/glfw/src/Debug/glfw3.lib",
+		
+		-- linking glslang
+		"externals/glslang/builtversion/glslang/Debug/glslangd.lib",
+		"externals/glslang/builtversion/SPIRV/Debug/SPIRVd.lib",
+		"externals/glslang/builtversion/hlsl/Debug/hlsld.lib",
+		"externals/glslang/builtversion/OGLCompilersDLL/Debug/OGLCompilerd.lib",
+		"externals/glslang/builtversion/glslang/OSDependent/Windows/Debug/OSDependentd.lib",
+		--"externals/glslang/builtversion/External/spirv-tools/source/Debug/SPIRV-Toolsd.lib",
+		--"externals/glslang/builtversion/External/spirv-tools/source/opt/Debug/SPIRV-Tools-optd.lib",
+
+		-- linking SPIRV-Cross
+		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-glsld.lib"),
+		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-reflectd.lib"),
+		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-cppd.lib"),
+		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-utild.lib"),
+		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-cored.lib"),
+
+
+
+
 	}
 
 	filter "configurations:Debug"

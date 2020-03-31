@@ -2,6 +2,9 @@
 
 bool Renderer::initialiseRenderer()
 {
+	/* 
+		This will initialise the (mostly) static states of the renderer, customisation can come later.
+	*/
 	window.initialiseWindow(640, 400, "Vulkan Renderer");
 
 	Wrappers::buildWindow(&window);
@@ -10,7 +13,7 @@ bool Renderer::initialiseRenderer()
 	Wrappers::pickPhysicalDevice(&context, &window);
 	Wrappers::buildDevice(&context);
 	Wrappers::buildSwapchain(&swapchain, &context, &window);
-	return false;
+	return true;
 }
 
 Renderer::~Renderer()
