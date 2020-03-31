@@ -17,5 +17,7 @@ int main() {
 
 	shader.compileGLSL(program);
 
-	shader.reflectSPIRV(VK_SHADER_STAGE_VERTEX_BIT);
+	std::vector<ShaderResources> shaderRes;
+	shader.reflectSPIRV(VK_SHADER_STAGE_VERTEX_BIT, shaderRes);
+
 }

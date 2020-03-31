@@ -23,14 +23,42 @@ enum class ShaderStatus {
 
 // forward declare the relevant structs which are passed as func parameters
 
-namespace spirv_cross{
-	struct ShaderResources;
-}
 namespace glslang {
 	class TProgram;
 }
 
 enum VkShaderStageFlagBits;
+enum VkDescriptorType;
+typedef uint32_t VkFlags;
+typedef VkFlags VkAccessFlags;
+
+struct ShaderMember
+{
+	uint32_t offset;
+	uint32_t size;
+	uint32_t vecSize;
+	uint32_t columns;
+	uint32_t arraySize;
+	const ShaderMember* pNext;
+	const ShaderMember* pMembers;
+};
+
+struct ShaderResources 
+{
+	VkShaderStageFlagBits flags;
+	VkDescriptorType type;
+	VkAccessFlags access;
+	uint32_t set;
+	uint32_t binding;
+	uint32_t location;
+	uint32_t inputAttachmentIndex;
+	uint32_t vecSize;
+	uint32_t columns;
+	uint32_t descriptorCount;
+	uint32_t offset;
+	uint32_t size;
+	const ShaderMember* pMembers;
+};
 
 class Shader
 {
@@ -52,8 +80,7 @@ public:
 		Transformation Functions, these will be called from the vulkan pipeline
 	*/
 	bool compileGLSL(glslang::TProgram& program); // glslang
-	bool reflectSPIRV(VkShaderStageFlagBits stage); // SPIRV-Cross
-
+	bool reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResources>& resources); // SPIRV-Cross
 
 private:
 	ShaderType type;
@@ -63,5 +90,5 @@ private:
 	std::vector<uint32_t> spv;
 	uint32_t spvSize;
 
-	void* resources; // ShaderResources - SPIRV-Cross Struct, so you can potentially reuse shaders over multiple pipelines
+	void* resources; // ShaderResources, so you can potentially reuse shaders over multiple pipelines
 };

@@ -5,6 +5,8 @@
 #include "spirv_glsl.hpp"
 #include "spirv_cross.hpp"
 #include <iostream>
+#include <algorithm>
+#include <unordered_map>
 #include "vulkan.h"
 
 std::vector<char> loadFromFile(const char* path)
@@ -38,6 +40,8 @@ static const EShLanguage getEshLangType(ShaderType kind) {
 	case ShaderType::Tesselation:
 		return EShLangTessControl;
 	}
+	throw std::runtime_error("Unsupported language type");
+	return EShLangCallable;
 }
 static const TBuiltInResource GetDefaultResources() {
 	TBuiltInResource resources = {};
@@ -136,7 +140,49 @@ static const TBuiltInResource GetDefaultResources() {
 	return resources;
 }
 
- bool Shader::loadFromPath(ShaderType t, const char* path)
+
+ShaderMember* getMembers(spirv_cross::Compiler& compiler, const spirv_cross::SPIRType& type)
+{
+	ShaderMember* pFirstMemberInfo = nullptr;
+	ShaderMember* pPrevMemberInfo = nullptr;
+
+	for (auto i = 0U; i < type.member_types.size(); ++i)
+	{
+		const auto& memberType = compiler.get_type(type.member_types[i]);
+
+		auto mi = new ShaderMember;
+		mi->offset = compiler.type_struct_member_offset(type, i);
+		mi->size = static_cast<uint32_t>(compiler.get_declared_struct_member_size(type, i));
+		mi->vecSize = memberType.vecsize;
+		mi->columns = memberType.columns;
+		mi->arraySize = (memberType.array.size() == 0) ? 1 : memberType.array[0];
+		mi->pNext = nullptr;
+		mi->pMembers = nullptr;
+
+
+		// Link current and last member infos.
+		if (pPrevMemberInfo == nullptr)
+			pPrevMemberInfo = mi;
+		else
+			pPrevMemberInfo->pNext = mi;
+
+		// Keep pointer to first member info.
+		if (pFirstMemberInfo == nullptr)
+			pFirstMemberInfo = mi;
+
+		// Update previous member.
+		pPrevMemberInfo = mi;
+
+		// Recursively process members that are structs.
+		if (memberType.basetype == spirv_cross::SPIRType::Struct)
+			mi->pMembers = getMembers(compiler, memberType);
+	}
+
+	// Return the first member info created.
+	return pFirstMemberInfo;
+}
+
+bool Shader::loadFromPath(ShaderType t, const char* path)
 {
 	auto charVec = loadFromFile(path);
 	this->shaderText = *new std::string(charVec.begin(), charVec.end());
@@ -202,26 +248,169 @@ bool Shader::compileGLSL(glslang::TProgram& program)
 	return false;
 }
 
-bool Shader::reflectSPIRV(VkShaderStageFlagBits stage)
+bool Shader::reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResources>& resources)
 {
 	spirv_cross::CompilerGLSL compiler(std::move(this->spv));
 
 	auto shaderRes = compiler.get_shader_resources();
+	
 
 	/*
 		Finish Reflection 
 	*/
 
-	for (auto& resource : shaderRes.uniform_buffers)
+	for (auto& res : shaderRes.uniform_buffers)
 	{
-		for (auto& range : compiler.get_active_buffer_ranges(resource.id)) {
-			printf("Accessing member # %u, offset %u, size %u\n", range.index, range.offset, range.range);
-		}
-		unsigned set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
-		unsigned binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-		printf("Uniform buffer: Named: %s at set = %u, binding = %u\n", resource.name.c_str(), set, binding);
+		const auto& spirType = compiler.get_type_from_variable(res.id);
+
+		ShaderResources resource; // resources for a uniform buffer
+
+		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding); // shader binding
+		resource.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC; // This can be either UNIFORM_BUFFER or UNIFORM_BUFFER_DYNAMIC
+		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0]; // For the potential of arrayed inputs
+		resource.flags = stage; // this is dependent on the type of shader that is being reflected
+		resource.access = VK_ACCESS_UNIFORM_READ_BIT;
+		resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
+		resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
+		resource.pMembers = getMembers(compiler, spirType);
+		resources.push_back(resource);
 	}
-	
+
+	for (auto& res : shaderRes.storage_buffers)
+	{
+		const auto& spirType = compiler.get_type_from_variable(res.id);
+
+		ShaderResources resource; 
+
+		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding); 
+		resource.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC; // This can be either STORAGE_BUFFER or STORAGE_BUFFER_DYNAMIC
+		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0]; 
+		resource.flags = stage; 
+		resource.access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+
+		auto nonReadable = compiler.get_decoration(res.id, spv::DecorationNonReadable);
+		auto nonWriteable = compiler.get_decoration(res.id, spv::DecorationNonWritable);
+		if (nonReadable) resource.access = VK_ACCESS_SHADER_WRITE_BIT;
+		else if (nonWriteable) resource.access = VK_ACCESS_SHADER_READ_BIT;
+
+		resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
+		resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
+		resource.pMembers = getMembers(compiler, spirType);
+		resources.push_back(resource);
+
+		
+	}
+
+	for (auto& res : shaderRes.separate_samplers)
+	{
+		const auto& spirType = compiler.get_type_from_variable(res.id);
+
+		ShaderResources resource; 
+		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding); 
+		resource.type = VK_DESCRIPTOR_TYPE_SAMPLER; 
+		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0]; 
+		resource.flags = stage; 
+		resource.access = VK_ACCESS_SHADER_READ_BIT;
+		resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
+		resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
+		resources.push_back(resource);
+	}
+
+	for (auto& res : shaderRes.sampled_images)
+	{
+		const auto& spirType = compiler.get_type_from_variable(res.id);
+
+		ShaderResources resource;
+		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
+		resource.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0];
+		resource.flags = stage;
+		resource.access = VK_ACCESS_SHADER_READ_BIT;
+		resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
+		resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
+		resources.push_back(resource);
+	}
+
+	for (auto& res : shaderRes.separate_images)
+	{
+		const auto& spirType = compiler.get_type_from_variable(res.id);
+
+		ShaderResources resource;
+		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
+		resource.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0];
+		resource.flags = stage;
+		resource.access = VK_ACCESS_SHADER_READ_BIT;
+		resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
+		resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
+		resources.push_back(resource);
+	}
+
+	for (auto& res : shaderRes.storage_images)
+	{
+		const auto& spirType = compiler.get_type_from_variable(res.id);
+
+		ShaderResources resource;
+
+		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
+		resource.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE; 
+		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0];
+		resource.flags = stage;
+		resource.access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+
+		auto nonReadable = compiler.get_decoration(res.id, spv::DecorationNonReadable);
+		auto nonWriteable = compiler.get_decoration(res.id, spv::DecorationNonWritable);
+		if (nonReadable) resource.access = VK_ACCESS_SHADER_WRITE_BIT;
+		else if (nonWriteable) resource.access = VK_ACCESS_SHADER_READ_BIT;
+
+		resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
+		resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
+		resource.pMembers = getMembers(compiler, spirType);
+		resources.push_back(resource);
+	}
+
+	// Extract subpass inputs.
+	for (auto& res : shaderRes.subpass_inputs)
+	{
+		const auto& spirType = compiler.get_type_from_variable(res.id);
+
+		ShaderResources resource;
+		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
+		resource.type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+		resource.descriptorCount = 1; 
+		resource.flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		resource.access = VK_ACCESS_SHADER_READ_BIT;
+		resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
+		resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
+		resource.inputAttachmentIndex = compiler.get_decoration(res.id, spv::DecorationInputAttachmentIndex);
+
+		resources.push_back(resource);
+	}
+
+	// Extract push constants.
+	for (auto& res : shaderRes.push_constant_buffers)
+	{
+		const auto& spirType = compiler.get_type_from_variable(res.id);
+
+		uint32_t offset = ~0;
+		for (auto i = 0U; i < spirType.member_types.size(); ++i)
+		{
+			auto memberType = compiler.get_type(spirType.member_types[i]);
+			offset = std::min(offset, compiler.get_member_decoration(spirType.self, i, spv::DecorationOffset));
+		}
+		
+		ShaderResources resource;
+		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
+		resource.offset = offset;
+		resource.type = VK_DESCRIPTOR_TYPE_MAX_ENUM; // (we need to handle push constants differently to other descriptor type layouts
+		resource.flags = stage;
+		resource.access = VK_ACCESS_SHADER_READ_BIT;
+		resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
+		resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
+		resource.pMembers = getMembers(compiler, spirType);
+
+		resources.push_back(resource);
+	}
 
 	return false;
 }
