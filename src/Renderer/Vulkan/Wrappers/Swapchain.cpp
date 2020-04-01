@@ -3,7 +3,6 @@
 #include "Window.h"
 #include <algorithm>
 
-
 VkSurfaceFormatKHR  getFormat(Swapchain* swapchain) {
 	if (swapchain->context->swapDetails.formats.size() == 1 && swapchain->context->swapDetails.formats[0].format == VK_FORMAT_UNDEFINED)
 		return { VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
@@ -77,7 +76,7 @@ bool Swapchain::recreateSwapchain(int w, int h)
 	createInfo.clipped = VK_TRUE;
 	createInfo.oldSwapchain = swapchain;
 
-	if( vkCreateSwapchainKHR( context->getDevice(), &createInfo, nullptr, &newSwapchain) != VK_SUCCESS)
+	if (vkCreateSwapchainKHR(context->getDevice(), &createInfo, nullptr, &newSwapchain) != VK_SUCCESS)
 		return false; // failed to recreate
 
 	swapchain = VkSwapchainKHR(newSwapchain); // copy constructor the new swapchain into the struct
@@ -94,8 +93,6 @@ void Swapchain::cleanupSwapchain()
 }
 
 namespace Wrappers {
-
-
 	bool buildSwapchain(Swapchain* swapchain, Context* context, Window* window)
 	{
 		swapchain->setWidth(window->getWidth());

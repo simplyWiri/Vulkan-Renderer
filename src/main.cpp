@@ -3,24 +3,18 @@
 #include "glslang/Public/ShaderLang.h"
 #include "vulkan.h"
 
-
-
 int main() {
-	//Renderer renderer;
-	//renderer.initialiseRenderer();
-	glslang::InitializeProcess();
-	glslang::TProgram program;
+	Renderer renderer;
+	renderer.initialiseRenderer();
 
+	Pipeline pipeline, pipeline2;
+	renderer.addPipeline(pipeline, {
+		new Shader(ShaderType::Vertex, "resources/VertexShader.vert", 1),
+		new Shader(ShaderType::Fragment, "resources/FragmentShader.frag", 1) });
 
-	Shader shader(ShaderType::Vertex);
-	shader.loadFromPath(ShaderType::Vertex, "resources/VertexShader.vert");
-	shader.compileGLSL(program);
+	renderer.addPipeline(pipeline2, {
+		new Shader(ShaderType::Vertex, "resources/VertexShader.vert", 1),
+		new Shader(ShaderType::Fragment, "resources/FragmentShader.frag", 1) });
 
-	std::vector<ShaderResources> shaderRes;
-	shader.reflectSPIRV(shaderRes);
-	glslang::FinalizeProcess();
-
-	while (true) {
-
-	}
+	renderer.buildPipelines();
 }

@@ -6,7 +6,6 @@ struct Context;
 struct Window;
 
 struct Swapchain {
-
 public:
 	Context* context;
 	Window* window;
@@ -17,12 +16,12 @@ public:
 	VkPresentModeKHR presentMode;
 	std::vector<VkImage> images;
 	std::vector<VkImageView> imageViews;
-	
+
 	bool recreateSwapchain(int w, int h);
 
 	inline void setWidth(int w) { width = w; }
 	inline void setHeight(int h) { height = h; }
-	
+
 	void cleanupSwapchain();
 private:
 	int width = -1, height = -1;

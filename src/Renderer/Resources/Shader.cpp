@@ -23,7 +23,7 @@ std::vector<char> loadFromFile(const char* path)
 	file.seekg(0);
 	file.read(buffer.data(), fileSize);
 	file.close();
-	
+
 	return buffer;
 }
 
@@ -152,7 +152,6 @@ static const TBuiltInResource GetDefaultResources() {
 	return resources;
 }
 
-
 ShaderMember* getMembers(spirv_cross::Compiler& compiler, const spirv_cross::SPIRType& type)
 {
 	ShaderMember* pFirstMemberInfo = nullptr;
@@ -170,7 +169,6 @@ ShaderMember* getMembers(spirv_cross::Compiler& compiler, const spirv_cross::SPI
 		mi->arraySize = (memberType.array.size() == 0) ? 1 : memberType.array[0];
 		mi->pNext = nullptr;
 		mi->pMembers = nullptr;
-
 
 		// Link current and last member infos.
 		if (pPrevMemberInfo == nullptr)
@@ -201,8 +199,9 @@ bool Shader::loadFromPath(ShaderType t, const char* path)
 	return true;
 }
 
-bool Shader::compileGLSL(glslang::TProgram& program)
+bool Shader::compileGLSL()
 {
+	glslang::TProgram program;
 	EShLanguage lang = getEshLangType(this->type);
 	glslang::TShader shader(lang);
 	auto resources = GetDefaultResources();
@@ -213,7 +212,7 @@ bool Shader::compileGLSL(glslang::TProgram& program)
 	const char* glsl = this->shaderText.c_str();
 	shader.setStrings(&glsl, 1);
 
-	//	Targeting Vulkan 1.2 & SPIRV-1.3	
+	//	Targeting Vulkan 1.2 & SPIRV-1.3
 	auto vulkanVersion = glslang::EShTargetVulkan_1_2;
 	shader.setEnvInput(glslang::EShSourceGlsl, lang, glslang::EShClientVulkan, 110);
 	shader.setEnvClient(glslang::EShClientVulkan, vulkanVersion);
@@ -251,7 +250,7 @@ bool Shader::compileGLSL(glslang::TProgram& program)
 	spvOptions.optimizeSize = true;
 
 	glslang::GlslangToSpv(*program.getIntermediate(lang), this->spv, &logger, &spvOptions);
-	
+
 	return false;
 }
 
@@ -285,15 +284,15 @@ bool Shader::reflectSPIRV(std::vector<ShaderResources>& resources)
 	{
 		const auto& spirType = compiler.get_type_from_variable(res.id);
 
-		ShaderResources resource; 
+		ShaderResources resource;
 
-		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding); 
+		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
 		resource.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC; // This can be either STORAGE_BUFFER or STORAGE_BUFFER_DYNAMIC
-		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0]; 
-		resource.flags = stage; 
+		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0];
+		resource.flags = stage;
 		resource.access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
-		// We check if the resource is read only or write only, and update the access accordingly 
+		// We check if the resource is read only or write only, and update the access accordingly
 
 		auto nonReadable = compiler.get_decoration(res.id, spv::DecorationNonReadable);
 		auto nonWriteable = compiler.get_decoration(res.id, spv::DecorationNonWritable);
@@ -304,20 +303,18 @@ bool Shader::reflectSPIRV(std::vector<ShaderResources>& resources)
 		resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
 		resource.pMembers = getMembers(compiler, spirType);
 		resources.push_back(resource);
-
-		
 	}
 
-	// Reflect through all samplers 
+	// Reflect through all samplers
 	for (auto& res : shaderRes.separate_samplers)
 	{
 		const auto& spirType = compiler.get_type_from_variable(res.id);
 
-		ShaderResources resource; 
-		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding); 
-		resource.type = VK_DESCRIPTOR_TYPE_SAMPLER; 
-		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0]; 
-		resource.flags = stage; 
+		ShaderResources resource;
+		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
+		resource.type = VK_DESCRIPTOR_TYPE_SAMPLER;
+		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0];
+		resource.flags = stage;
 		resource.access = VK_ACCESS_SHADER_READ_BIT;
 		resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
 		resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
@@ -364,7 +361,7 @@ bool Shader::reflectSPIRV(std::vector<ShaderResources>& resources)
 		ShaderResources resource;
 
 		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
-		resource.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE; 
+		resource.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0];
 		resource.flags = stage;
 		resource.access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
@@ -380,7 +377,7 @@ bool Shader::reflectSPIRV(std::vector<ShaderResources>& resources)
 		resources.push_back(resource);
 	}
 
-	// Reflect through all subpass inputs (fragment stage only) * Hardcoded value 
+	// Reflect through all subpass inputs (fragment stage only) * Hardcoded value
 	for (auto& res : shaderRes.subpass_inputs)
 	{
 		const auto& spirType = compiler.get_type_from_variable(res.id);
@@ -388,7 +385,7 @@ bool Shader::reflectSPIRV(std::vector<ShaderResources>& resources)
 		ShaderResources resource;
 		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
 		resource.type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-		resource.descriptorCount = 1; 
+		resource.descriptorCount = 1;
 		resource.flags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		resource.access = VK_ACCESS_SHADER_READ_BIT;
 		resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
@@ -409,7 +406,7 @@ bool Shader::reflectSPIRV(std::vector<ShaderResources>& resources)
 			auto memberType = compiler.get_type(spirType.member_types[i]);
 			offset = std::min(offset, compiler.get_member_decoration(spirType.self, i, spv::DecorationOffset));
 		}
-		
+
 		ShaderResources resource;
 		resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
 		resource.offset = offset;
@@ -425,4 +422,3 @@ bool Shader::reflectSPIRV(std::vector<ShaderResources>& resources)
 
 	return true;
 }
-
