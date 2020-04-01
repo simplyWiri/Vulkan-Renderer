@@ -37,11 +37,23 @@ static const EShLanguage getEshLangType(ShaderType kind) {
 		return EShLangFragment;
 	case ShaderType::Mesh:
 		return EShLangMeshNV;
-	case ShaderType::Tesselation:
-		return EShLangTessControl;
 	}
-	throw std::runtime_error("Unsupported language type");
+	throw std::runtime_error("Currently unsupported language type");
 	return EShLangCallable;
+}
+static const VkShaderStageFlagBits getFlagBits(ShaderType kind) {
+	switch (kind) {
+	case ShaderType::Vertex:
+		return VK_SHADER_STAGE_VERTEX_BIT;
+	case ShaderType::Compute:
+		return VK_SHADER_STAGE_COMPUTE_BIT;
+	case ShaderType::Fragment:
+		return VK_SHADER_STAGE_FRAGMENT_BIT;
+	case ShaderType::Mesh:
+		return VK_SHADER_STAGE_MESH_BIT_NV;
+	}
+	throw std::runtime_error("Currently unsupported language type");
+	return VK_SHADER_STAGE_ALL;
 }
 static const TBuiltInResource GetDefaultResources() {
 	TBuiltInResource resources = {};
@@ -186,7 +198,6 @@ bool Shader::loadFromPath(ShaderType t, const char* path)
 {
 	auto charVec = loadFromFile(path);
 	this->shaderText = *new std::string(charVec.begin(), charVec.end());
-
 	return true;
 }
 
@@ -215,13 +226,13 @@ bool Shader::compileGLSL(glslang::TProgram& program)
 	if (!shader.preprocess(&resources, vulkanVersion, ENoProfile, false, false, messages, &str, includer)) {
 		std::cout << shader.getInfoLog() << std::endl;
 		std::cout << shader.getInfoDebugLog() << std::endl;
-		throw std::runtime_error("Failed to pre-process shader");
+		return false;
 	}
 	// parse the shader into the intermediate spv
 	if (!shader.parse(&resources, vulkanVersion, true, messages, includer)) {
 		std::cout << shader.getInfoLog() << std::endl;
 		std::cout << shader.getInfoDebugLog() << std::endl;
-		throw std::runtime_error("Failed to parse shader");
+		return false;
 	}
 	// link shader to a program
 	program.addShader(&shader);
@@ -229,7 +240,7 @@ bool Shader::compileGLSL(glslang::TProgram& program)
 	if (!program.link(messages) || !program.mapIO()) {
 		std::cout << shader.getInfoLog() << std::endl;
 		std::cout << shader.getInfoDebugLog() << std::endl;
-		throw std::runtime_error("Failed to link shader");
+		return false;
 	}
 	// convert the intermediate spv into the binary
 	spv::SpvBuildLogger logger;
@@ -240,25 +251,18 @@ bool Shader::compileGLSL(glslang::TProgram& program)
 	spvOptions.optimizeSize = true;
 
 	glslang::GlslangToSpv(*program.getIntermediate(lang), this->spv, &logger, &spvOptions);
-
-
-	program.buildReflection();
-
-
+	
 	return false;
 }
 
-bool Shader::reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResources>& resources)
+bool Shader::reflectSPIRV(std::vector<ShaderResources>& resources)
 {
 	spirv_cross::CompilerGLSL compiler(std::move(this->spv));
 
 	auto shaderRes = compiler.get_shader_resources();
-	
+	auto stage = getFlagBits(this->type); // We automatically derive the stage of the resource from the type of shader that has been parsed
 
-	/*
-		Finish Reflection 
-	*/
-
+	// Reflect through all uniform buffers (UBO's)
 	for (auto& res : shaderRes.uniform_buffers)
 	{
 		const auto& spirType = compiler.get_type_from_variable(res.id);
@@ -276,6 +280,7 @@ bool Shader::reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResourc
 		resources.push_back(resource);
 	}
 
+	// Reflect through all storage buffers (SSBO's)
 	for (auto& res : shaderRes.storage_buffers)
 	{
 		const auto& spirType = compiler.get_type_from_variable(res.id);
@@ -287,6 +292,8 @@ bool Shader::reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResourc
 		resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0]; 
 		resource.flags = stage; 
 		resource.access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+
+		// We check if the resource is read only or write only, and update the access accordingly 
 
 		auto nonReadable = compiler.get_decoration(res.id, spv::DecorationNonReadable);
 		auto nonWriteable = compiler.get_decoration(res.id, spv::DecorationNonWritable);
@@ -301,6 +308,7 @@ bool Shader::reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResourc
 		
 	}
 
+	// Reflect through all samplers 
 	for (auto& res : shaderRes.separate_samplers)
 	{
 		const auto& spirType = compiler.get_type_from_variable(res.id);
@@ -316,6 +324,7 @@ bool Shader::reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResourc
 		resources.push_back(resource);
 	}
 
+	// Reflect through all combined image samplers
 	for (auto& res : shaderRes.sampled_images)
 	{
 		const auto& spirType = compiler.get_type_from_variable(res.id);
@@ -331,6 +340,7 @@ bool Shader::reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResourc
 		resources.push_back(resource);
 	}
 
+	// Reflect through all image samplers
 	for (auto& res : shaderRes.separate_images)
 	{
 		const auto& spirType = compiler.get_type_from_variable(res.id);
@@ -346,6 +356,7 @@ bool Shader::reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResourc
 		resources.push_back(resource);
 	}
 
+	// Reflect through all storage images
 	for (auto& res : shaderRes.storage_images)
 	{
 		const auto& spirType = compiler.get_type_from_variable(res.id);
@@ -369,7 +380,7 @@ bool Shader::reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResourc
 		resources.push_back(resource);
 	}
 
-	// Extract subpass inputs.
+	// Reflect through all subpass inputs (fragment stage only) * Hardcoded value 
 	for (auto& res : shaderRes.subpass_inputs)
 	{
 		const auto& spirType = compiler.get_type_from_variable(res.id);
@@ -387,7 +398,7 @@ bool Shader::reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResourc
 		resources.push_back(resource);
 	}
 
-	// Extract push constants.
+	// Reflect through all push constants, this is a special type. I.e. Does not create a VkDescriptorLayoutBinding. Thus, its 'type' is MAX_ENUM, which flags to the vulkan pipeline that it is a push constant
 	for (auto& res : shaderRes.push_constant_buffers)
 	{
 		const auto& spirType = compiler.get_type_from_variable(res.id);
@@ -412,5 +423,6 @@ bool Shader::reflectSPIRV(VkShaderStageFlagBits stage, std::vector<ShaderResourc
 		resources.push_back(resource);
 	}
 
-	return false;
+	return true;
 }
+

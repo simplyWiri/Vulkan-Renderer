@@ -19,14 +19,13 @@ private:
 	
 	Renderpass* renderpass; /* Renderpass to target*/
 
+	std::vector<ShaderResources> resources;
 	VkDescriptorSetLayout descriptorSetLayout;
-	VkDescriptorSet descriptorSet;
-	VkDescriptorPool descriptorPool;
 };
 
 namespace Wrappers {
 
-	bool buildPipeline(Pipeline pipeline);
+	bool buildPipeline(Pipeline pipeline, std::initializer_list<Shader> shaders);
 
 
 }

@@ -12,12 +12,15 @@ int main() {
 	glslang::TProgram program;
 
 
-	Shader shader(ShaderType::Vertex, "");
+	Shader shader(ShaderType::Vertex);
 	shader.loadFromPath(ShaderType::Vertex, "resources/VertexShader.vert");
-
 	shader.compileGLSL(program);
 
 	std::vector<ShaderResources> shaderRes;
-	shader.reflectSPIRV(VK_SHADER_STAGE_VERTEX_BIT, shaderRes);
+	shader.reflectSPIRV(shaderRes);
+	glslang::FinalizeProcess();
 
+	while (true) {
+
+	}
 }
