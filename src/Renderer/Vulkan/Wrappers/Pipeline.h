@@ -3,57 +3,72 @@
 #include "..\..\Resources\Shader.h" /* Accessing Shader Functionality */
 #include <vector>
 
-struct Context;
+namespace Renderer {
 
-struct PipelineSettings
-{
-	// Input Assembly Stage
-	VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-	bool primitiveRestart = false;
+	struct Context;
 
-	// Rasterizer
-	bool discardEnable = false;
-	VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
-	float lineWidth = 1.0f;
-	VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT;
-	VkFrontFace frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-	bool depthBias = false;
+    struct DepthSettings
+    {
+		static VkPipelineDepthStencilStateCreateInfo DepthTest();
+		static VkPipelineDepthStencilStateCreateInfo Disabled();
+    };
 
-	// Multisampling - Idk
+    struct BlendSettings
+    {
+		static VkPipelineColorBlendAttachmentState Opaque();
+		static VkPipelineColorBlendAttachmentState Add();
+		static VkPipelineColorBlendAttachmentState Mixed();
+		static VkPipelineColorBlendAttachmentState AlphaBlend();
+    };
 
-	// Colour Blending - Idk
+	struct PipelineSettings
+	{
+		// Input Assembly Stage
+		VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		bool primitiveRestart = false;
 
-	// DepthStencil State - Idk
+		// Rasterizer
+		bool discardEnable = false;
+		VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
+		float lineWidth = 1.0f;
+		VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT;
+		VkFrontFace frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		bool depthBias = false;
 
-	// DynamicState - Idk
-};
+		// Multisampling - Idk
 
-struct Pipeline
-{
-public:
-	void setContext(Context* c) { this->context = c; }
-	VkPipeline& getPipeline() { return this->pipeline; }
-	VkPipelineLayout& getLayout() { return this->layout; }
+		// DynamicState - Idk
+	};
 
-	void setResources(std::vector<ShaderResources> r) { this->resources = r; }
-	inline VkDescriptorSetLayout& getDescriptorLayout() { return this->descriptorSetLayout; }
+	struct Pipeline
+	{
+	public:
+		void setContext(Context* c) { this->context = c; }
+		VkPipeline& getPipeline() { return this->pipeline; }
+		VkPipelineLayout& getLayout() { return this->layout; }
 
-	bool createLayout();
+		void setResources(std::vector<ShaderResources> r) { this->resources = r; }
+		inline VkDescriptorSetLayout& getDescriptorLayout() { return this->descriptorSetLayout; }
 
-private:
-	Context* context;
-	VkPipeline pipeline;
-	VkPipelineLayout layout;
-	VkPipelineCache cache;
+		bool createLayout();
 
-	VkRenderPass* renderpass; /* Renderpass to target */
-	std::vector<VkRenderPass>* subpasses; /* Subpasses */
+	private:
+		Context* context;
+		VkPipeline pipeline;
+		VkPipelineLayout layout;
+		VkPipelineCache cache;
 
-	std::vector<ShaderResources> resources;
-	VkDescriptorSetLayout descriptorSetLayout;
-};
+		VkRenderPass* renderpass; /* Renderpass to target */
+		std::vector<VkRenderPass>* subpasses; /* Subpasses */
 
-namespace Wrappers {
-	bool buildGraphicsPipeline(Pipeline pipeline, PipelineSettings settings, std::initializer_list<Shader*> shaders);
-	bool buildComputePipeline(Pipeline pipeline, PipelineSettings settings, std::initializer_list<Shader*> shaders);
+		std::vector<ShaderResources> resources;
+		std::vector<VkPushConstantRange> pushConstants;
+		VkDescriptorSetLayout descriptorSetLayout;
+	};
+
+	namespace Wrappers {
+		bool buildGraphicsPipeline(Pipeline& pipeline, PipelineSettings settings, std::initializer_list<Shader*> shaders);
+		bool buildComputePipeline(Pipeline& pipeline, PipelineSettings settings, std::initializer_list<Shader*> shaders);
+	}
+
 }

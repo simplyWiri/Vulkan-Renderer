@@ -110,4 +110,3 @@ project "Vulkan Renderer"
 		defines "NDEBUG"
 		runtime "Release"
 		optimize "on"
-

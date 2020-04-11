@@ -1,10 +1,11 @@
-#include "Renderer/Vulkan/Renderer.h"
+#include "Renderer/Vulkan/Core.h"
 #include "Renderer/Resources/Shader.h"
 #include "glslang/Public/ShaderLang.h"
-#include "vulkan.h"
+
+using namespace Renderer;
 
 int main() {
-	Renderer renderer;
+	Core renderer;
 	renderer.initialiseRenderer();
 
 	Pipeline pipeline, pipeline2;
@@ -16,5 +17,4 @@ int main() {
 		new Shader(ShaderType::Vertex, "resources/VertexShader.vert", 1),
 		new Shader(ShaderType::Fragment, "resources/FragmentShader.frag", 1) });
 
-	renderer.buildPipelines();
 }
