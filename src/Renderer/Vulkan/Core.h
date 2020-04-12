@@ -25,11 +25,6 @@ namespace Renderer {
 	public:
 		bool initialiseRenderer();
 
-		Core& addPipeline(Pipeline p, std::initializer_list<Shader*> shaders);
-		Core& addPipeline(Pipeline p, PipelineSettings s, std::initializer_list<Shader*> shaders);
-
-		Core& buildPipelines();
-
 		~Core();
 	private:
 

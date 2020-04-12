@@ -177,7 +177,7 @@ namespace Renderer {
 			else
 				pPrevMemberInfo->pNext = mi;
 
-			// Keep pointer to first member info.
+			// Make sure we keep chain linked
 			if (pFirstMemberInfo == nullptr)
 				pFirstMemberInfo = mi;
 
@@ -255,7 +255,7 @@ namespace Renderer {
 		return false;
 	}
 
-	bool Shader::reflectSPIRV(std::vector<ShaderResources>& resources)
+	bool Shader::reflectSPIRV()
 	{
 		spirv_cross::CompilerGLSL compiler(this->spv);
 

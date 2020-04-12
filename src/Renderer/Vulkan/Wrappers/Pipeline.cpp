@@ -2,6 +2,7 @@
 #include "Context.h"
 
 namespace Renderer {
+
 	inline VkPipelineInputAssemblyStateCreateInfo& createInputAssemblyState(VkPrimitiveTopology t, VkBool32 p) {
 		VkPipelineInputAssemblyStateCreateInfo info;
 		info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -103,29 +104,7 @@ namespace Renderer {
 	}
 
 	namespace Wrappers {
-		bool buildGraphicsPipeline(Pipeline& pipeline, PipelineSettings settings, std::initializer_list<Shader*> shaders) {
-			std::vector<ShaderResources> resources;
-			for (const auto& shader : shaders) {
-				if (shader->getStatus() == ShaderStatus::Compiled) { // We don't need to recompile, just reflect
-					shader->reflectSPIRV(resources);
-				}
-				else {
-					shader->compileGLSL();
-					shader->reflectSPIRV(resources);
-				}
-			}
-			// We now have all of our shader resources required to make a pipeline layout (Descriptor Layouts + Push Constants)
-			pipeline.setResources(resources);
-
-			pipeline.createLayout(); // This creates our VkPipelineLayout, and populates our pipelines VkDescriptorLayout
-
-
-
-			return true;
-		}
-		bool buildComputePipeline(Pipeline& pipeline, PipelineSettings settings, std::initializer_list<Shader*> shaders) {
-			return true;
-		}
+		
 	}
 
 	/* Helper functions for common use depth / blend settings*/

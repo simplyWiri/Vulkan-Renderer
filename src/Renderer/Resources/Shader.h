@@ -23,8 +23,6 @@ namespace Renderer {
 		Shader is a class which contains a GLSL shader; It should be cleaned up after the compiled SPIR-V is linked into a pipeline
 			- Contains functions for getting information about a shader
 			- It contains all the information that will be required for reflection to create vulkan objects
-
-		Pipeline.addShader(new Shader(ShaderType::Vertex, glslChunk));
 	*/
 
 	// If a UBO/SSBO/Push Constant contains a struct, this member will be filled with the details of the contents within the struct
@@ -81,18 +79,20 @@ namespace Renderer {
 		inline ShaderType getType() const { return type; }
 		inline ShaderStatus getStatus() const { return status; } // For checking if a shader has already been compiled
 		inline uint32_t getSize() const { return static_cast<uint32_t>(spv.size()); }
-
+		inline std::vector<ShaderResources> getResources() const { return resources; }
 		inline std::vector<uint32_t> getSPV() const { return spv; }
 
 		/*
 			Transformation Functions, these will be called from the pipeline
 		*/
 		bool compileGLSL(); // glslang
-		bool reflectSPIRV(std::vector<ShaderResources>& resources); // SPIRV-Cross
+		bool reflectSPIRV(); // SPIRV-Cross
 
 	private:
 		ShaderType type;
 		ShaderStatus status = ShaderStatus::Uninitialised;
+		std::vector<ShaderResources> resources;
+
 
 		std::string shaderText;
 		std::vector<uint32_t> spv;

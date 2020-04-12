@@ -9,6 +9,7 @@
 		- Contains cleanup calls for both
 */
 namespace Renderer {
+
 	struct Context;
 
 	struct Window {

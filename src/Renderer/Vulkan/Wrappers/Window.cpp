@@ -1,8 +1,10 @@
+#pragma once
 #include "Window.h"
 #include "Context.h"
 
 namespace Renderer {
 	namespace Wrappers {
+
 		bool buildWindow(Window* window)
 		{
 			glfwInit();

@@ -56,10 +56,6 @@ namespace Renderer {
 		Context* context;
 		VkPipeline pipeline;
 		VkPipelineLayout layout;
-		VkPipelineCache cache;
-
-		VkRenderPass* renderpass; /* Renderpass to target */
-		std::vector<VkRenderPass>* subpasses; /* Subpasses */
 
 		std::vector<ShaderResources> resources;
 		std::vector<VkPushConstantRange> pushConstants;
@@ -67,8 +63,7 @@ namespace Renderer {
 	};
 
 	namespace Wrappers {
-		bool buildGraphicsPipeline(Pipeline& pipeline, PipelineSettings settings, std::initializer_list<Shader*> shaders);
-		bool buildComputePipeline(Pipeline& pipeline, PipelineSettings settings, std::initializer_list<Shader*> shaders);
+
 	}
 
 }
