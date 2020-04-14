@@ -4,7 +4,6 @@
 
 namespace Renderer {
 	namespace Wrappers {
-
 		bool buildWindow(Window* window)
 		{
 			glfwInit();

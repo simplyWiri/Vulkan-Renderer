@@ -4,10 +4,9 @@
 #include <array>
 
 namespace Renderer {
-
 	struct Vertex {
-		glm::vec3 pos; // x y 
-		glm::vec3 colour; // r g b  
+		glm::vec3 pos; // x y
+		glm::vec3 colour; // r g b
 
 		static VkVertexInputBindingDescription getVertexBindingDescription() {
 			VkVertexInputBindingDescription bindingDesc = {};
@@ -32,5 +31,4 @@ namespace Renderer {
 			return attributeDesc;
 		}
 	};
-
 }

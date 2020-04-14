@@ -1,6 +1,5 @@
 #pragma once
 #include "../../Resources/Shader.h"
-#include "../../Resources/ShaderProgram.h"
 #include "Pipeline.h"
 #include <map>
 #include <iostream>
@@ -9,7 +8,6 @@
 // Cache and Key relation
 
 namespace Renderer {
-
 	struct GraphicsPipelineKey
 	{
 		GraphicsPipelineKey()
@@ -36,7 +34,6 @@ namespace Renderer {
 
 	struct ComputePipelineKey
 	{
-
 	};
 
 	class PipelineCache
@@ -45,10 +42,9 @@ namespace Renderer {
 		// We want to move shader ownership into this class; It will contain; Pipeline(s), Shaders (compiled SPV, Descriptor Sets)
 		PipelineCache(VkDevice* device)
 		{
-
 		}
 
-		bool bindGraphicsPipeline(VkCommandBuffer buffer, VkRenderPass renderpass, DepthSettings depthSettings, const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology, const std::vector<Shader*>& shaders)
+		GraphicsPipelineKey getGraphicsPipelineKey(VkRenderPass renderpass, DepthSettings depthSettings, const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology, const std::vector<Shader*>& shaders)
 		{
 			GraphicsPipelineKey key = {};
 			key.vertexShader = std::move(shaders[0]);
@@ -56,10 +52,28 @@ namespace Renderer {
 			key.depthSetting = depthSettings;
 			key.blendSettings = blendSettings;
 			key.topology = topology;
-			key.layout = createLayout(new ShaderProgram(shaders)); 
+			key.layout = createLayout(shaders);
 			key.renderpass = renderpass;
 
-			vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, getPipeline(key));
+			return key;
+		}
+
+		bool bindGraphicsPipeline(VkCommandBuffer buffer, VkRenderPass renderpass, DepthSettings depthSettings, const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology, const std::vector<Shader*>& shaders)
+		{
+			GraphicsPipelineKey key = getGraphicsPipelineKey(renderpass, depthSettings, blendSettings, topology, shaders);
+
+			bindGraphicsPipeline(buffer, key);
+		}
+
+		bool bindGraphicsPipeline(VkCommandBuffer buffer, GraphicsPipelineKey key)
+		{
+			try {
+				vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, getPipeline(key));
+			}
+			catch (...) {
+				return false;
+			}
+			return true;
 		}
 
 		VkPipeline getPipeline(GraphicsPipelineKey key)
@@ -74,12 +88,40 @@ namespace Renderer {
 		}
 
 	private:
-		
-		VkPipelineLayout createLayout(ShaderProgram* program)
+
+		VkPipelineLayout createLayout(const std::vector<Shader*>& shaders)
 		{
 			VkDescriptorSetLayout layout;
 			std::vector<VkPushConstantRange> pushConstants;
-			program->getResources(device, layout, pushConstants);
+
+			std::vector<VkDescriptorSetLayoutBinding> bindings;
+			for (const Shader* shader : shaders) {
+				for (const auto& resource : shader->getResources) {
+					if (resource.type == VK_DESCRIPTOR_TYPE_MAX_ENUM) { // push constant (ref. Shader.cpp ~ line 400)
+						VkPushConstantRange range;
+						range.offset = resource.offset;
+						range.size = resource.size;
+						range.stageFlags = resource.flags;
+						pushConstants.push_back(range);
+						continue;
+					}
+
+					VkDescriptorSetLayoutBinding binding = {};
+					binding.binding = resource.binding;
+					binding.descriptorCount = resource.descriptorCount;
+					binding.descriptorType = resource.type;
+					binding.stageFlags = resource.flags;
+
+					bindings.push_back(binding);
+				}
+			}
+
+			VkDescriptorSetLayoutCreateInfo desclayout = {};
+			desclayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			desclayout.bindingCount = static_cast<uint32_t>(bindings.size());
+			desclayout.pBindings = bindings.data();
+
+			vkCreateDescriptorSetLayout(*device, &desclayout, nullptr, &layout);
 
 			VkPipelineLayoutCreateInfo layoutInfo;
 			layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -96,8 +138,5 @@ namespace Renderer {
 		VkDevice* device;
 		std::map<GraphicsPipelineKey, Pipeline> graphicsPipelines;
 		std::map<ComputePipelineKey, Pipeline> computePipelines;
-
-		
 	};
-
 }

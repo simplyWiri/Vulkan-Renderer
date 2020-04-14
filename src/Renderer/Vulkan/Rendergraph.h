@@ -1,15 +1,14 @@
 #pragma once
 #include "glm/glm.hpp"
 #include "vulkan.h"
-
+#include <vector>
 
 namespace Renderer {
-
 	// How is the image attachment sized relative to swapchain?
-	enum SizeClass { Absolute, SwapchainRelative, Input};
+	enum SizeClass { Absolute, SwapchainRelative, Input };
 
 	// Image Attachment
-	struct ImageAttachmentInfo 
+	struct ImageAttachmentInfo
 	{
 		SizeClass sizeClass = SizeClass::SwapchainRelative;
 		glm::vec3 size = { 1.0f, 1.0f, 0.0f };
@@ -27,12 +26,7 @@ namespace Renderer {
 		bool persistent = true;
 	};
 
-
 	class Rendergraph
 	{
-
 	};
 }
-
-
-

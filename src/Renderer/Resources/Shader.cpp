@@ -9,7 +9,6 @@
 #include "vulkan.h"
 
 namespace Renderer {
-
 	std::vector<char> loadFromFile(const char* path)
 	{
 		std::ifstream file(path, std::ios::ate | std::ios::binary);
@@ -423,5 +422,4 @@ namespace Renderer {
 
 		return true;
 	}
-
 }

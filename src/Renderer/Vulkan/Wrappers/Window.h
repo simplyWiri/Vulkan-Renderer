@@ -9,7 +9,6 @@
 		- Contains cleanup calls for both
 */
 namespace Renderer {
-
 	struct Context;
 
 	struct Window {
@@ -49,5 +48,4 @@ namespace Renderer {
 		// Populate a Surface instance within a Window object
 		bool buildSurface(Window* window, Context* context);
 	}
-
 }

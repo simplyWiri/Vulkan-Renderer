@@ -93,7 +93,6 @@ namespace Renderer {
 		ShaderStatus status = ShaderStatus::Uninitialised;
 		std::vector<ShaderResources> resources;
 
-
 		std::string shaderText;
 		std::vector<uint32_t> spv;
 		uint32_t spvSize;

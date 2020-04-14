@@ -3,7 +3,6 @@
 #include <stdexcept>
 
 namespace Renderer {
-
 	bool Core::initialiseRenderer()
 	{
 		/*
@@ -21,7 +20,6 @@ namespace Renderer {
 		maxFramesInFlight = swapchain.getSize();
 
 		switch (settings.buffering) {
-
 		case RendererBufferSettings::SwapchainSync:
 			bufferCopies = maxFramesInFlight;
 		case RendererBufferSettings::SingleBuffered:
@@ -30,7 +28,6 @@ namespace Renderer {
 			bufferCopies = 2;
 		case RendererBufferSettings::TripleBuffered:
 			bufferCopies = 3;
-
 		}
 
 		return true;
@@ -43,5 +40,4 @@ namespace Renderer {
 		window.cleanup();
 		context.cleanupInstance();
 	}
-
 }

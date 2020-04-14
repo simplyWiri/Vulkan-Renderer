@@ -3,10 +3,7 @@
 #include <vector>
 #include <algorithm>
 
-
-
 namespace Renderer {
-
 	struct Context;
 	struct Window;
 
@@ -39,5 +36,4 @@ namespace Renderer {
 
 		bool createSwapchainImages(Swapchain* swapchain);
 	}
-
 }

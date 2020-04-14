@@ -2,7 +2,6 @@
 #include "Context.h"
 
 namespace Renderer {
-
 	inline VkPipelineInputAssemblyStateCreateInfo& createInputAssemblyState(VkPrimitiveTopology t, VkBool32 p) {
 		VkPipelineInputAssemblyStateCreateInfo info;
 		info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -37,7 +36,7 @@ namespace Renderer {
 	}
 	inline VkPipelineColorBlendAttachmentState& createColorAttachmentState(VkColorComponentFlags f, VkBool32 b) {
 		VkPipelineColorBlendAttachmentState info;
-		info.blendEnable = b;		
+		info.blendEnable = b;
 		info.colorWriteMask = f;
 		return info;
 	}
@@ -67,9 +66,7 @@ namespace Renderer {
 		return info;
 	}
 
-
-
-	bool Pipeline::createLayout()
+	bool Pipeline::createLayout(std::vector<ShaderResources> resources)
 	{
 		// for each resource
 		std::vector<VkDescriptorSetLayoutBinding> bindings;
@@ -104,7 +101,6 @@ namespace Renderer {
 	}
 
 	namespace Wrappers {
-		
 	}
 
 	/* Helper functions for common use depth / blend settings*/
@@ -119,11 +115,11 @@ namespace Renderer {
 
 	VkPipelineColorBlendAttachmentState BlendSettings::Opaque()
 	{
-		return createColorAttachmentState( (VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_B_BIT), false);
+		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_B_BIT), false);
 	}
 	VkPipelineColorBlendAttachmentState BlendSettings::Add()
 	{
-		return createColorAttachmentState( (VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE);
+		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE);
 	}
 	VkPipelineColorBlendAttachmentState BlendSettings::Mixed()
 	{
@@ -133,5 +129,4 @@ namespace Renderer {
 	{
 		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
 	}
-
 }

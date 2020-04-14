@@ -3,7 +3,6 @@
 #include "Window.h"
 
 namespace Renderer {
-
 	VkSurfaceFormatKHR getFormat(Swapchain* swapchain) {
 		if (swapchain->context->swapDetails.formats.size() == 1 && swapchain->context->swapDetails.formats[0].format == VK_FORMAT_UNDEFINED)
 			return { VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
@@ -94,7 +93,6 @@ namespace Renderer {
 	}
 
 	namespace Wrappers {
-
 		bool buildSwapchain(Swapchain* swapchain, Context* context, Window* window)
 		{
 			swapchain->setWidth(window->getWidth());
@@ -175,5 +173,4 @@ namespace Renderer {
 			return true;
 		}
 	}
-
 }

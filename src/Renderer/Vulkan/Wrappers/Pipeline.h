@@ -4,40 +4,20 @@
 #include <vector>
 
 namespace Renderer {
-
 	struct Context;
 
-    struct DepthSettings
-    {
+	struct DepthSettings
+	{
 		static VkPipelineDepthStencilStateCreateInfo DepthTest();
 		static VkPipelineDepthStencilStateCreateInfo Disabled();
-    };
+	};
 
-    struct BlendSettings
-    {
+	struct BlendSettings
+	{
 		static VkPipelineColorBlendAttachmentState Opaque();
 		static VkPipelineColorBlendAttachmentState Add();
 		static VkPipelineColorBlendAttachmentState Mixed();
 		static VkPipelineColorBlendAttachmentState AlphaBlend();
-    };
-
-	struct PipelineSettings
-	{
-		// Input Assembly Stage
-		VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		bool primitiveRestart = false;
-
-		// Rasterizer
-		bool discardEnable = false;
-		VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
-		float lineWidth = 1.0f;
-		VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT;
-		VkFrontFace frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		bool depthBias = false;
-
-		// Multisampling - Idk
-
-		// DynamicState - Idk
 	};
 
 	struct Pipeline
@@ -47,23 +27,20 @@ namespace Renderer {
 		VkPipeline& getPipeline() { return this->pipeline; }
 		VkPipelineLayout& getLayout() { return this->layout; }
 
-		void setResources(std::vector<ShaderResources> r) { this->resources = r; }
+		void setResources(std::vector<ShaderResources> r) { createLayout(r); }
 		inline VkDescriptorSetLayout& getDescriptorLayout() { return this->descriptorSetLayout; }
 
-		bool createLayout();
+		bool createLayout(std::vector<ShaderResources> r);
 
 	private:
 		Context* context;
 		VkPipeline pipeline;
 		VkPipelineLayout layout;
 
-		std::vector<ShaderResources> resources;
 		std::vector<VkPushConstantRange> pushConstants;
 		VkDescriptorSetLayout descriptorSetLayout;
 	};
 
 	namespace Wrappers {
-
 	}
-
 }

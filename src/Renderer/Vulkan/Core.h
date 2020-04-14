@@ -5,7 +5,6 @@
 #include "Wrappers/Pipeline.h"
 
 namespace Renderer {
-
 	/*
 		SwapchainSync (Default) - One copy of the buffer per image in the swapchain
 		SingleBuffered - Only one copy of each type of buffer, this should only be used when there are large vertex buffers which are not updated often/quickly
@@ -19,7 +18,6 @@ namespace Renderer {
 		RendererBufferSettings buffering = RendererBufferSettings::SwapchainSync;
 	};
 
-
 	class Core
 	{
 	public:
@@ -32,9 +30,7 @@ namespace Renderer {
 		Context		context; // VkDevice, VkInstance, VkPhysicalDevice
 		Swapchain	swapchain; // VkSwapchainKHR
 		std::vector<Pipeline> pipelines;
-		std::vector<PipelineSettings> pipelineSettings;
 		std::vector<std::initializer_list<Shader*>> shaders;
-
 
 		/*
 
@@ -43,14 +39,9 @@ namespace Renderer {
 		*/
 	public:
 
-
-
-
-
 	private:
 		RendererSettings settings;
 		uint32_t maxFramesInFlight;
 		uint32_t bufferCopies;
 	};
-
 }
