@@ -86,8 +86,6 @@ project "Vulkan Renderer"
 		"externals/glslang/builtversion/hlsl/Debug/hlsld.lib",
 		"externals/glslang/builtversion/OGLCompilersDLL/Debug/OGLCompilerd.lib",
 		"externals/glslang/builtversion/glslang/OSDependent/Windows/Debug/OSDependentd.lib",
-		--"externals/glslang/builtversion/External/spirv-tools/source/Debug/SPIRV-Toolsd.lib",
-		--"externals/glslang/builtversion/External/spirv-tools/source/opt/Debug/SPIRV-Tools-optd.lib",
 
 		-- linking SPIRV-Cross
 		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-glsld.lib"),
@@ -95,10 +93,6 @@ project "Vulkan Renderer"
 		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-cppd.lib"),
 		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-utild.lib"),
 		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-cored.lib"),
-
-
-
-
 	}
 
 	filter "configurations:Debug"

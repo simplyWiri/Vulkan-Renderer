@@ -1,29 +1,40 @@
 #pragma once
 #include "vulkan.h"
+#include <map>
+
 
 namespace Renderer {
 
 	struct AttachmentDesc {
+	public:
 		VkFormat format;
 		VkAttachmentLoadOp loadOp;
 		VkClearValue clearValue;
 
-		bool operator < (const AttachmentDesc& other) {
-			return std::tie(format, loadOp, clearValue) < std::tie(other.format, other.loadOp, other.clearValue);
+		bool operator < (const AttachmentDesc& other) const 
+		{ 
+			bool earlyExit = std::tie(format, loadOp) < std::tie(other.format, other.loadOp);
+			if (!earlyExit) return false; 
+
+			bool clearVal = std::tie(clearValue.color.int32[0], clearValue.color.int32[1], clearValue.color.int32[2], clearValue.color.int32[3]) <
+				std::tie(other.clearValue.color.int32[0], other.clearValue.color.int32[1], other.clearValue.color.int32[2], other.clearValue.color.int32[3]);
+
+			return clearVal;
 		}
 	};
 
 	struct RenderpassKey {
-		RenderpassKey(std::vector<AttachmentDesc> colourAttachments, AttachmentDesc depthAttachment) 
+	public:
+		RenderpassKey(std::vector<AttachmentDesc> colourAttachments, AttachmentDesc depthAttachment)
 			: colourAttachments(colourAttachments), depthAttachment(depthAttachment) { }
 
 		std::vector<AttachmentDesc> colourAttachments;
 		AttachmentDesc depthAttachment;
 
-		bool operator < (const RenderpassKey& other) {
-			return std::tie(colourAttachments, depthAttachment) < std::tie(other.colourAttachments, other.depthAttachment);
-		}
+		bool operator < (const RenderpassKey& other) const { return std::tie(colourAttachments, depthAttachment) < std::tie(other.colourAttachments, other.depthAttachment); }
 	};
+
+
 
 	struct Renderpass {
 	public:
@@ -90,7 +101,7 @@ namespace Renderer {
 			createInfo.subpassCount = 1;
 			createInfo.pSubpasses = &subpassDesc;
 			createInfo.dependencyCount = 0;
-			createInfo.pDependencies = nullptr;	
+			createInfo.pDependencies = nullptr;
 
 			vkCreateRenderPass(*device, &createInfo, nullptr, &renderpass);
 		}
@@ -101,26 +112,25 @@ namespace Renderer {
 		VkDevice* device;
 		VkRenderPass renderpass;
 		std::vector<AttachmentDesc> colourAttachments;
-
 	};
 
 	class RenderpassCache {
 	public:
 		RenderpassCache(VkDevice* device) : device(device) { }
-		
-		inline Renderpass getRenderpass(RenderpassKey key) 
-		{ 
+
+		inline Renderpass* getRenderpass(RenderpassKey key)
+		{
 			try {
 				return renderpasses.at(key);
 			}
 			catch (...) {
-				renderpasses.emplace(new Renderpass(device, key));
+				renderpasses.emplace(key, new Renderpass(device, key));
 				return renderpasses.at(key);
 			}
 		}
 
 	private:
 		VkDevice* device;
-		std::map<RenderpassKey, Renderpass> renderpasses;
+		std::map<RenderpassKey, Renderpass*> renderpasses;
 	};
 }

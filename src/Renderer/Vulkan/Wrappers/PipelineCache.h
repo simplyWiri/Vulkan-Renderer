@@ -4,8 +4,6 @@
 #include <map>
 #include <iostream>
 
-// Taking inspiration	 from Susilk/Raikiri's engine 'LegitVulkan'
-// Cache and Key relation
 
 namespace Renderer {
 	struct GraphicsPipelineKey
@@ -27,8 +25,8 @@ namespace Renderer {
 
 		bool operator < (const GraphicsPipelineKey& other) const
 		{
-			return std::tie(vertexShader, fragmentShader, renderpass, layout, extent, depthSetting, blendSettings, topology) <
-				std::tie(other.vertexShader, other.fragmentShader, other.renderpass, other.layout, other.extent, other.depthSetting, other.blendSettings, other.topology);
+			return std::tie(vertexShader, fragmentShader, layout, extent, depthSetting, blendSettings, topology) <
+				std::tie(other.vertexShader, other.fragmentShader, other.layout, other.extent, other.depthSetting, other.blendSettings, other.topology);
 		}
 	};
 
@@ -68,7 +66,7 @@ namespace Renderer {
 		bool bindGraphicsPipeline(VkCommandBuffer buffer, GraphicsPipelineKey key)
 		{
 			try {
-				vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, getPipeline(key));
+				vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, getPipeline(key)->getPipeline());
 			}
 			catch (...) {
 				return false;
@@ -76,12 +74,15 @@ namespace Renderer {
 			return true;
 		}
 
-		VkPipeline getPipeline(GraphicsPipelineKey key)
+		inline Pipeline* getPipeline(GraphicsPipelineKey key)
 		{
 			try {
-				return graphicsPipelines.at(key).getPipeline();
+				return graphicsPipelines.at(key);
 			}
 			catch (const std::exception& e) {
+				// todo
+				//graphicsPipelines.emplace(key, new Pipeline(device, key));
+				return graphicsPipelines.at(key);
 				std::cout << e.what();
 				throw std::runtime_error("Failed to find a suitable pipeline from pipeline key");
 			}
@@ -136,7 +137,7 @@ namespace Renderer {
 		}
 
 		VkDevice* device;
-		std::map<GraphicsPipelineKey, Pipeline> graphicsPipelines;
-		std::map<ComputePipelineKey, Pipeline> computePipelines;
+		std::map<GraphicsPipelineKey, Pipeline*> graphicsPipelines;
+		std::map<ComputePipelineKey, Pipeline*> computePipelines;
 	};
 }

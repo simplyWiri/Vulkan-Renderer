@@ -16,8 +16,7 @@ namespace Renderer {
 		Renderpass renderpass;
 		VkExtent2D extent;
 
-		// Allows for sorting in a map
-		bool operator < (const FramebufferKey& other) { return std::tie(imageViews, renderpass, extent) < std::tie(imageViews, renderpass, extent); }
+		bool operator < (const FramebufferKey& other) const { return std::tie(imageViews, extent.width, extent.height) < std::tie(other.imageViews, other.extent.width, other.extent.height); }
 	};
 
 	struct Framebuffer
@@ -27,7 +26,7 @@ namespace Renderer {
 			: device(device)
 		{
 			VkFramebufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-			createInfo.attachmentCount = key.imageViews.size();
+			createInfo.attachmentCount = static_cast<uint32_t>(key.imageViews.size());
 			createInfo.pAttachments = key.imageViews.data();
 			createInfo.width = key.extent.width;
 			createInfo.height = key.extent.height;
@@ -75,7 +74,7 @@ namespace Renderer {
 				return framebuffers.at(key);
 			}
 			catch (...) {
-				framebuffers.emplace(new Framebuffer(device, key));
+				framebuffers.emplace(key, new Framebuffer(device, key));
 				return framebuffers.at(key);
 			}
 		}
