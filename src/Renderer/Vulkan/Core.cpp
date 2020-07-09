@@ -13,28 +13,30 @@ namespace Renderer
 		*/
 		bool success = false;
 
+		VerboseLog("Initialising Window");
 		window.initialiseWindow(640, 400, "Vulkan Renderer");
+		VerboseLog("Building Window");
 		success = window.buildWindow();
+		VerboseLog("Building Instance");
 		Wrappers::buildInstance(&context);
+		VerboseLog("Building Surface");
 		success = window.buildSurface(&context);
 		Wrappers::pickPhysicalDevice(&context, &window);
+		VerboseLog("Building Device");
 		Wrappers::buildDevice(&context);
+		VerboseLog("Building Swapchain");
 		success = swapchain.buildSwapchain(&context, &window);
+		VerboseLog("Building renderpass Cache");
 		renderpassCache.buildCache(&context.device.device);
 		RenderpassKey key = RenderpassKey(
 			{ { swapchain.getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR } }
 		, {});
+		VerboseLog("Adding to renderpass Cache");
 		success = renderpassCache.add(key);
+		VerboseLog("Building pipeline Cache");
 		pipelineCache.buildCache(&context.device.device);
 
-		//std::vector<std::shared_ptr<Shader>> shaders;
-		//VkRenderPass renderpass;
-		//VkPipelineLayout layout;
-		//VkExtent2D extent;
-		//DepthSettings depthSetting;
-		//std::vector<BlendSettings> blendSettings;
-		//VkPrimitiveTopology topology;
-
+		VerboseLog("Baking pipeline Key");
 		auto gpKey = pipelineCache.bakeKey(
 			renderpassCache[key]->getHandle(),
 			swapchain.extent,
@@ -45,7 +47,7 @@ namespace Renderer
 				std::make_shared<Shader>(ShaderType::Vertex, "resources/VertexShader.vert", 1),
 				std::make_shared<Shader>(ShaderType::Fragment, "resources/FragmentShader.frag", 1)
 			});
-		
+		VerboseLog("Inserting pipeline Key");
 		auto dump = pipelineCache[gpKey];
 
 		Assert(success, "Failed to build state for the renderer");
