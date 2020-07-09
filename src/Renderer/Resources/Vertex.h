@@ -3,12 +3,15 @@
 #include "vulkan.h"
 #include <array>
 
-namespace Renderer {
-	struct Vertex {
+namespace Renderer
+{
+	struct Vertex
+	{
 		glm::vec3 pos; // x y
 		glm::vec3 colour; // r g b
 
-		static VkVertexInputBindingDescription getVertexBindingDescription() {
+		static VkVertexInputBindingDescription getVertexBindingDescription()
+		{
 			VkVertexInputBindingDescription bindingDesc = {};
 			bindingDesc.binding = 0;
 			bindingDesc.stride = sizeof(Vertex);
@@ -16,7 +19,8 @@ namespace Renderer {
 			return bindingDesc;
 		}
 
-		static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
+		static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
+		{
 			std::array<VkVertexInputAttributeDescription, 2> attributeDesc = {};
 			attributeDesc[0].binding = 0;
 			attributeDesc[0].location = 0;

@@ -2,7 +2,8 @@
 #include "vulkan.h"
 #include <vector>
 
-namespace Renderer {
+namespace Renderer
+{
 	enum class PhysicalDevicePreference {
 		None, Discrete, Integrated, Virtual, CPU, Multi
 	};
@@ -23,13 +24,14 @@ namespace Renderer {
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 
-	struct Window;
+	class Window;
 	/*
 		Context Class
 		- Contains a VkDevice, VkPhysicalDevice, VkInstance
 		- Contains information derived from the physical device (queues, swapchain capabilities)
 		- Contains cleanup functions for the above objects
 	*/
+
 	struct Context {
 	public:
 		// Initialisation settings
@@ -37,7 +39,7 @@ namespace Renderer {
 			// Instance Settings
 			uint32_t apiMajor = 1, apiMinor = 2;
 			std::vector<const char*> instanceExtensions = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
-			std::vector<const char*> validationLayers = { "VK_LAYER_LUNARG_standard_validation", "VK_LAYER_LUNARG_monitor" };
+			const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_monitor" };
 			bool enableValidationLayers = true;
 
 			// Physical Device Settings

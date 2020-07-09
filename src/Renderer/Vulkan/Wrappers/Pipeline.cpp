@@ -1,8 +1,12 @@
+#include"../../../Utils/Logging.h"
 #include "Pipeline.h"
 #include "Context.h"
+#include "../../Resources/Vertex.h"
+#include "../Caches/PipelineCache.h"
 
 namespace Renderer {
-	inline VkPipelineInputAssemblyStateCreateInfo& createInputAssemblyState(VkPrimitiveTopology t, VkBool32 p) {
+	inline VkPipelineInputAssemblyStateCreateInfo createInputAssemblyState(VkPrimitiveTopology t, VkBool32 p)
+	{
 		VkPipelineInputAssemblyStateCreateInfo info;
 		info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		info.topology = t;
@@ -10,7 +14,8 @@ namespace Renderer {
 
 		return info;
 	}
-	inline VkPipelineRasterizationStateCreateInfo& createRasterizationState(VkPolygonMode m, VkCullModeFlags c, VkFrontFace f) {
+	inline VkPipelineRasterizationStateCreateInfo createRasterizationState(VkPolygonMode m, VkCullModeFlags c, VkFrontFace f)
+	{
 		VkPipelineRasterizationStateCreateInfo info;
 		info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		info.depthClampEnable = VK_FALSE;
@@ -24,7 +29,8 @@ namespace Renderer {
 		return info;
 	}
 	// todo - Find default values for color attachment state.
-	inline VkPipelineColorBlendAttachmentState& createColorAttachmentState(VkColorComponentFlags f, VkBool32 b, VkBlendOp a, VkBlendOp c, VkBlendFactor sc, VkBlendFactor dc) {
+	inline VkPipelineColorBlendAttachmentState createColorAttachmentState(VkColorComponentFlags f, VkBool32 b, VkBlendOp a, VkBlendOp c, VkBlendFactor sc, VkBlendFactor dc)
+	{
 		VkPipelineColorBlendAttachmentState info;
 		info.blendEnable = b;
 		info.alphaBlendOp = a;
@@ -34,13 +40,16 @@ namespace Renderer {
 		info.dstColorBlendFactor = dc;
 		return info;
 	}
-	inline VkPipelineColorBlendAttachmentState& createColorAttachmentState(VkColorComponentFlags f, VkBool32 b) {
+	inline VkPipelineColorBlendAttachmentState createColorAttachmentState(VkColorComponentFlags f, VkBool32 b)
+	{
 		VkPipelineColorBlendAttachmentState info;
 		info.blendEnable = b;
 		info.colorWriteMask = f;
+
 		return info;
 	}
-	inline VkPipelineColorBlendStateCreateInfo& createColorBlendState(uint32_t c, VkPipelineColorBlendAttachmentState* s) {
+	inline VkPipelineColorBlendStateCreateInfo createColorBlendState(uint32_t c, VkPipelineColorBlendAttachmentState* s)
+	{
 		VkPipelineColorBlendStateCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		info.logicOpEnable = VK_FALSE;
@@ -54,7 +63,8 @@ namespace Renderer {
 
 		return info;
 	}
-	inline VkPipelineDepthStencilStateCreateInfo& createDepthStencilState(VkBool32 w, VkCompareOp c) {
+	inline VkPipelineDepthStencilStateCreateInfo createDepthStencilState(VkBool32 w, VkCompareOp c)
+	{
 		VkPipelineDepthStencilStateCreateInfo info;
 		info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		info.depthTestEnable = VK_TRUE;
@@ -66,41 +76,86 @@ namespace Renderer {
 		return info;
 	}
 
-	bool Pipeline::createLayout(std::vector<ShaderResources> resources)
+	Pipeline::Pipeline(VkDevice* device, GraphicsPipelineKey key)
 	{
-		// for each resource
-		std::vector<VkDescriptorSetLayoutBinding> bindings;
-		for (const auto& resource : resources) {
-			if (resource.type == VK_DESCRIPTOR_TYPE_MAX_ENUM) { // push constant (ref. Shader.cpp ~ line 400)
-				VkPushConstantRange range;
-				range.offset = resource.offset;
-				range.size = resource.size;
-				range.stageFlags = resource.flags;
-				pushConstants.push_back(range);
-				continue;
-			}
+		if (device == nullptr || key.renderpass == nullptr || key.extent.width == 0 || key.extent.height == 0)
+			throw std::runtime_error("Failed to obtain required information for graphics pipeline");
 
-			VkDescriptorSetLayoutBinding binding = {};
-			binding.binding = resource.binding;
-			binding.descriptorCount = resource.descriptorCount;
-			binding.descriptorType = resource.type;
-			binding.stageFlags = resource.flags;
+		auto bindingDescription = Vertex::getVertexBindingDescription();
+		auto attributeDescription = Vertex::getAttributeDescriptions();
 
-			bindings.push_back(binding);
+		VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
+		vertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		vertexInputCreateInfo.vertexBindingDescriptionCount = 1;
+		vertexInputCreateInfo.pVertexBindingDescriptions = &bindingDescription;
+		vertexInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescription.size());
+		vertexInputCreateInfo.pVertexAttributeDescriptions = attributeDescription.data();
+
+		// Input assembly create info stage
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo = createInputAssemblyState(key.topology, false);
+
+		// Viewport create info stage
+		VkViewport viewport = {};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = static_cast<float>(key.extent.width);
+		viewport.height = static_cast<float>(key.extent.height);
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+
+		VkRect2D scissor = {};
+		scissor.offset = { 0, 0 };
+		scissor.extent = key.extent;
+
+		VkPipelineViewportStateCreateInfo viewportCreateInfo = {};
+		viewportCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportCreateInfo.viewportCount = 1;
+		viewportCreateInfo.pViewports = &viewport;
+		viewportCreateInfo.scissorCount = 1;
+		viewportCreateInfo.pScissors = &scissor;
+
+		//// Rasterizer create info stage
+		VkPipelineRasterizationStateCreateInfo rasterizerCreateInfo = createRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+
+		//// Multisampling create info stage
+		VkPipelineMultisampleStateCreateInfo multisampleCreateInfo = {};
+		multisampleCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampleCreateInfo.sampleShadingEnable = VK_FALSE;
+		multisampleCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+		//// Colour blending create info stage
+		VkPipelineColorBlendAttachmentState colorBlendAttachment = createColorAttachmentState(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, VK_FALSE);
+
+		VkPipelineColorBlendStateCreateInfo colorBlendCreateInfo = createColorBlendState(1, &colorBlendAttachment);
+
+		// we pre-bake the layout in the cache
+		layout = key.layout;
+
+		//// Creating the pipeline, and tethering it to the struct
+		VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
+		graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		graphicsPipelineCreateInfo.stageCount = 2;
+		//graphicsPipelineCreateInfo.pStages = shaderCreateInfo.data();
+		graphicsPipelineCreateInfo.pVertexInputState = &vertexInputCreateInfo;
+		graphicsPipelineCreateInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
+		graphicsPipelineCreateInfo.pViewportState = &viewportCreateInfo;
+		graphicsPipelineCreateInfo.pRasterizationState = &rasterizerCreateInfo;
+		graphicsPipelineCreateInfo.pMultisampleState = &multisampleCreateInfo;
+		graphicsPipelineCreateInfo.pColorBlendState = &colorBlendCreateInfo;
+
+		//// TODO
+		////graphicsPipelineCreateInfo.pDepthStencilState = nullptr;
+		////graphicsPipelineCreateInfo.pDynamicState = nullptr;
+
+		graphicsPipelineCreateInfo.layout = layout;
+		graphicsPipelineCreateInfo.renderPass = key.renderpass;
+		graphicsPipelineCreateInfo.subpass = 0;
+		//graphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+		if (vkCreateGraphicsPipelines(*device, nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline) != VK_SUCCESS)
+		{
+			LogError("Failed to create graphics pipeline");
 		}
-
-		VkDescriptorSetLayoutCreateInfo desclayout = {};
-		desclayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		desclayout.bindingCount = static_cast<uint32_t>(bindings.size());
-		desclayout.pBindings = bindings.data();
-
-		if (vkCreateDescriptorSetLayout(context->getDevice(), &desclayout, nullptr, &this->descriptorSetLayout) != VK_SUCCESS)
-			return false;
-
-		return true;
-	}
-
-	namespace Wrappers {
 	}
 
 	/* Helper functions for common use depth / blend settings*/
@@ -112,21 +167,20 @@ namespace Renderer {
 	{
 		return createDepthStencilState(VK_FALSE, VK_COMPARE_OP_ALWAYS);
 	}
-
 	VkPipelineColorBlendAttachmentState BlendSettings::Opaque()
 	{
-		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_B_BIT), false);
+		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), false);
 	}
 	VkPipelineColorBlendAttachmentState BlendSettings::Add()
 	{
-		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE);
+		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE);
 	}
 	VkPipelineColorBlendAttachmentState BlendSettings::Mixed()
 	{
-		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
+		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
 	}
 	VkPipelineColorBlendAttachmentState BlendSettings::AlphaBlend()
 	{
-		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
+		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
 	}
 }

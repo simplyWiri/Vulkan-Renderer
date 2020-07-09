@@ -29,30 +29,22 @@ namespace Renderer {
 
 	static const EShLanguage getEshLangType(ShaderType kind) {
 		switch (kind) {
-		case ShaderType::Vertex:
-			return EShLangVertex;
-		case ShaderType::Compute:
-			return EShLangCompute;
-		case ShaderType::Fragment:
-			return EShLangFragment;
-		case ShaderType::Mesh:
-			return EShLangMeshNV;
+		case ShaderType::Vertex: return EShLangVertex;
+		case ShaderType::Compute: return EShLangCompute;
+		case ShaderType::Fragment: return EShLangFragment;
+		case ShaderType::Mesh: return EShLangMeshNV;
 		}
 		throw std::runtime_error("Currently unsupported language type");
 		return EShLangCallable;
 	}
 	static const VkShaderStageFlagBits getFlagBits(ShaderType kind) {
 		switch (kind) {
-		case ShaderType::Vertex:
-			return VK_SHADER_STAGE_VERTEX_BIT;
-		case ShaderType::Compute:
-			return VK_SHADER_STAGE_COMPUTE_BIT;
-		case ShaderType::Fragment:
-			return VK_SHADER_STAGE_FRAGMENT_BIT;
-		case ShaderType::Mesh:
-			return VK_SHADER_STAGE_MESH_BIT_NV;
+		case ShaderType::Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
+		case ShaderType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
+		case ShaderType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
+		case ShaderType::Mesh: return VK_SHADER_STAGE_MESH_BIT_NV;
 		}
-		throw std::runtime_error("Currently unsupported language type");
+		throw std::runtime_error("Currently unsupported shader type");
 		return VK_SHADER_STAGE_ALL;
 	}
 	static const TBuiltInResource GetDefaultResources() {

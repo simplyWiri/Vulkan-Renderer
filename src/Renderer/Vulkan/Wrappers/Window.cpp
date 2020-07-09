@@ -2,27 +2,31 @@
 #include "Window.h"
 #include "Context.h"
 
-namespace Renderer {
-	namespace Wrappers {
-		bool buildWindow(Window* window)
-		{
-			glfwInit();
-			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+namespace Renderer
+{
+	bool Window::buildWindow()
+	{
+		glfwInit();
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-			window->window = glfwCreateWindow(window->getWidth(), window->getHeight(), window->getTitle(), nullptr, nullptr);
+		window = glfwCreateWindow(getWidth(), getHeight(), getTitle(), nullptr, nullptr);
 
-			return window->isInitialised();
-		}
+		return isInitialised();
+	}
+	bool Window::buildSurface(Context* context)
+	{
+		if (glfwCreateWindowSurface(context->instance, window, nullptr, &surface) != VK_SUCCESS)
+			return false;
 
-		bool buildSurface(Window* window, Context* context)
-		{
-			if (glfwCreateWindowSurface(context->instance, window->window, nullptr, &window->surface) != VK_SUCCESS)
-				return false;
+		// Used for cleaning up the window surface
+		setInstance(&context->instance);
 
-			// Used for cleaning up the window surface
-			window->setInstance(&context->instance);
-
-			return true;
-		}
+		return true;
+	}
+	void Window::cleanup()
+	{
+		vkDestroySurfaceKHR(*instance, surface, nullptr);
+		glfwDestroyWindow(window);
+		glfwTerminate();
 	}
 }

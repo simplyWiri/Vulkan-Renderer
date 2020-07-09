@@ -33,7 +33,7 @@ workspace "Vulkan Renderer"
 
 	configurations
 	{
-		"Debug", "Release"
+		"Verbose", "Trace", "Debug", "Release", 
 	}
 
 	workspace_files
@@ -47,8 +47,8 @@ project "Vulkan Renderer"
 	language "C++"
 	cppdialect "C++17"
 
-	targetdir "/bin/"
-	objdir "/bin-int/"
+	targetdir "bin/"
+	objdir "bin-int/"
 
 	files
 	{
@@ -71,6 +71,7 @@ project "Vulkan Renderer"
 		"externals/glm",
 		"externals/stb",
 		"externals/SPIRV-Cross",
+		"externals/spdlog/include",
 		"externals/glslang",
 		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/")
 	}

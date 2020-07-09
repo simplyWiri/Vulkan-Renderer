@@ -8,10 +8,13 @@
 		- Contains a Vulkan Surface
 		- Contains cleanup calls for both
 */
-namespace Renderer {
+
+namespace Renderer
+{
 	struct Context;
 
-	struct Window {
+	class Window
+	{
 	public:
 		GLFWwindow* window;
 		VkSurfaceKHR surface;
@@ -23,6 +26,8 @@ namespace Renderer {
 		VkInstance* instance;
 
 	public:
+		bool buildWindow();
+		bool buildSurface(Context* context);
 		inline void initialiseWindow(int w, int h, const char* t) { width = w; height = h; title = t; }
 		inline bool isInitialised() const { return width > 0 && height > 0 && window && surface; }
 
@@ -39,13 +44,6 @@ namespace Renderer {
 		inline VkSurfaceKHR getSurface() const { return surface; }
 		inline bool needsResize() const { return outofDate; }
 
-		inline void cleanup() { vkDestroySurfaceKHR(*instance, surface, nullptr); glfwDestroyWindow(window); glfwTerminate(); }
+		void cleanup();
 	};
-
-	namespace Wrappers {
-		// Populate a GLFWwindow instance within a Window object
-		bool buildWindow(Window* window);
-		// Populate a Surface instance within a Window object
-		bool buildSurface(Window* window, Context* context);
-	}
 }

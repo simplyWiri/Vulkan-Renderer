@@ -37,8 +37,7 @@ namespace Renderer {
 		const ShaderMember* pMembers;
 	};
 
-	// A generic reflection struct which contains enough information to create a descriptor layout per resource relevant.
-	// For parsing into descriptors
+	// A generic reflection struct which contains enough information to create a descriptor layout per relevant resource, for parsing into descriptors
 	struct ShaderResources
 	{
 		VkShaderStageFlagBits flags;
@@ -66,6 +65,15 @@ namespace Renderer {
 	*/
 	class Shader
 	{
+	private:
+		ShaderType type;
+		ShaderStatus status = ShaderStatus::Uninitialised;
+		std::vector<ShaderResources> resources;
+
+		std::string shaderText;
+		std::vector<uint32_t> spv;
+		uint32_t spvSize;
+
 	public:
 		// If p = 1, the shader will be loaded from a local path.
 		Shader(ShaderType t, const char* text = "", uint32_t p = 0)
@@ -87,14 +95,5 @@ namespace Renderer {
 		*/
 		bool compileGLSL(); // glslang
 		bool reflectSPIRV(); // SPIRV-Cross
-
-	private:
-		ShaderType type;
-		ShaderStatus status = ShaderStatus::Uninitialised;
-		std::vector<ShaderResources> resources;
-
-		std::string shaderText;
-		std::vector<uint32_t> spv;
-		uint32_t spvSize;
 	};
 }

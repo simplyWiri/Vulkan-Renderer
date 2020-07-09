@@ -45,7 +45,7 @@ public:
 
 		// deal with all of our 4 byte blocks, i.e. the 'body'
 		const uint32_t* body = (const uint32_t*)(data + blockCount * 4);
-		for (int i = -blockCount; i; i++) 
+		for (int i = -blockCount; i; i++)
 		{
 			uint32_t block = body[i];
 
@@ -53,14 +53,14 @@ public:
 			block = ((block << r1) | (block >> (32 - r1))); // rotate by our first rot const
 			block *= c2; // second const
 
-			hash ^= block; 
+			hash ^= block;
 			hash = ((hash << r2) | (hash >> (32 - r2))); // rotate by our second rot const
 			hash = hash * 5 + n;
 		}
 
 		uint32_t block = 0;
 		// now we deal with any remainders, i.e the 'tail'
-		const uint8_t* tail = (const uint8_t*)(data + blockCount * 4); 
+		const uint8_t* tail = (const uint8_t*)(data + blockCount * 4);
 
 		switch (len & 3) {
 		case 3: block ^= tail[2] << 16;

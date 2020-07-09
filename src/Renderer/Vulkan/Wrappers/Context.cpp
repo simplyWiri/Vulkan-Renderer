@@ -1,3 +1,4 @@
+#include "../../../Utils/Logging.h"
 #include "Context.h"
 #include "glfw3.h"
 #include "Window.h"
@@ -7,38 +8,47 @@
 
 namespace Renderer {
 	// Instance related functions
-	const char* strMessageSeverity(VkDebugUtilsMessageSeverityFlagBitsEXT s) {
+	const char* strMessageSeverity(VkDebugUtilsMessageSeverityFlagBitsEXT s)
+	{
 		switch (s) {
-		case VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-			return "VERBOSE";
-		case VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-			return "ERROR";
-		case VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-			return "WARNING";
-		case VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-			return "INFO";
-		default:
-			return "UNKNOWN";
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: return "V";
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: return "E";
+		case VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: return "W";
+		case VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: return "I";
+		default: return "U";
 		}
 	}
-	const char* strMessageType(VkDebugUtilsMessageTypeFlagsEXT s) {
+	const char* strMessageType(VkDebugUtilsMessageTypeFlagsEXT s)
+	{
 		if (s == 7) return "General | Validation | Performance";
 		if (s == 6) return "Validation | Performance";
 		if (s == 5) return "General | Performance";
-		if (s == 4 /*VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT*/) return "Performance";
+		if (s == 4)  return "Performance";
 		if (s == 3) return "General | Validation";
-		if (s == 2 /*VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT*/) return "Validation";
-		if (s == 1 /*VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT*/) return "General";
+		if (s == 2) return "Validation";
+		if (s == 1) return "General";
+
 		return "Unknown";
 	}
-	VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void*) {
+	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+	{
 		auto ms = strMessageSeverity(messageSeverity);
 		auto mt = strMessageType(messageType);
-		printf("[%s: %s]\n%s\n", ms, mt, pCallbackData->pMessage);
+
+		if (ms == "E")
+			LogError("[{0}]: {1}", mt, pCallbackData->pMessage);
+		else if (ms == "W")
+			LogWarning("[{0}]: {1}", mt, pCallbackData->pMessage);
+		else if (ms == "I")
+			LogWarning("[{0}]: {1}", mt, pCallbackData->pMessage);
+		else
+			VerboseLog("[{0}]: {1}", mt, pCallbackData->pMessage);
 
 		return VK_FALSE;
 	}
-	VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+
+	VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+	{
 		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 		if (func != nullptr) {
 			return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
@@ -151,24 +161,13 @@ namespace Renderer {
 		VkPhysicalDeviceType physType;
 		switch (context->settings.pref)
 		{
-		case PhysicalDevicePreference::CPU:
-			physType = VK_PHYSICAL_DEVICE_TYPE_CPU;
-			break;
-		case PhysicalDevicePreference::Discrete:
-			physType = VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-			break;
-		case PhysicalDevicePreference::Integrated:
-			physType = VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
-			break;
-		case PhysicalDevicePreference::None:
-			return physDeviceFeatures.geometryShader
-				&& indices.isComplete()
-				&& extensionsSupported
-				&& swapChainSupport;
-		default:
+		case PhysicalDevicePreference::CPU: physType = VK_PHYSICAL_DEVICE_TYPE_CPU; break;
+		case PhysicalDevicePreference::Discrete: physType = VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU; break;
+		case PhysicalDevicePreference::Integrated: physType = VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU; break;
+		case PhysicalDevicePreference::None: return physDeviceFeatures.geometryShader && indices.isComplete() && extensionsSupported && swapChainSupport;
+		default: return false; break;
+
 			// Currently not supporting Virtual / Multi GPU's
-			return false;
-			break;
 		}
 
 		return physDeviceProperties.deviceType == physType
@@ -178,7 +177,8 @@ namespace Renderer {
 			&& swapChainSupport;
 	}
 
-	namespace Wrappers {
+	namespace Wrappers
+	{
 		bool buildInstance(Context* context)
 		{
 			{
@@ -218,11 +218,11 @@ namespace Renderer {
 				createInfo.pNext = nullptr;
 			}
 
-			if (vkCreateInstance(&createInfo, nullptr, &context->instance) != VK_SUCCESS)
-				return false;
+			bool success = vkCreateInstance(&createInfo, nullptr, &context->instance) == VK_SUCCESS;
+			Assert(success, "Failed to create instance");
 
-			if (CreateDebugUtilsMessengerEXT(context->instance, &messengerInfo, nullptr, &context->debugMessenger) != VK_SUCCESS)
-				return false;
+			success = CreateDebugUtilsMessengerEXT(context->instance, &messengerInfo, nullptr, &context->debugMessenger) == VK_SUCCESS;
+			Assert(success, "Failed to create debug messenger");
 
 			return true;
 		}
@@ -263,12 +263,13 @@ namespace Renderer {
 			VkPhysicalDeviceProperties props = {};
 
 			vkGetPhysicalDeviceProperties(context->gpu.physDevice, &props);
-			std::cout << "Using Physical Device: " << props.deviceName << std::endl;
-			std::cout << "	- Vender API version: " << props.apiVersion << std::endl;
-			std::cout << "	- Driver version: " << props.driverVersion << "\n\n\n";
 
-			if (vkCreateDevice(context->gpu.physDevice, &deviceCreateInfo, nullptr, &context->device.device) != VK_SUCCESS)
-				throw std::runtime_error("Failed to initialise logical device");
+			LogInfo("Using Physical Device: {}", props.deviceName);
+			LogInfo("	- Vender API version: {}", props.apiVersion);
+			LogInfo("	- Driver version:  {}", props.driverVersion);
+
+			auto success = vkCreateDevice(context->gpu.physDevice, &deviceCreateInfo, nullptr, &context->device.device);
+			Assert(success == VK_SUCCESS, "Failed to create logical device");
 
 			vkGetDeviceQueue(context->device.device, context->gpu.indices.graphicsFamily, 0, &context->device.graphicsQueue);
 			vkGetDeviceQueue(context->device.device, context->gpu.indices.presentFamily, 0, &context->device.presentQueue);
@@ -276,13 +277,13 @@ namespace Renderer {
 			if (context->gpu.indices.transferFamily != -1)
 				vkGetDeviceQueue(context->device.device, context->gpu.indices.transferFamily, 0, &context->device.transferQueue);
 			else {
-				std::cout << "Transfer command queues not supported" << std::endl;
+				LogInfo("Transfer command queues not supported");
 				return false;
 			}
 			if (context->gpu.indices.computeFamily != -1)
 				vkGetDeviceQueue(context->device.device, context->gpu.indices.computeFamily, 0, &context->device.computeQueue);
 			else {
-				std::cout << "Compute command queues not supported" << std::endl;
+				LogInfo("Compute command queues not supported");
 				return false;
 			}
 			return false;
@@ -307,7 +308,7 @@ namespace Renderer {
 				}
 			}
 			// if we are here we failed to find a suitable physical device
-
+			Assert(false, "Failed to create find a suitable physical device");
 			return false;
 		}
 	}
