@@ -13,6 +13,7 @@ namespace Renderer
 			this->device = device;
 		}
 
+
 		Renderpass* get(RenderpassKey key) override
 		{
 			auto& renderPass = cache[key];
@@ -50,10 +51,8 @@ namespace Renderer
 		{
 			vkDestroyRenderPass(*device, renderpass->getHandle(), nullptr);
 		}
-
+		
 	private:
 		VkDevice* device;
-
-		
 	};
 }

@@ -8,14 +8,14 @@
 
 namespace Renderer {
 	// Instance related functions
-	const char* strMessageSeverity(VkDebugUtilsMessageSeverityFlagBitsEXT s)
+	char strMessageSeverity(VkDebugUtilsMessageSeverityFlagBitsEXT s)
 	{
 		switch (s) {
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: return "V";
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: return "E";
-		case VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: return "W";
-		case VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: return "I";
-		default: return "U";
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: return 'V';
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: return 'E';
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: return 'W';
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: return 'I';
+		default: return 'U';
 		}
 	}
 	const char* strMessageType(VkDebugUtilsMessageTypeFlagsEXT s)
@@ -32,17 +32,16 @@ namespace Renderer {
 	}
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 	{
-		auto ms = strMessageSeverity(messageSeverity);
+		char ms = strMessageSeverity(messageSeverity);
 		auto mt = strMessageType(messageType);
 
-		if (ms == "E")
-			LogError("[{0}]: {1}", mt, pCallbackData->pMessage);
-		else if (ms == "W")
-			LogWarning("[{0}]: {1}", mt, pCallbackData->pMessage);
-		else if (ms == "I")
-			LogWarning("[{0}]: {1}", mt, pCallbackData->pMessage);
-		else
-			VerboseLog("[{0}]: {1}", mt, pCallbackData->pMessage);
+		switch (ms)
+		{
+		case 'E': LogError("[{0}]: {1}", mt, pCallbackData->pMessage); break;
+		case 'W': LogWarning("[{0}]: {1}", mt, pCallbackData->pMessage); break;
+		case 'I': LogInfo("[{0}]: {1}", mt, pCallbackData->pMessage); break;
+		default: VerboseLog("[{0}]: {1}", mt, pCallbackData->pMessage); break;
+		}
 
 		return VK_FALSE;
 	}

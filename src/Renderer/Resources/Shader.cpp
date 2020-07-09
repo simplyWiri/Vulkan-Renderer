@@ -37,7 +37,8 @@ namespace Renderer {
 		throw std::runtime_error("Currently unsupported language type");
 		return EShLangCallable;
 	}
-	static const VkShaderStageFlagBits getFlagBits(ShaderType kind) {
+	
+	const VkShaderStageFlagBits getFlagBits(ShaderType kind) {
 		switch (kind) {
 		case ShaderType::Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
 		case ShaderType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
@@ -47,6 +48,7 @@ namespace Renderer {
 		throw std::runtime_error("Currently unsupported shader type");
 		return VK_SHADER_STAGE_ALL;
 	}
+
 	static const TBuiltInResource GetDefaultResources() {
 		TBuiltInResource resources = {};
 		resources.maxLights = 32;
@@ -193,6 +195,11 @@ namespace Renderer {
 
 	bool Shader::compileGLSL()
 	{
+		if (!glInitialised) {
+			glslang::InitializeProcess();
+			glInitialised = true;
+		}
+
 		glslang::TProgram program;
 		EShLanguage lang = getEshLangType(this->type);
 		glslang::TShader shader(lang);
@@ -243,7 +250,7 @@ namespace Renderer {
 
 		glslang::GlslangToSpv(*program.getIntermediate(lang), this->spv, &logger, &spvOptions);
 
-		return false;
+		return true;
 	}
 
 	bool Shader::reflectSPIRV()
@@ -411,6 +418,8 @@ namespace Renderer {
 
 			resources.push_back(resource);
 		}
+
+		status = ShaderStatus::Compiled;
 
 		return true;
 	}

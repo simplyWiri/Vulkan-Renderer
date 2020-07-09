@@ -24,9 +24,29 @@ namespace Renderer
 		RenderpassKey key = RenderpassKey(
 			{ { swapchain.getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR } }
 		, {});
-		//success = renderpassCache.add(key);
+		success = renderpassCache.add(key);
+		pipelineCache.buildCache(&context.device.device);
 
-		auto rp = renderpassCache[key]->getHandle();
+		//std::vector<std::shared_ptr<Shader>> shaders;
+		//VkRenderPass renderpass;
+		//VkPipelineLayout layout;
+		//VkExtent2D extent;
+		//DepthSettings depthSetting;
+		//std::vector<BlendSettings> blendSettings;
+		//VkPrimitiveTopology topology;
+
+		auto gpKey = pipelineCache.bakeKey(
+			renderpassCache[key]->getHandle(),
+			swapchain.extent,
+			DepthSettings::Disabled(),
+			{ BlendSettings::Add() },
+			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+			{
+				std::make_shared<Shader>(ShaderType::Vertex, "resources/VertexShader.vert", 1),
+				std::make_shared<Shader>(ShaderType::Fragment, "resources/FragmentShader.frag", 1)
+			});
+		
+		auto dump = pipelineCache[gpKey];
 
 		Assert(success, "Failed to build state for the renderer");
 
@@ -44,6 +64,7 @@ namespace Renderer
 
 	Core::~Core()
 	{
+		pipelineCache.clearCache();
 		renderpassCache.clearCache();
 		swapchain.cleanupSwapchain();
 		context.cleanupDevice();

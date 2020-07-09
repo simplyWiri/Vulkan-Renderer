@@ -7,7 +7,7 @@
 namespace Renderer {
 	inline VkPipelineInputAssemblyStateCreateInfo createInputAssemblyState(VkPrimitiveTopology t, VkBool32 p)
 	{
-		VkPipelineInputAssemblyStateCreateInfo info;
+		VkPipelineInputAssemblyStateCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		info.topology = t;
 		info.primitiveRestartEnable = p;
@@ -16,7 +16,7 @@ namespace Renderer {
 	}
 	inline VkPipelineRasterizationStateCreateInfo createRasterizationState(VkPolygonMode m, VkCullModeFlags c, VkFrontFace f)
 	{
-		VkPipelineRasterizationStateCreateInfo info;
+		VkPipelineRasterizationStateCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		info.depthClampEnable = VK_FALSE;
 		info.rasterizerDiscardEnable = VK_FALSE;
@@ -31,7 +31,7 @@ namespace Renderer {
 	// todo - Find default values for color attachment state.
 	inline VkPipelineColorBlendAttachmentState createColorAttachmentState(VkColorComponentFlags f, VkBool32 b, VkBlendOp a, VkBlendOp c, VkBlendFactor sc, VkBlendFactor dc)
 	{
-		VkPipelineColorBlendAttachmentState info;
+		VkPipelineColorBlendAttachmentState info = {};
 		info.blendEnable = b;
 		info.alphaBlendOp = a;
 		info.colorBlendOp = c;
@@ -42,7 +42,7 @@ namespace Renderer {
 	}
 	inline VkPipelineColorBlendAttachmentState createColorAttachmentState(VkColorComponentFlags f, VkBool32 b)
 	{
-		VkPipelineColorBlendAttachmentState info;
+		VkPipelineColorBlendAttachmentState info = {};
 		info.blendEnable = b;
 		info.colorWriteMask = f;
 
@@ -65,7 +65,7 @@ namespace Renderer {
 	}
 	inline VkPipelineDepthStencilStateCreateInfo createDepthStencilState(VkBool32 w, VkCompareOp c)
 	{
-		VkPipelineDepthStencilStateCreateInfo info;
+		VkPipelineDepthStencilStateCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		info.depthTestEnable = VK_TRUE;
 		info.depthWriteEnable = w;
@@ -79,7 +79,32 @@ namespace Renderer {
 	Pipeline::Pipeline(VkDevice* device, GraphicsPipelineKey key)
 	{
 		if (device == nullptr || key.renderpass == nullptr || key.extent.width == 0 || key.extent.height == 0)
-			throw std::runtime_error("Failed to obtain required information for graphics pipeline");
+			Assert(false, "Failed to obtain required information to create the graphics pipeline");
+		this->device = device;
+		this->layout = key.pLayout;
+		this->descriptorSetLayout = key.dLayout;
+
+		std::vector<VkPipelineShaderStageCreateInfo> shaderCreateInfo = {};
+
+		for (const auto& shader : key.shaders)
+		{
+			if (shader->getStatus() == ShaderStatus::Uninitialised)
+			{
+				shader->compileGLSL();
+				shader->reflectSPIRV();
+			}
+
+			switch (shader->getType())
+			{
+			case ShaderType::Vertex:
+			case ShaderType::Fragment:
+				// this also populates the field in Pipeline/shaderModules
+				shaderCreateInfo.push_back(createShaderInfo(createShaderModule(shader), shader->getType()));
+				break;
+			default:
+				LogError("Tried to register currently unsupported shader type");
+			}
+		}
 
 		auto bindingDescription = Vertex::getVertexBindingDescription();
 		auto attributeDescription = Vertex::getAttributeDescriptions();
@@ -128,14 +153,11 @@ namespace Renderer {
 
 		VkPipelineColorBlendStateCreateInfo colorBlendCreateInfo = createColorBlendState(1, &colorBlendAttachment);
 
-		// we pre-bake the layout in the cache
-		layout = key.layout;
-
 		//// Creating the pipeline, and tethering it to the struct
 		VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
 		graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		graphicsPipelineCreateInfo.stageCount = 2;
-		//graphicsPipelineCreateInfo.pStages = shaderCreateInfo.data();
+		graphicsPipelineCreateInfo.pStages = shaderCreateInfo.data();
 		graphicsPipelineCreateInfo.pVertexInputState = &vertexInputCreateInfo;
 		graphicsPipelineCreateInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
 		graphicsPipelineCreateInfo.pViewportState = &viewportCreateInfo;
@@ -147,40 +169,88 @@ namespace Renderer {
 		////graphicsPipelineCreateInfo.pDepthStencilState = nullptr;
 		////graphicsPipelineCreateInfo.pDynamicState = nullptr;
 
-		graphicsPipelineCreateInfo.layout = layout;
+		// we pre-bake the layout in the cache
+		graphicsPipelineCreateInfo.layout = key.pLayout;
 		graphicsPipelineCreateInfo.renderPass = key.renderpass;
 		graphicsPipelineCreateInfo.subpass = 0;
 		//graphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-		if (vkCreateGraphicsPipelines(*device, nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline) != VK_SUCCESS)
+		auto success = vkCreateGraphicsPipelines(*device, nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline) == VK_SUCCESS;
+		Assert(success, "Failed to create graphics pipeline");
+
+		for (auto shaderModule : shaderModules)
 		{
-			LogError("Failed to create graphics pipeline");
+			vkDestroyShaderModule(*device, shaderModule, nullptr);
 		}
 	}
 
+	VkShaderModule Pipeline::createShaderModule(std::shared_ptr<Shader> shader)
+	{
+		VkShaderModuleCreateInfo createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		createInfo.codeSize = shader->getSize();
+		createInfo.pCode = shader->getSPV().data();
+
+		VkShaderModule shaderModule;
+		auto success = vkCreateShaderModule(*device, &createInfo, nullptr, &shaderModule) == VK_SUCCESS;
+		Assert(success, "Failed to create shader module");
+
+		shaderModules.push_back(shaderModule);
+
+		return shaderModule;
+	}
+
+	VkPipelineShaderStageCreateInfo Pipeline::createShaderInfo(VkShaderModule module, ShaderType type)
+	{
+		VkPipelineShaderStageCreateInfo shaderCreateInfo = {};
+		shaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderCreateInfo.stage = getFlagBits(type);
+		shaderCreateInfo.module = module;
+		shaderCreateInfo.pName = "main";
+
+		return shaderCreateInfo;
+	}
+
 	/* Helper functions for common use depth / blend settings*/
-	VkPipelineDepthStencilStateCreateInfo DepthSettings::DepthTest()
+	DepthSettings DepthSettings::DepthTest()
 	{
-		return createDepthStencilState(VK_TRUE, VK_COMPARE_OP_LESS);
+		DepthSettings settings;
+		settings.depthFunc = VK_COMPARE_OP_LESS;
+		settings.writeEnable = VK_TRUE;
+
+		return settings;
 	}
-	VkPipelineDepthStencilStateCreateInfo DepthSettings::Disabled()
+	DepthSettings DepthSettings::Disabled()
 	{
-		return createDepthStencilState(VK_FALSE, VK_COMPARE_OP_ALWAYS);
+		DepthSettings settings;
+		settings.depthFunc = VK_COMPARE_OP_ALWAYS;
+		settings.writeEnable = VK_FALSE;
+
+		return settings;
 	}
-	VkPipelineColorBlendAttachmentState BlendSettings::Opaque()
+	BlendSettings BlendSettings::Opaque()
 	{
-		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), false);
+		BlendSettings settings;
+		settings.blendState = createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), false);
+		return settings;
 	}
-	VkPipelineColorBlendAttachmentState BlendSettings::Add()
+	BlendSettings BlendSettings::Add()
 	{
-		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE);
+		BlendSettings settings;
+		settings.blendState = createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE);
+		return settings;
 	}
-	VkPipelineColorBlendAttachmentState BlendSettings::Mixed()
+	BlendSettings BlendSettings::Mixed()
 	{
-		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
+		BlendSettings settings;
+
+		settings.blendState = createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
+		return settings;
 	}
-	VkPipelineColorBlendAttachmentState BlendSettings::AlphaBlend()
+	BlendSettings BlendSettings::AlphaBlend()
 	{
-		return createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
+		BlendSettings settings;
+		settings.blendState = createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
+		return settings;
 	}
 }

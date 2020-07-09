@@ -8,11 +8,17 @@ enum VkDescriptorType;
 typedef uint32_t VkFlags;
 typedef VkFlags VkAccessFlags;
 
-namespace Renderer {
+namespace Renderer 
+{
+
 	enum class ShaderType {
 		Vertex, Fragment, Compute, Mesh
 		// todo -- support for RTX
 	};
+
+	const VkShaderStageFlagBits getFlagBits(ShaderType kind);
+
+
 
 	// this allows us to avoid compiling the same shader twice
 	enum class ShaderStatus {
@@ -72,7 +78,8 @@ namespace Renderer {
 
 		std::string shaderText;
 		std::vector<uint32_t> spv;
-		uint32_t spvSize;
+
+		bool glInitialised = false;
 
 	public:
 		// If p = 1, the shader will be loaded from a local path.
@@ -86,9 +93,9 @@ namespace Renderer {
 
 		inline ShaderType getType() const { return type; }
 		inline ShaderStatus getStatus() const { return status; } // For checking if a shader has already been compiled
-		inline uint32_t getSize() const { return static_cast<uint32_t>(spv.size()); }
+		inline uint32_t getSize() const { return static_cast<uint32_t>(spv.size()*4); }
 		inline std::vector<ShaderResources> getResources() const { return resources; }
-		inline std::vector<uint32_t> getSPV() const { return spv; }
+		inline std::vector<uint32_t>& getSPV() { return spv; }
 
 		/*
 			Transformation Functions, these will be called from the pipeline
