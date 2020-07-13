@@ -1,17 +1,20 @@
 #pragma once
 #include "vulkan.h"
 #include "../Wrappers/Framebuffer.h"
+#include "Cache.h"
 
 namespace Renderer {
-	class FramebufferCache
+	class FramebufferCache : public Cache<Framebuffer, FramebufferKey>
 	{
 	public:
-
-		FramebufferCache(VkDevice* device) : device(device) { }
+		void buildCache(VkDevice* device)
+		{
+			this->device = device;
+		}
 
 		void beginPass(VkCommandBuffer commandBuffer, FramebufferKey key)
 		{
-			Framebuffer* framebuffer = getFramebuffer(key);
+			Framebuffer* framebuffer = get(key);
 
 			VkRenderPassBeginInfo beginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO };
 			beginInfo.renderPass = key.renderpass.getHandle();
@@ -24,20 +27,48 @@ namespace Renderer {
 
 		inline void endPass(VkCommandBuffer commandBuffer) { vkCmdEndRenderPass(commandBuffer); }
 
+		Framebuffer* get(FramebufferKey key) override
+		{
+			auto& renderPass = cache[key];
+			if (!renderPass)
+			{
+				renderPass = new Framebuffer(device, key);
+				registerInput(key);
+			}
+			return renderPass;
+		}
+
+		bool add(FramebufferKey key) override
+		{
+			if (cache.find(key) != cache.end())
+				return false;
+
+			cache.emplace(key, new Framebuffer(device, key));
+			registerInput(key);
+
+			return true;
+		}
+
+		bool add(FramebufferKey key, uint16_t& local) override
+		{
+			if (cache.find(key) != cache.end())
+				return false;
+
+			cache.emplace(key, new Framebuffer(device, key));
+			local = registerInput(key);
+
+			return true;
+		}
+
+
+
 	private:
 
-		inline Framebuffer* getFramebuffer(FramebufferKey key)
+		void clearEntry(Framebuffer* framebuffer) override
 		{
-			try {
-				return framebuffers.at(key);
-			}
-			catch (...) {
-				framebuffers.emplace(key, new Framebuffer(device, key));
-				return framebuffers.at(key);
-			}
+			vkDestroyFramebuffer(*device, framebuffer->getHandle(), nullptr);
 		}
 
 		VkDevice* device;
-		std::map<FramebufferKey, Framebuffer*> framebuffers;
 	};
 }

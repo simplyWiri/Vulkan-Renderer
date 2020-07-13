@@ -82,10 +82,9 @@ namespace Renderer
 		bool glInitialised = false;
 
 	public:
-		// If p = 1, the shader will be loaded from a local path.
-		Shader(ShaderType t, const char* text = "", uint32_t p = 0)
-			: type(t), shaderText(text) {
-			if (p == 1) loadFromPath(t, text);
+		Shader(ShaderType t, const char* path = "")
+			: type(t) {
+			loadFromPath(t, path);
 		}
 
 		bool loadFromPath(ShaderType t, const char* path);

@@ -60,7 +60,7 @@ project "Vulkan Renderer"
 		"externals/imgui/imgui.h",
 		"externals/imgui/imgui.cpp",
 		"externals/imgui/imgui_draw.cpp",
-		"externals/imgui/imgui_widgets.cpp",
+		"externals/imgui/imgui_widgets.cpp"
 	}
 
 	includedirs
@@ -95,6 +95,16 @@ project "Vulkan Renderer"
 		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-utild.lib"),
 		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-cored.lib"),
 	}
+	
+	filter "configurations:Verbose"
+		defines { "VERBOSE", "TRACE", "DEBUG" }
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Trace"
+		defines { "TRACE", "DEBUG" }
+		runtime "Debug"
+		symbols "on"
 
 	filter "configurations:Debug"
 		defines "DEBUG"

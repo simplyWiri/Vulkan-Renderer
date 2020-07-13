@@ -26,7 +26,7 @@ namespace Renderer {
 			: device(device)
 		{
 			VkFramebufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-			createInfo.attachmentCount = static_cast<uint32_t>(key.imageViews.size());
+			createInfo.attachmentCount = 1;
 			createInfo.pAttachments = key.imageViews.data();
 			createInfo.width = key.extent.width;
 			createInfo.height = key.extent.height;
@@ -37,8 +37,6 @@ namespace Renderer {
 		}
 
 		VkFramebuffer getHandle() { return framebuffer; }
-
-		void cleanup() { vkDestroyFramebuffer(*device, framebuffer, nullptr); }
 
 	private:
 		VkDevice* device;

@@ -4,8 +4,13 @@
 #include "Wrappers/Swapchain.h"
 #include "Wrappers/Pipeline.h"
 #include "Wrappers/Renderpass.h"
+#include "Wrappers/Framebuffer.h"
 #include "Caches/RenderpassCache.h"
 #include "Caches/PipelineCache.h"
+#include "Caches/FramebufferCache.h"
+#include "RenderGraph/Rendergraph.h"
+
+#include "vk_mem_alloc.h"
 
 namespace Renderer
 {
@@ -25,7 +30,9 @@ namespace Renderer
 	class Core
 	{
 	public:
-		bool initialiseRenderer();
+		Core(int x = 640, int y = 400, const char* name = "Vulkan Renderer");
+
+		bool Initialise();
 
 		~Core();
 	private:
@@ -37,13 +44,27 @@ namespace Renderer
 		// caches
 		RenderpassCache renderpassCache;
 		GraphicsPipelineCache pipelineCache;
+		FramebufferCache framebufferCache;
 
-		/*
+		VmaAllocator allocator;
+		
+		std::unique_ptr<Rendergraph> rendergraph;
 
-		Runtime functionality Renderer
+	private:
 
-		*/
+		void initialiseAllocator();
+
 	public:
+
+		Rendergraph* Rendergraph() { return rendergraph.get(); }
+
+
+		VkDevice LogicalDevice() { return context.getDevice(); }
+		VkPhysicalDevice PhysicalDevice() { return context.getPhysicalDevice(); }
+		VkSwapchainKHR Swapchain() { return *swapchain.getSwapchain(); }
+		VkExtent2D Extent() { return swapchain.getExtent(); }
+		VkFormat Format() { return swapchain.getFormat(); }
+
 
 	private:
 		RendererSettings settings;

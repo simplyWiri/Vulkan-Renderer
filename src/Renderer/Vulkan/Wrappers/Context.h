@@ -78,14 +78,14 @@ namespace Renderer
 		}
 
 	public:
-		inline VkDevice getDevice() const { return device.device; }
-		inline VkPhysicalDevice getPhysicalDevice() const { return gpu.physDevice; }
-		inline VkInstance getInstance() const { return instance; }
-		inline SwapChainSupportDetails getSwapchainKHR() const { return swapDetails; }
-		inline VkQueue getGraphicsQueue() const { return device.graphicsQueue; }
-		inline VkQueue getTransferQueue() const { return device.transferQueue; }
-		inline VkQueue getComputeQueue() const { return device.computeQueue; }
-		inline VkQueue getPresentQueue() const { return device.presentQueue; }
+		inline VkDevice getDevice() { return device.device; }
+		inline VkPhysicalDevice getPhysicalDevice() { return gpu.physDevice; }
+		inline VkInstance getInstance() { return instance; }
+		inline SwapChainSupportDetails getSwapchainKHR() { return swapDetails; }
+		inline VkQueue getGraphicsQueue() { return device.graphicsQueue; }
+		inline VkQueue getTransferQueue() { return device.transferQueue; }
+		inline VkQueue getComputeQueue() { return device.computeQueue; }
+		inline VkQueue getPresentQueue() { return device.presentQueue; }
 	};
 
 	namespace Wrappers {
