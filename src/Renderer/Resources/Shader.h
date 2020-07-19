@@ -56,7 +56,7 @@ namespace Renderer
 		uint32_t vecSize;
 		uint32_t columns;
 		uint32_t descriptorCount;
-		uint32_t offset;
+		uint32_t offset = 0;
 		uint32_t size;
 		const ShaderMember* pMembers;
 	};

@@ -38,6 +38,7 @@ namespace Renderer
 			vmaMapMemory(*allocator, bufferAllocation, &mappedData);
 			return mappedData;
 		}
+
 		void UnMap()
 		{
 			vmaUnmapMemory(*allocator, bufferAllocation);

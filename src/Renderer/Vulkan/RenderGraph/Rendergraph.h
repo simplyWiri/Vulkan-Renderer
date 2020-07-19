@@ -11,6 +11,8 @@ namespace Renderer {
 	// How is the image attachment sized relative to swapchain?
 	enum SizeClass { Absolute, SwapchainRelative, Input };
 
+	class Core;
+
 	// Image Attachment
 	struct ImageAttachmentInfo
 	{
@@ -28,14 +30,14 @@ namespace Renderer {
 		VkBufferUsageFlags usage = 0;
 	};
 
-	struct GraphContext;
-	//{
-	//	std::unordered_map<std::string, Buffer> VertexBuffers;
-	//	std::unordered_map<std::string, Buffer> IndexBuffers;
+	struct GraphContext
+	{
+		std::unordered_map<std::string, Buffer> VertexBuffers;
+		std::unordered_map<std::string, Buffer> IndexBuffers;
 
-	//	Buffer& VertexBuffer(const std::string& key) { VertexBuffers[key]; }
-	//	Buffer& IndexBuffer(const std::string& key) { IndexBuffers[key]; }
-	//};
+		Buffer& VertexBuffer(const std::string& key) { return VertexBuffers.at(key); }
+		Buffer& IndexBuffer(const std::string& key) { return IndexBuffers.at(key); }
+	};
 	struct FrameInfo;
 	struct Tether
 	{
@@ -46,13 +48,6 @@ namespace Renderer {
 
 		void RegisterPipeline(VkRenderPass renderpass, VkExtent2D extent, DepthSettings depthSettings, const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology, std::vector<std::shared_ptr<Shader>> shaders);
 	};
-
-	/*
-		
-	
-	
-	
-	*/
 	
 	struct PassDesc
 	{
@@ -99,6 +94,8 @@ namespace Renderer {
 
 
 	public:
+		Rendergraph(Core* core);
+
 		void Initialise();
 		void Execute();
 
