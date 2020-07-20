@@ -10,20 +10,20 @@ namespace Renderer
 	public:
 		void buildCache(VkDevice* device) { this->device = device; }
 
-		void beginPass(VkCommandBuffer commandBuffer, FramebufferKey key)
-		{
-			Framebuffer* framebuffer = get(key);
+		//void beginPass(VkCommandBuffer commandBuffer, FramebufferKey key)
+		//{
+		//	Framebuffer* framebuffer = get(key);
 
-			VkRenderPassBeginInfo beginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO};
-			beginInfo.renderPass = key.renderpass.getHandle();
-			beginInfo.framebuffer = framebuffer->getHandle();
-			beginInfo.renderArea.extent = key.extent;
-			beginInfo.renderArea.offset = {0, 0};
+		//	VkRenderPassBeginInfo beginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO };
+		//	beginInfo.renderPass = key.renderpass.getHandle();
+		//	beginInfo.framebuffer = framebuffer->getHandle();
+		//	beginInfo.renderArea.extent = key.extent;
+		//	beginInfo.renderArea.offset = { 0, 0 };
 
-			vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		}
+		//	vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		//}
 
-		inline void endPass(VkCommandBuffer commandBuffer) { vkCmdEndRenderPass(commandBuffer); }
+		//inline void endPass(VkCommandBuffer commandBuffer) { vkCmdEndRenderPass(commandBuffer); }
 
 		Framebuffer* get(FramebufferKey key) override
 		{
@@ -58,9 +58,13 @@ namespace Renderer
 
 	private:
 
-		void clearEntry(Framebuffer* framebuffer) override
+		void clearEntry(Framebuffer* framebuffers) override
 		{
-			vkDestroyFramebuffer(*device, framebuffer->getHandle(), nullptr);
+			for (auto& framebuffer : framebuffers->getHandle())
+			{
+				vkDestroyFramebuffer(*device, framebuffer, nullptr);
+
+			}
 		}
 
 		VkDevice* device;

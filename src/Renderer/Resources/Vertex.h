@@ -7,7 +7,7 @@ namespace Renderer
 {
 	struct Vertex
 	{
-		glm::vec3 pos; // x y
+		glm::vec2 pos; // x y
 		glm::vec3 colour; // r g b
 
 		static VkVertexInputBindingDescription getVertexBindingDescription()

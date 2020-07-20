@@ -36,10 +36,12 @@ namespace Renderer
 		Core(int x = 640, int y = 400, const char* name = "Vulkan Renderer");
 
 		bool Initialise();
+		bool Run();
 
 		~Core();
-	private:
 		Device device;
+	private:
+
 		Swapchain swapchain; // VkSwapchainKHR
 
 		// caches
@@ -55,6 +57,7 @@ namespace Renderer
 
 		VkDescriptorPool descriptorPool;
 		std::vector<VkDescriptorSet> descriptorSets;
+		std::vector<VkCommandBuffer> buffers;
 
 		//std::unique_ptr<Rendergraph> rendergraph;
 
@@ -63,6 +66,7 @@ namespace Renderer
 		void initialiseCommandPool();
 		void initialiseDescriptorPool(GraphicsPipelineKey key);
 		void initialiseDescriptorSets(GraphicsPipelineKey key);
+		void windowResize();
 
 	public:
 

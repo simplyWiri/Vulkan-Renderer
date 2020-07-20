@@ -9,9 +9,9 @@ namespace Renderer
 {
 	// Debug Layer related functions
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	                                                    VkDebugUtilsMessageTypeFlagsEXT messageType,
-	                                                    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	                                                    void* pUserData)
+		VkDebugUtilsMessageTypeFlagsEXT messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		void* pUserData)
 	{
 		char ms;
 		switch (messageSeverity)
@@ -108,8 +108,8 @@ namespace Renderer
 
 		struct
 		{
-			std::vector<const char*> physExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-			std::vector<const char*> instanceExtensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+			std::vector<const char*> physExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+			std::vector<const char*> instanceExtensions = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
 			const std::vector<const char*> validationLayers = {
 				"VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_monitor"
 			};
@@ -133,7 +133,7 @@ namespace Renderer
 		QueueFamilyIndices* getIndices() { return &indices; }
 		VmaAllocator* getAllocator() { return &allocator; }
 
-		
+
 		void BuildInstance(bool debugLayers)
 		{
 			this->debug = debugLayers;
@@ -146,14 +146,14 @@ namespace Renderer
 				for (auto extension : glfwExts) extensions.instanceExtensions.emplace_back(extension);
 			}
 
-			VkApplicationInfo info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
+			VkApplicationInfo info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 			info.pApplicationName = "Application Name";
 			info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 			info.pEngineName = "Engine Name";
 			info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 			info.apiVersion = VK_MAKE_VERSION(1, 2, 0);
 
-			VkInstanceCreateInfo createInfo = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+			VkInstanceCreateInfo createInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
 			createInfo.pApplicationInfo = &info;
 			createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.instanceExtensions.size());
 			createInfo.ppEnabledExtensionNames = extensions.instanceExtensions.data();
@@ -210,7 +210,7 @@ namespace Renderer
 			for (const auto& physDevice : physDevices)
 			{
 				if (isDeviceSuitable(physDevice, surface, &this->swapDetails.capabilities, this->swapDetails.formats,
-				                     this->swapDetails.presentModes))
+					this->swapDetails.presentModes))
 				{
 					this->physDevice = physDevice;
 					this->indices = getIndices(physDevice, surface);
@@ -320,14 +320,14 @@ namespace Renderer
 
 			i = 0;
 
-			VkBool32 presentSupport = false;
-			vkGetPhysicalDeviceSurfaceSupportKHR(physDevice, i, *surface, &presentSupport);
+
 
 			for (const auto& queueFamily : queueFamilies)
 			{
-				if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-					indices.graphicsFamily
-						= i;
+				VkBool32 presentSupport = false;
+				vkGetPhysicalDeviceSurfaceSupportKHR(physDevice, i, *surface, &presentSupport);
+
+				if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) indices.graphicsFamily = i;
 				if (queueFamily.queueCount && queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) indices.computeFamily = i;
 				if (queueFamily.queueCount > 0 && presentSupport) indices.presentFamily = i;
 
@@ -357,8 +357,8 @@ namespace Renderer
 		}
 
 		void checkSwapChainSupport(VkPhysicalDevice physDevice, VkSurfaceKHR* surface,
-		                           VkSurfaceCapabilitiesKHR* capabilities, std::vector<VkSurfaceFormatKHR>& formats,
-		                           std::vector<VkPresentModeKHR>& presentModes)
+			VkSurfaceCapabilitiesKHR* capabilities, std::vector<VkSurfaceFormatKHR>& formats,
+			std::vector<VkPresentModeKHR>& presentModes)
 		{
 			// load device SwapChain capabilities
 			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physDevice, *surface, capabilities);
@@ -384,8 +384,8 @@ namespace Renderer
 		}
 
 		bool isDeviceSuitable(VkPhysicalDevice physDevice, VkSurfaceKHR* surface,
-		                      VkSurfaceCapabilitiesKHR* capabilities, std::vector<VkSurfaceFormatKHR>& formats,
-		                      std::vector<VkPresentModeKHR>& presentModes)
+			VkSurfaceCapabilitiesKHR* capabilities, std::vector<VkSurfaceFormatKHR>& formats,
+			std::vector<VkPresentModeKHR>& presentModes)
 		{
 			VkPhysicalDeviceProperties physDeviceProperties;
 			VkPhysicalDeviceFeatures physDeviceFeatures;

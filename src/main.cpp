@@ -10,6 +10,9 @@ int main()
 	auto renderer = std::make_unique<Core>(640, 400, "Window");
 
 	renderer->Initialise();
+
+	while (renderer->Run()) { }
+	vkDeviceWaitIdle(renderer->device);
 }
 
 //renderer->Rendergraph()->AddPass(PassDesc()

@@ -5,14 +5,16 @@
 #include <vector>
 #include <memory>
 #include "glfw3.h"
+#include <chrono>
 
 namespace Renderer
 {
 	struct FrameInfo
 	{
+		uint32_t offset;
 		uint32_t frameIndex;
-		float time;
-		float delta;
+		long long time;
+		long long delta;
 	};
 
 	class Swapchain
@@ -28,8 +30,6 @@ namespace Renderer
 			glfwTerminate();
 		}
 
-	public:
-
 	private:
 
 		struct FrameResources
@@ -39,6 +39,17 @@ namespace Renderer
 			VkFence inFlightFence;
 
 			VkCommandBuffer buffer;
+			VkDevice* device;
+
+			~FrameResources()
+			{
+				if (device != nullptr)
+				{
+					vkDestroySemaphore(*device, imageAcquired, nullptr);
+					vkDestroySemaphore(*device, renderFinished, nullptr);
+					vkDestroyFence(*device, inFlightFence, nullptr);
+				}
+			}
 		};
 
 		/*
@@ -46,17 +57,18 @@ namespace Renderer
 		*/
 		GLFWwindow* window;
 		VkSurfaceKHR surface;
-		VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+		VkSwapchainKHR swapchain = nullptr;
 		std::vector<VkImage> images;
 		std::vector<VkImageView> views;
 		std::vector<FrameResources> frames;
 		VkQueue presentQueue;
+		VkQueue graphicsQueue;
 
 		VkSurfaceFormatKHR color;
 		VkExtent2D extent;
 
 		// info
-		uint32_t currentIndex;
+		uint32_t currentIndex = 0;
 		uint32_t framesInFlight;
 		int width = 640;
 		int height;
@@ -65,6 +77,7 @@ namespace Renderer
 		VkDevice* device;
 		VkInstance* instance;
 		VkPhysicalDevice* physDevice;
+		long long prevDelta = 0;
 
 	public:
 		operator VkSwapchainKHR() { return swapchain; }
@@ -75,6 +88,7 @@ namespace Renderer
 		VkQueue* getPresentQueue() { return &presentQueue; }
 		std::vector<VkImageView>& getImageViews() { return views; }
 		VkExtent2D getExtent() { return extent; }
+		uint32_t getIndex() { return currentIndex; }
 
 		void Initialise(VkDevice* device, VkInstance* instance, VkPhysicalDevice* physDevice)
 		{
@@ -109,7 +123,7 @@ namespace Renderer
 			std::vector<VkPresentModeKHR> presentModes;
 			checkSwapChainSupport(&surfCaps, formats, presentModes);
 
-			if (surfCaps.currentExtent.width == (uint32_t)-1)
+			if (surfCaps.currentExtent.width == static_cast<uint32_t>(-1))
 			{
 				extent.width = width;
 				extent.height = height;
@@ -128,16 +142,19 @@ namespace Renderer
 						break;
 					}
 					if ((swapchainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR) && (presentModes[i] ==
-						VK_PRESENT_MODE_IMMEDIATE_KHR)) swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+						VK_PRESENT_MODE_IMMEDIATE_KHR))
+						swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 				}
 			}
 
 			uint32_t swapImagesCount = surfCaps.minImageCount + 1;
-			if ((surfCaps.maxImageCount > 0) && (swapImagesCount > surfCaps.maxImageCount)) swapImagesCount = surfCaps.
+			if ((surfCaps.maxImageCount > 0) && (swapImagesCount > surfCaps.maxImageCount))
+				swapImagesCount = surfCaps.
 				maxImageCount;
 
 			VkSurfaceTransformFlagsKHR preTransform;
-			if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) preTransform =
+			if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+				preTransform =
 				VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 			else preTransform = surfCaps.currentTransform;
 
@@ -156,7 +173,7 @@ namespace Renderer
 				{
 					compositeAlpha = compositeAlphaFlag;
 					break;
-				};
+				}
 			}
 
 			color = {};
@@ -181,49 +198,51 @@ namespace Renderer
 
 			VkSwapchainCreateInfoKHR swapchainCI = {};
 			swapchainCI.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-			swapchainCI.pNext = NULL;
+			swapchainCI.pNext = nullptr;
 			swapchainCI.surface = surface;
 			swapchainCI.minImageCount = swapImagesCount;
 			swapchainCI.imageFormat = color.format;
 			swapchainCI.imageColorSpace = color.colorSpace;
 			swapchainCI.imageExtent = extent;
 			swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-			swapchainCI.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
+			swapchainCI.preTransform = static_cast<VkSurfaceTransformFlagBitsKHR>(preTransform);
 			swapchainCI.imageArrayLayers = 1;
 			swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			swapchainCI.queueFamilyIndexCount = 0;
-			swapchainCI.pQueueFamilyIndices = NULL;
+			swapchainCI.pQueueFamilyIndices = nullptr;
 			swapchainCI.presentMode = swapchainPresentMode;
 			swapchainCI.oldSwapchain = oldSwapchain;
 			swapchainCI.clipped = VK_TRUE;
 			swapchainCI.compositeAlpha = compositeAlpha;
 
-			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) swapchainCI.imageUsage |=
+			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+				swapchainCI.imageUsage |=
 				VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) swapchainCI.imageUsage |=
+			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+				swapchainCI.imageUsage |=
 				VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 			auto success = vkCreateSwapchainKHR(*device, &swapchainCI, nullptr, &swapchain);
 			Assert(success == VK_SUCCESS, "Failed to create swapchain");
 
-			if (oldSwapchain != VK_NULL_HANDLE)
+			if (oldSwapchain != nullptr)
 			{
 				for (auto image : views) vkDestroyImageView(*device, image, nullptr);
 
 				vkDestroySwapchainKHR(*device, oldSwapchain, nullptr);
 			}
 
-			vkGetSwapchainImagesKHR(*device, swapchain, &swapImagesCount, nullptr);
-			images.resize(swapImagesCount);
-			vkGetSwapchainImagesKHR(*device, swapchain, &swapImagesCount, images.data());
+			vkGetSwapchainImagesKHR(*device, swapchain, &framesInFlight, nullptr);
+			images.resize(framesInFlight);
+			vkGetSwapchainImagesKHR(*device, swapchain, &framesInFlight, images.data());
 
 			// Get the swap chain buffers containing the image and imageview
-			views.resize(swapImagesCount);
-			for (uint32_t i = 0; i < swapImagesCount; i++)
+			views.resize(framesInFlight);
+			for (uint32_t i = 0; i < framesInFlight; i++)
 			{
 				VkImageViewCreateInfo colorAttachmentView = {};
 				colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-				colorAttachmentView.pNext = NULL;
+				colorAttachmentView.pNext = nullptr;
 				colorAttachmentView.format = color.format;
 				colorAttachmentView.components = {
 					VK_COMPONENT_SWIZZLE_R,
@@ -244,15 +263,94 @@ namespace Renderer
 			}
 		}
 
+		void InitialiseSyncObjects()
+		{
+			frames.resize(framesInFlight);
+
+			VkSemaphoreCreateInfo semaphoreInfo = {};
+			semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+			VkFenceCreateInfo fenceInfo = {};
+			fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+			fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+			for (int i = 0; i < framesInFlight; i++)
+			{
+				auto& frame = frames[i];
+				frame = {};
+				frame.device = device;
+				vkCreateSemaphore(*device, &semaphoreInfo, nullptr, &frame.imageAcquired);
+				vkCreateSemaphore(*device, &semaphoreInfo, nullptr, &frame.renderFinished);
+				vkCreateFence(*device, &fenceInfo, nullptr, &frame.inFlightFence);
+			}
+		}
+
 		// this will begin the frame, waiting for relevant frame resources
-		FrameInfo BeginFrame() { auto& curFrame = frames[currentIndex]; }
+		FrameInfo BeginFrame(VkCommandBuffer buffer)
+		{
+			auto& curFrame = frames[currentIndex];
+			curFrame.buffer = buffer;
+
+			vkWaitForFences(*device, 1, &frames[(currentIndex + 2) % framesInFlight].inFlightFence, VK_TRUE,
+				UINT64_MAX);
+
+			auto time = std::chrono::high_resolution_clock::now();
+
+
+			uint32_t imageIndex;
+			vkAcquireNextImageKHR(*device, swapchain, UINT64_MAX, curFrame.imageAcquired, nullptr, &imageIndex);
+
+			FrameInfo info = {};
+			info.time = std::chrono::time_point_cast<std::chrono::nanoseconds>(time).time_since_epoch().count();
+			info.delta = prevDelta - info.time;
+			prevDelta = info.time;
+			info.frameIndex = imageIndex;
+			info.offset = currentIndex;
+
+			return info;
+		}
 
 		// this will end the frame, submitting to the presentation queue
-		VkResult EndFrame() { ++currentIndex %= framesInFlight; }
+		VkResult EndFrame(FrameInfo& info, VkQueue graphicsQueue)
+		{
+			auto& frame = frames[currentIndex];
+
+			VkSemaphore waitSemaphores[] = { frame.imageAcquired };
+			VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+			VkSemaphore signalSemaphores[] = { frame.renderFinished };
+
+			VkSubmitInfo submitInfo = {};
+			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitSemaphores = waitSemaphores;
+			submitInfo.pWaitDstStageMask = waitStages;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &frame.buffer;
+			submitInfo.signalSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = signalSemaphores;
+
+			vkResetFences(*device, 1, &frame.inFlightFence);
+			auto success = vkQueueSubmit(graphicsQueue, 1, &submitInfo, frame.inFlightFence);
+			Assert(success == VK_SUCCESS, "Failed to submit queue");
+
+			VkPresentInfoKHR presentInfo = {};
+			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+			presentInfo.waitSemaphoreCount = 1;
+			presentInfo.pWaitSemaphores = &frames[currentIndex].renderFinished;
+			presentInfo.swapchainCount = 1;
+			presentInfo.pSwapchains = &swapchain;
+			presentInfo.pImageIndices = &info.frameIndex;
+
+			success = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+			++currentIndex %= framesInFlight;
+
+			return success;
+		}
 
 	private:
 		void checkSwapChainSupport(VkSurfaceCapabilitiesKHR* capabilities, std::vector<VkSurfaceFormatKHR>& formats,
-		                           std::vector<VkPresentModeKHR>& presentModes)
+			std::vector<VkPresentModeKHR>& presentModes)
 		{
 			// load device SwapChain capabilities
 			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*physDevice, surface, capabilities);

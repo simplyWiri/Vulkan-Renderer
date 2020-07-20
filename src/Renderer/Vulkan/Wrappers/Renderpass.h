@@ -52,7 +52,7 @@ namespace Renderer
 			std::vector<VkAttachmentDescription> attachmentDescriptions;
 
 			uint32_t curIndex = 0;
-			//// parse our colour attachment(s)
+			// parse our colour attachment(s)
 
 			for (AttachmentDesc colourAttachment : key.colourAttachments)
 			{
@@ -97,7 +97,7 @@ namespace Renderer
 				desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 				desc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-				desc.finalLayout = desc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 				attachmentDescriptions.push_back(desc);
 			}

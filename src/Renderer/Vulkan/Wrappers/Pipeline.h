@@ -107,9 +107,9 @@ namespace Renderer
 		{
 			return
 				std::tie(blendState.blendEnable, blendState.alphaBlendOp, blendState.colorBlendOp,
-				         blendState.srcColorBlendFactor, blendState.dstColorBlendFactor) <
+					blendState.srcColorBlendFactor, blendState.dstColorBlendFactor) <
 				std::tie(other.blendState.blendEnable, other.blendState.alphaBlendOp, other.blendState.colorBlendOp,
-				         other.blendState.srcColorBlendFactor, other.blendState.dstColorBlendFactor);
+					other.blendState.srcColorBlendFactor, other.blendState.dstColorBlendFactor);
 		}
 	};
 
@@ -129,7 +129,7 @@ namespace Renderer
 			return
 				std::tie(shaders, pLayout, depthSetting, blendSettings, topology, renderpass) <
 				std::tie(other.shaders, other.pLayout, other.depthSetting, other.blendSettings, other.topology,
-				         other.renderpass);
+					other.renderpass);
 		}
 	};
 
@@ -200,7 +200,7 @@ namespace Renderer
 			viewport.maxDepth = 1.0f;
 
 			VkRect2D scissor = {};
-			scissor.offset = {0, 0};
+			scissor.offset = { 0, 0 };
 			scissor.extent = key.extent;
 
 			VkPipelineViewportStateCreateInfo viewportCreateInfo = {};
@@ -232,7 +232,7 @@ namespace Renderer
 			depthStencil.depthBoundsTestEnable = VK_FALSE;
 			depthStencil.stencilTestEnable = VK_FALSE;
 
-			
+
 			//// Creating the pipeline, and tethering it to the struct
 			VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
 			graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -247,13 +247,13 @@ namespace Renderer
 			graphicsPipelineCreateInfo.pDepthStencilState = &depthStencil;
 			graphicsPipelineCreateInfo.layout = key.pLayout; // we have pre-baked the layout in the key
 			graphicsPipelineCreateInfo.renderPass = key.renderpass;
-			
+
 			//// TODO
 			////graphicsPipelineCreateInfo.pDynamicState = nullptr;
 
 
 			auto success = vkCreateGraphicsPipelines(*device, nullptr, 1, &graphicsPipelineCreateInfo, nullptr,
-			                                         &pipeline) == VK_SUCCESS;
+				&pipeline) == VK_SUCCESS;
 			Assert(success, "Failed to create graphics pipeline");
 
 			for (auto shaderModule : shaderModules) { vkDestroyShaderModule(*device, shaderModule, nullptr); }

@@ -30,21 +30,26 @@ namespace Renderer
 		Framebuffer(VkDevice* device, FramebufferKey key)
 			: device(device)
 		{
-			VkFramebufferCreateInfo createInfo = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
-			createInfo.attachmentCount = 1;
-			createInfo.pAttachments = key.imageViews.data();
-			createInfo.width = key.extent.width;
-			createInfo.height = key.extent.height;
-			createInfo.renderPass = key.renderpass.getHandle();
-			createInfo.layers = 1;
-
-			vkCreateFramebuffer(*device, &createInfo, nullptr, &framebuffer);
+			framebuffers.resize(key.imageViews.size());
+			
+			for (int i = 0; i < key.imageViews.size(); i++)
+			{
+				VkFramebufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+				createInfo.attachmentCount = 1;
+				createInfo.pAttachments = &key.imageViews[i];
+				createInfo.width = key.extent.width;
+				createInfo.height = key.extent.height;
+				createInfo.renderPass = key.renderpass.getHandle();
+				createInfo.layers = 1;
+				
+				vkCreateFramebuffer(*device, &createInfo, nullptr, &framebuffers[i]);
+			}
 		}
 
-		VkFramebuffer getHandle() { return framebuffer; }
+		std::vector<VkFramebuffer> getHandle() { return framebuffers; }
 
 	private:
 		VkDevice* device;
-		VkFramebuffer framebuffer;
+		std::vector<VkFramebuffer> framebuffers;
 	};
 }
