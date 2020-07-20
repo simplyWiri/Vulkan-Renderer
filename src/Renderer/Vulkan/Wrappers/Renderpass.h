@@ -12,13 +12,15 @@ namespace Renderer
 		VkAttachmentLoadOp loadOp;
 		VkClearValue clearValue;
 
-		bool operator < (const AttachmentDesc& other) const
+		bool operator <(const AttachmentDesc& other) const
 		{
 			bool earlyExit = std::tie(format, loadOp) < std::tie(other.format, other.loadOp);
 			if (!earlyExit) return false;
 
-			bool clearVal = std::tie(clearValue.color.int32[0], clearValue.color.int32[1], clearValue.color.int32[2], clearValue.color.int32[3]) <
-				std::tie(other.clearValue.color.int32[0], other.clearValue.color.int32[1], other.clearValue.color.int32[2], other.clearValue.color.int32[3]);
+			bool clearVal = std::tie(clearValue.color.int32[0], clearValue.color.int32[1], clearValue.color.int32[2],
+			                         clearValue.color.int32[3]) <
+				std::tie(other.clearValue.color.int32[0], other.clearValue.color.int32[1],
+				         other.clearValue.color.int32[2], other.clearValue.color.int32[3]);
 
 			return clearVal;
 		}
@@ -33,7 +35,11 @@ namespace Renderer
 		std::vector<AttachmentDesc> colourAttachments;
 		AttachmentDesc depthAttachment;
 
-		bool operator < (const RenderpassKey& other) const { return std::tie(colourAttachments, depthAttachment) < std::tie(other.colourAttachments, other.depthAttachment); }
+		bool operator <(const RenderpassKey& other) const
+		{
+			return std::tie(colourAttachments, depthAttachment) < std::tie(
+				other.colourAttachments, other.depthAttachment);
+		}
 	};
 
 	struct Renderpass
@@ -48,7 +54,8 @@ namespace Renderer
 			uint32_t curIndex = 0;
 			//// parse our colour attachment(s)
 
-			for (AttachmentDesc colourAttachment : key.colourAttachments) {
+			for (AttachmentDesc colourAttachment : key.colourAttachments)
+			{
 				VkAttachmentReference ref = {};
 				ref.attachment = curIndex++;
 				ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -71,7 +78,8 @@ namespace Renderer
 			subpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
 			// parse our depth attachments, (only attach if applicable!)
-			if (key.depthAttachment.format != VK_FORMAT_UNDEFINED) {
+			if (key.depthAttachment.format != VK_FORMAT_UNDEFINED)
+			{
 				VkAttachmentReference depthRef;
 				depthRef.attachment = curIndex++;
 				depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -96,7 +104,6 @@ namespace Renderer
 			subpassDesc.colorAttachmentCount = static_cast<uint32_t>(attachmentRefs.size());
 			subpassDesc.pColorAttachments = attachmentRefs.data();
 
-
 			VkSubpassDependency dependency = {};
 			dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 			dependency.dstSubpass = 0;
@@ -105,7 +112,7 @@ namespace Renderer
 			dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 			dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-			VkRenderPassCreateInfo createInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+			VkRenderPassCreateInfo createInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
 			createInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
 			createInfo.pAttachments = attachmentDescriptions.data();
 			createInfo.subpassCount = 1;
@@ -115,7 +122,6 @@ namespace Renderer
 
 			auto success = vkCreateRenderPass(*device, &createInfo, nullptr, &renderpass);
 			Assert(success == VK_SUCCESS, "Failed to create renderpass");
-
 		}
 
 		inline VkRenderPass getHandle() { return renderpass; }

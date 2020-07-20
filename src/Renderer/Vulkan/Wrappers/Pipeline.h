@@ -11,7 +11,7 @@ namespace Renderer
 	{
 		VkCompareOp depthFunc;
 		bool writeEnable;
-		
+
 		static DepthSettings DepthTest()
 		{
 			DepthSettings settings;
@@ -20,6 +20,7 @@ namespace Renderer
 
 			return settings;
 		}
+
 		static DepthSettings Disabled()
 		{
 			DepthSettings settings;
@@ -28,8 +29,8 @@ namespace Renderer
 
 			return settings;
 		}
-		
-		bool operator < (const DepthSettings& other) const
+
+		bool operator <(const DepthSettings& other) const
 		{
 			return std::tie(depthFunc, writeEnable) < std::tie(other.depthFunc, other.writeEnable);
 		}
@@ -38,9 +39,10 @@ namespace Renderer
 	struct BlendSettings
 	{
 		VkPipelineColorBlendAttachmentState blendState;
-		
+
 		// todo - Find default values for color attachment state.
-		static inline VkPipelineColorBlendAttachmentState createColorAttachmentState(VkColorComponentFlags f, VkBool32 b, VkBlendOp a, VkBlendOp c, VkBlendFactor sc, VkBlendFactor dc)
+		static inline VkPipelineColorBlendAttachmentState createColorAttachmentState(
+			VkColorComponentFlags f, VkBool32 b, VkBlendOp a, VkBlendOp c, VkBlendFactor sc, VkBlendFactor dc)
 		{
 			VkPipelineColorBlendAttachmentState info = {};
 			info.blendEnable = b;
@@ -51,7 +53,9 @@ namespace Renderer
 			info.dstColorBlendFactor = dc;
 			return info;
 		}
-		static inline VkPipelineColorBlendAttachmentState createColorAttachmentState(VkColorComponentFlags f, VkBool32 b)
+
+		static inline VkPipelineColorBlendAttachmentState createColorAttachmentState(
+			VkColorComponentFlags f, VkBool32 b)
 		{
 			VkPipelineColorBlendAttachmentState info = {};
 			info.blendEnable = b;
@@ -63,35 +67,50 @@ namespace Renderer
 		static BlendSettings Opaque()
 		{
 			BlendSettings settings;
-			settings.blendState = createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), false);
+			settings.blendState = createColorAttachmentState(
+				(VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+					VK_COLOR_COMPONENT_B_BIT), false);
 			return settings;
 		}
+
 		static BlendSettings Add()
 		{
 			BlendSettings settings;
-			settings.blendState = createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE);
+			settings.blendState = createColorAttachmentState(
+				(VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+					VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE,
+				VK_BLEND_FACTOR_ONE);
 			return settings;
 		}
+
 		static BlendSettings Mixed()
 		{
 			BlendSettings settings;
-			settings.blendState = createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
+			settings.blendState = createColorAttachmentState(
+				(VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+					VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE,
+				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
 			return settings;
 		}
+
 		static BlendSettings AlphaBlend()
 		{
 			BlendSettings settings;
-			settings.blendState = createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
+			settings.blendState = createColorAttachmentState(
+				(VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+					VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA,
+				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
 			return settings;
 		}
 
-		bool operator < (const BlendSettings& other) const
+		bool operator <(const BlendSettings& other) const
 		{
 			return
-				std::tie(blendState.blendEnable, blendState.alphaBlendOp, blendState.colorBlendOp, blendState.srcColorBlendFactor, blendState.dstColorBlendFactor) <
-				std::tie(other.blendState.blendEnable, other.blendState.alphaBlendOp, other.blendState.colorBlendOp, other.blendState.srcColorBlendFactor, other.blendState.dstColorBlendFactor);
+				std::tie(blendState.blendEnable, blendState.alphaBlendOp, blendState.colorBlendOp,
+				         blendState.srcColorBlendFactor, blendState.dstColorBlendFactor) <
+				std::tie(other.blendState.blendEnable, other.blendState.alphaBlendOp, other.blendState.colorBlendOp,
+				         other.blendState.srcColorBlendFactor, other.blendState.dstColorBlendFactor);
 		}
-
 	};
 
 	struct GraphicsPipelineKey
@@ -105,13 +124,13 @@ namespace Renderer
 		std::vector<BlendSettings> blendSettings;
 		VkPrimitiveTopology topology;
 
-		bool operator < (const GraphicsPipelineKey& other) const
+		bool operator <(const GraphicsPipelineKey& other) const
 		{
 			return
 				std::tie(shaders, pLayout, depthSetting, blendSettings, topology, renderpass) <
-				std::tie(other.shaders, other.pLayout, other.depthSetting, other.blendSettings, other.topology, other.renderpass);
+				std::tie(other.shaders, other.pLayout, other.depthSetting, other.blendSettings, other.topology,
+				         other.renderpass);
 		}
-
 	};
 
 	struct Pipeline
@@ -168,7 +187,8 @@ namespace Renderer
 			vertexInputCreateInfo.pVertexAttributeDescriptions = attributeDescription.data();
 
 			// Input assembly create info stage
-			VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo = createInputAssemblyState(key.topology, false);
+			VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo = createInputAssemblyState(
+				key.topology, false);
 
 			// Viewport create info stage
 			VkViewport viewport = {};
@@ -180,7 +200,7 @@ namespace Renderer
 			viewport.maxDepth = 1.0f;
 
 			VkRect2D scissor = {};
-			scissor.offset = { 0, 0 };
+			scissor.offset = {0, 0};
 			scissor.extent = key.extent;
 
 			VkPipelineViewportStateCreateInfo viewportCreateInfo = {};
@@ -191,7 +211,8 @@ namespace Renderer
 			viewportCreateInfo.pScissors = &scissor;
 
 			//// Rasterizer create info stage
-			VkPipelineRasterizationStateCreateInfo rasterizerCreateInfo = createRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+			VkPipelineRasterizationStateCreateInfo rasterizerCreateInfo = createRasterizationState(
+				VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
 			//// Multisampling create info stage
 			VkPipelineMultisampleStateCreateInfo multisampleCreateInfo = {};
@@ -199,8 +220,19 @@ namespace Renderer
 			multisampleCreateInfo.sampleShadingEnable = VK_FALSE;
 			multisampleCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-			VkPipelineColorBlendStateCreateInfo colorBlendCreateInfo = createColorBlendState(1, &BlendSettings::Opaque().blendState);
+			VkPipelineColorBlendStateCreateInfo colorBlendCreateInfo = createColorBlendState(
+				1, &key.blendSettings.begin()->blendState);
 
+
+			VkPipelineDepthStencilStateCreateInfo depthStencil = {};
+			depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+			depthStencil.depthTestEnable = VK_TRUE;
+			depthStencil.depthWriteEnable = key.depthSetting.writeEnable;
+			depthStencil.depthCompareOp = key.depthSetting.depthFunc;
+			depthStencil.depthBoundsTestEnable = VK_FALSE;
+			depthStencil.stencilTestEnable = VK_FALSE;
+
+			
 			//// Creating the pipeline, and tethering it to the struct
 			VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
 			graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -212,24 +244,19 @@ namespace Renderer
 			graphicsPipelineCreateInfo.pRasterizationState = &rasterizerCreateInfo;
 			graphicsPipelineCreateInfo.pMultisampleState = &multisampleCreateInfo;
 			graphicsPipelineCreateInfo.pColorBlendState = &colorBlendCreateInfo;
-
+			graphicsPipelineCreateInfo.pDepthStencilState = &depthStencil;
+			graphicsPipelineCreateInfo.layout = key.pLayout; // we have pre-baked the layout in the key
+			graphicsPipelineCreateInfo.renderPass = key.renderpass;
+			
 			//// TODO
-			////graphicsPipelineCreateInfo.pDepthStencilState = nullptr;
 			////graphicsPipelineCreateInfo.pDynamicState = nullptr;
 
-			// we pre-bake the layout in the cache
-			graphicsPipelineCreateInfo.layout = key.pLayout;
-			graphicsPipelineCreateInfo.renderPass = key.renderpass;
-			graphicsPipelineCreateInfo.subpass = 0;
-			//graphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-			auto success = vkCreateGraphicsPipelines(*device, nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline) == VK_SUCCESS;
+			auto success = vkCreateGraphicsPipelines(*device, nullptr, 1, &graphicsPipelineCreateInfo, nullptr,
+			                                         &pipeline) == VK_SUCCESS;
 			Assert(success, "Failed to create graphics pipeline");
 
-			for (auto shaderModule : shaderModules)
-			{
-				vkDestroyShaderModule(*device, shaderModule, nullptr);
-			}
+			for (auto shaderModule : shaderModules) { vkDestroyShaderModule(*device, shaderModule, nullptr); }
 		}
 
 		VkPipeline& getPipeline() { return this->pipeline; }
@@ -253,6 +280,7 @@ namespace Renderer
 
 			return shaderModule;
 		}
+
 		VkPipelineShaderStageCreateInfo Pipeline::createShaderInfo(VkShaderModule module, ShaderType type)
 		{
 			VkPipelineShaderStageCreateInfo shaderCreateInfo = {};
@@ -263,6 +291,7 @@ namespace Renderer
 
 			return shaderCreateInfo;
 		}
+
 		inline VkPipelineInputAssemblyStateCreateInfo createInputAssemblyState(VkPrimitiveTopology t, VkBool32 p)
 		{
 			VkPipelineInputAssemblyStateCreateInfo info = {};
@@ -272,7 +301,9 @@ namespace Renderer
 
 			return info;
 		}
-		inline VkPipelineRasterizationStateCreateInfo createRasterizationState(VkPolygonMode m, VkCullModeFlags c, VkFrontFace f)
+
+		inline VkPipelineRasterizationStateCreateInfo createRasterizationState(
+			VkPolygonMode m, VkCullModeFlags c, VkFrontFace f)
 		{
 			VkPipelineRasterizationStateCreateInfo info = {};
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -286,7 +317,9 @@ namespace Renderer
 
 			return info;
 		}
-		inline VkPipelineColorBlendStateCreateInfo createColorBlendState(uint32_t c, VkPipelineColorBlendAttachmentState* s)
+
+		inline VkPipelineColorBlendStateCreateInfo createColorBlendState(
+			uint32_t c, VkPipelineColorBlendAttachmentState* s)
 		{
 			VkPipelineColorBlendStateCreateInfo info = {};
 			info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -301,6 +334,7 @@ namespace Renderer
 
 			return info;
 		}
+
 		inline VkPipelineDepthStencilStateCreateInfo createDepthStencilState(VkBool32 w, VkCompareOp c)
 		{
 			VkPipelineDepthStencilStateCreateInfo info = {};

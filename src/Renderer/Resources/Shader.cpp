@@ -6,16 +6,14 @@
 #include "StandAlone/DirStackFileIncluder.h"
 #include <iostream>
 #include <fstream>
-#include "vulkan.h"
 
-namespace Renderer {
+namespace Renderer
+{
 	std::vector<char> loadFromFile(const char* path)
 	{
 		std::ifstream file(path, std::ios::ate | std::ios::binary);
 
-		if (!file.is_open()) {
-			throw std::runtime_error("failed to open file!");
-		}
+		if (!file.is_open()) { throw std::runtime_error("failed to open file!"); }
 
 		size_t fileSize = (size_t)file.tellg();
 		std::vector<char> buffer(fileSize);
@@ -27,8 +25,10 @@ namespace Renderer {
 		return buffer;
 	}
 
-	static const EShLanguage getEshLangType(ShaderType kind) {
-		switch (kind) {
+	static const EShLanguage getEshLangType(ShaderType kind)
+	{
+		switch (kind)
+		{
 		case ShaderType::Vertex: return EShLangVertex;
 		case ShaderType::Compute: return EShLangCompute;
 		case ShaderType::Fragment: return EShLangFragment;
@@ -37,9 +37,11 @@ namespace Renderer {
 		throw std::runtime_error("Currently unsupported language type");
 		return EShLangCallable;
 	}
-	
-	const VkShaderStageFlagBits getFlagBits(ShaderType kind) {
-		switch (kind) {
+
+	const VkShaderStageFlagBits getFlagBits(ShaderType kind)
+	{
+		switch (kind)
+		{
 		case ShaderType::Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
 		case ShaderType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
 		case ShaderType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -49,7 +51,8 @@ namespace Renderer {
 		return VK_SHADER_STAGE_ALL;
 	}
 
-	static const TBuiltInResource GetDefaultResources() {
+	static const TBuiltInResource GetDefaultResources()
+	{
 		TBuiltInResource resources = {};
 		resources.maxLights = 32;
 		resources.maxClipPlanes = 6;
@@ -165,21 +168,16 @@ namespace Renderer {
 			mi->pMembers = nullptr;
 
 			// Link current and last member infos.
-			if (pPrevMemberInfo == nullptr)
-				pPrevMemberInfo = mi;
-			else
-				pPrevMemberInfo->pNext = mi;
+			if (pPrevMemberInfo != nullptr) pPrevMemberInfo->pNext = mi;
 
 			// Make sure we keep chain linked
-			if (pFirstMemberInfo == nullptr)
-				pFirstMemberInfo = mi;
+			if (pFirstMemberInfo == nullptr) pFirstMemberInfo = mi;
 
 			// Update previous member.
 			pPrevMemberInfo = mi;
 
 			// Recursively process members that are structs.
-			if (memberType.basetype == spirv_cross::SPIRType::Struct)
-				mi->pMembers = getMembers(compiler, memberType);
+			if (memberType.basetype == spirv_cross::SPIRType::Struct) mi->pMembers = getMembers(compiler, memberType);
 		}
 
 		// Return the first member info created.
@@ -195,7 +193,8 @@ namespace Renderer {
 
 	bool Shader::compileGLSL()
 	{
-		if (!glInitialised) {
+		if (!glInitialised)
+		{
 			glslang::InitializeProcess();
 			glInitialised = true;
 		}
@@ -221,13 +220,15 @@ namespace Renderer {
 		std::string str;
 
 		// preprocess the shader
-		if (!shader.preprocess(&resources, vulkanVersion, ENoProfile, false, false, messages, &str, includer)) {
+		if (!shader.preprocess(&resources, vulkanVersion, ENoProfile, false, false, messages, &str, includer))
+		{
 			std::cout << shader.getInfoLog() << std::endl;
 			std::cout << shader.getInfoDebugLog() << std::endl;
 			return false;
 		}
 		// parse the shader into the intermediate spv
-		if (!shader.parse(&resources, vulkanVersion, true, messages, includer)) {
+		if (!shader.parse(&resources, vulkanVersion, true, messages, includer))
+		{
 			std::cout << shader.getInfoLog() << std::endl;
 			std::cout << shader.getInfoDebugLog() << std::endl;
 			return false;
@@ -235,7 +236,8 @@ namespace Renderer {
 		// link shader to a program
 		program.addShader(&shader);
 
-		if (!program.link(messages) || !program.mapIO()) {
+		if (!program.link(messages) || !program.mapIO())
+		{
 			std::cout << shader.getInfoLog() << std::endl;
 			std::cout << shader.getInfoDebugLog() << std::endl;
 			return false;
@@ -258,7 +260,8 @@ namespace Renderer {
 		spirv_cross::CompilerGLSL compiler(this->spv);
 
 		auto shaderRes = compiler.get_shader_resources();
-		auto stage = getFlagBits(this->type); // We automatically derive the stage of the resource from the type of shader that has been parsed
+		auto stage = getFlagBits(this->type);
+		// We automatically derive the stage of the resource from the type of shader that has been parsed
 
 		// Reflect through all uniform buffers (UBO's)
 		for (auto& res : shaderRes.uniform_buffers)
@@ -268,8 +271,10 @@ namespace Renderer {
 			ShaderResources resource; // resources for a uniform buffer
 
 			resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding); // shader binding
-			resource.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC; // This can be either UNIFORM_BUFFER or UNIFORM_BUFFER_DYNAMIC
-			resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0]; // For the potential of arrayed inputs
+			resource.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+			// This can be either UNIFORM_BUFFER or UNIFORM_BUFFER_DYNAMIC
+			resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0];
+			// For the potential of arrayed inputs
 			resource.flags = stage; // this is dependent on the type of shader that is being reflected
 			resource.access = VK_ACCESS_UNIFORM_READ_BIT;
 			resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
@@ -286,7 +291,8 @@ namespace Renderer {
 			ShaderResources resource;
 
 			resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
-			resource.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC; // This can be either STORAGE_BUFFER or STORAGE_BUFFER_DYNAMIC
+			resource.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+			// This can be either STORAGE_BUFFER or STORAGE_BUFFER_DYNAMIC
 			resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0];
 			resource.flags = stage;
 			resource.access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
@@ -409,7 +415,8 @@ namespace Renderer {
 			ShaderResources resource;
 			resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
 			resource.offset = offset;
-			resource.type = VK_DESCRIPTOR_TYPE_MAX_ENUM; // (we need to handle push constants differently to other descriptor type layouts
+			resource.type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
+			// (we need to handle push constants differently to other descriptor type layouts
 			resource.flags = stage;
 			resource.access = VK_ACCESS_SHADER_READ_BIT;
 			resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);

@@ -1,28 +1,26 @@
 #pragma once
 #include <vector>
 #include <string>
+#include "vulkan.h"
 
-// Forward declaring some vulkan structs to ensure API line is respected
-enum VkShaderStageFlagBits;
-enum VkDescriptorType;
-typedef uint32_t VkFlags;
-typedef VkFlags VkAccessFlags;
-
-namespace Renderer 
+namespace Renderer
 {
-
-	enum class ShaderType {
-		Vertex, Fragment, Compute, Mesh
+	enum class ShaderType
+	{
+		Vertex,
+		Fragment,
+		Compute,
+		Mesh
 		// todo -- support for RTX
 	};
 
 	const VkShaderStageFlagBits getFlagBits(ShaderType kind);
 
-
-
 	// this allows us to avoid compiling the same shader twice
-	enum class ShaderStatus {
-		Uninitialised, Compiled
+	enum class ShaderStatus
+	{
+		Uninitialised,
+		Compiled
 	};
 
 	/*
@@ -43,7 +41,7 @@ namespace Renderer
 		const ShaderMember* pMembers;
 	};
 
-	// A generic reflection struct which contains enough information to create a descriptor layout per relevant resource, for parsing into descriptors
+	// A generic reflection struct which contains enough information to create descriptors per relevant resource, for parsing into descriptors
 	struct ShaderResources
 	{
 		VkShaderStageFlagBits flags;
@@ -83,16 +81,14 @@ namespace Renderer
 
 	public:
 		Shader(ShaderType t, const char* path = "")
-			: type(t) {
-			loadFromPath(t, path);
-		}
+			: type(t) { loadFromPath(t, path); }
 
 		bool loadFromPath(ShaderType t, const char* path);
 		inline const char* getText() const { return shaderText.c_str(); }
 
 		inline ShaderType getType() const { return type; }
 		inline ShaderStatus getStatus() const { return status; } // For checking if a shader has already been compiled
-		inline uint32_t getSize() const { return static_cast<uint32_t>(spv.size()*4); }
+		inline uint32_t getSize() const { return static_cast<uint32_t>(spv.size() * 4); }
 		inline std::vector<ShaderResources> getResources() const { return resources; }
 		inline std::vector<uint32_t>& getSPV() { return spv; }
 

@@ -20,16 +20,15 @@ namespace Renderer
 	public:
 		~Swapchain()
 		{
-			for (auto image : views)
-				vkDestroyImageView(*device, image, nullptr);
+			for (auto image : views) vkDestroyImageView(*device, image, nullptr);
 
 			vkDestroySwapchainKHR(*device, swapchain, nullptr);
 			vkDestroySurfaceKHR(*instance, surface, nullptr);
 			glfwDestroyWindow(window);
 			glfwTerminate();
 		}
-	public:
 
+	public:
 
 	private:
 
@@ -76,6 +75,7 @@ namespace Renderer
 		VkQueue* getPresentQueue() { return &presentQueue; }
 		std::vector<VkImageView>& getImageViews() { return views; }
 		VkExtent2D getExtent() { return extent; }
+
 		void Initialise(VkDevice* device, VkInstance* instance, VkPhysicalDevice* physDevice)
 		{
 			this->device = device;
@@ -83,10 +83,7 @@ namespace Renderer
 			this->physDevice = physDevice;
 		}
 
-		void BuildWindow()
-		{
-			BuildWindow(width, height, title);
-		}
+		void BuildWindow() { BuildWindow(width, height, title); }
 
 		void BuildWindow(int width, int height, const char* title)
 		{
@@ -117,10 +114,7 @@ namespace Renderer
 				extent.width = width;
 				extent.height = height;
 			}
-			else
-			{
-				extent = surfCaps.currentExtent;
-			}
+			else { extent = surfCaps.currentExtent; }
 
 			VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -133,21 +127,19 @@ namespace Renderer
 						swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
 						break;
 					}
-					if ((swapchainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR) && (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR))
-						swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-
+					if ((swapchainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR) && (presentModes[i] ==
+						VK_PRESENT_MODE_IMMEDIATE_KHR)) swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 				}
 			}
 
 			uint32_t swapImagesCount = surfCaps.minImageCount + 1;
-			if ((surfCaps.maxImageCount > 0) && (swapImagesCount > surfCaps.maxImageCount))
-				swapImagesCount = surfCaps.maxImageCount;
-
+			if ((surfCaps.maxImageCount > 0) && (swapImagesCount > surfCaps.maxImageCount)) swapImagesCount = surfCaps.
+				maxImageCount;
 
 			VkSurfaceTransformFlagsKHR preTransform;
-			if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+			if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) preTransform =
+				VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 			else preTransform = surfCaps.currentTransform;
-
 
 			VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
@@ -158,8 +150,10 @@ namespace Renderer
 				VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
 			};
 
-			for (auto& compositeAlphaFlag : compositeAlphaFlags) {
-				if (surfCaps.supportedCompositeAlpha & compositeAlphaFlag) {
+			for (auto& compositeAlphaFlag : compositeAlphaFlags)
+			{
+				if (surfCaps.supportedCompositeAlpha & compositeAlphaFlag)
+				{
 					compositeAlpha = compositeAlphaFlag;
 					break;
 				};
@@ -173,8 +167,10 @@ namespace Renderer
 					color.format = VK_FORMAT_B8G8R8A8_UNORM;
 					color.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 				}
-				for (const auto& format : formats) {
-					if (format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+				for (const auto& format : formats)
+				{
+					if (format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace ==
+						VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 					{
 						color.format = format.format;
 						color.colorSpace = format.colorSpace;
@@ -202,16 +198,17 @@ namespace Renderer
 			swapchainCI.clipped = VK_TRUE;
 			swapchainCI.compositeAlpha = compositeAlpha;
 
-			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) swapchainCI.imageUsage |=
+				VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) swapchainCI.imageUsage |=
+				VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 			auto success = vkCreateSwapchainKHR(*device, &swapchainCI, nullptr, &swapchain);
 			Assert(success == VK_SUCCESS, "Failed to create swapchain");
 
 			if (oldSwapchain != VK_NULL_HANDLE)
 			{
-				for (auto image : views)
-					vkDestroyImageView(*device, image, nullptr);
+				for (auto image : views) vkDestroyImageView(*device, image, nullptr);
 
 				vkDestroySwapchainKHR(*device, oldSwapchain, nullptr);
 			}
@@ -219,7 +216,6 @@ namespace Renderer
 			vkGetSwapchainImagesKHR(*device, swapchain, &swapImagesCount, nullptr);
 			images.resize(swapImagesCount);
 			vkGetSwapchainImagesKHR(*device, swapchain, &swapImagesCount, images.data());
-
 
 			// Get the swap chain buffers containing the image and imageview
 			views.resize(swapImagesCount);
@@ -248,45 +244,37 @@ namespace Renderer
 			}
 		}
 
-		
-
-
-
 		// this will begin the frame, waiting for relevant frame resources
-		FrameInfo BeginFrame()
-		{
-			auto& curFrame = frames[currentIndex];
-		}
+		FrameInfo BeginFrame() { auto& curFrame = frames[currentIndex]; }
 
 		// this will end the frame, submitting to the presentation queue
-		VkResult EndFrame()
+		VkResult EndFrame() { ++currentIndex %= framesInFlight; }
+
+	private:
+		void checkSwapChainSupport(VkSurfaceCapabilitiesKHR* capabilities, std::vector<VkSurfaceFormatKHR>& formats,
+		                           std::vector<VkPresentModeKHR>& presentModes)
 		{
+			// load device SwapChain capabilities
+			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*physDevice, surface, capabilities);
 
-			++currentIndex %= framesInFlight;
-		}
-
-		private:
-			void checkSwapChainSupport(VkSurfaceCapabilitiesKHR* capabilities, std::vector<VkSurfaceFormatKHR>& formats, std::vector<VkPresentModeKHR>& presentModes)
+			// load device SwapChain formats
+			uint32_t formatCount;
+			vkGetPhysicalDeviceSurfaceFormatsKHR(*physDevice, surface, &formatCount, nullptr);
+			if (formatCount != 0)
 			{
-				// load device SwapChain capabilities
-				vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*physDevice, surface, capabilities);
-
-				// load device SwapChain formats
-				uint32_t formatCount;
-				vkGetPhysicalDeviceSurfaceFormatsKHR(*physDevice, surface, &formatCount, nullptr);
-				if (formatCount != 0) {
-					formats.resize(formatCount);
-					vkGetPhysicalDeviceSurfaceFormatsKHR(*physDevice, surface, &formatCount, formats.data());
-				}
-
-				// load device SwapChain presentcount
-				uint32_t presentCount;
-				vkGetPhysicalDeviceSurfacePresentModesKHR(*physDevice, surface, &presentCount, nullptr);
-
-				if (presentCount != 0) {
-					presentModes.resize(presentCount);
-					vkGetPhysicalDeviceSurfacePresentModesKHR(*physDevice, surface, &presentCount, presentModes.data());
-				}
+				formats.resize(formatCount);
+				vkGetPhysicalDeviceSurfaceFormatsKHR(*physDevice, surface, &formatCount, formats.data());
 			}
+
+			// load device SwapChain presentcount
+			uint32_t presentCount;
+			vkGetPhysicalDeviceSurfacePresentModesKHR(*physDevice, surface, &presentCount, nullptr);
+
+			if (presentCount != 0)
+			{
+				presentModes.resize(presentCount);
+				vkGetPhysicalDeviceSurfacePresentModesKHR(*physDevice, surface, &presentCount, presentModes.data());
+			}
+		}
 	};
 }

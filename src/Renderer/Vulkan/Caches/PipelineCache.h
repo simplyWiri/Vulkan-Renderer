@@ -14,12 +14,11 @@ namespace Renderer
 
 	public:
 		// We want to move shader ownership into this class; It will contain; Pipeline(s), Shaders (compiled SPV, Descriptor Sets)
-		void buildCache(VkDevice* device)
-		{
-			this->device = device;
-		}
+		void buildCache(VkDevice* device) { this->device = device; }
 
-		GraphicsPipelineKey bakeKey(VkRenderPass renderpass, VkExtent2D extent, DepthSettings depthSettings, const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology, std::vector<std::shared_ptr<Shader>> shaders)
+		GraphicsPipelineKey bakeKey(VkRenderPass renderpass, VkExtent2D extent, DepthSettings depthSettings,
+		                            const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology,
+		                            std::vector<std::shared_ptr<Shader>> shaders)
 		{
 			GraphicsPipelineKey key = {};
 			key.shaders = shaders;
@@ -53,8 +52,7 @@ namespace Renderer
 
 		bool add(GraphicsPipelineKey key) override
 		{
-			if (cache.find(key) != cache.end())
-				return false;
+			if (cache.find(key) != cache.end()) return false;
 
 			cache.emplace(key, new Pipeline(device, key));
 			registerInput(key);
@@ -64,8 +62,7 @@ namespace Renderer
 
 		bool add(GraphicsPipelineKey key, uint16_t& local) override
 		{
-			if (cache.find(key) != cache.end())
-				return false;
+			if (cache.find(key) != cache.end()) return false;
 
 			cache.emplace(key, new Pipeline(device, key));
 			local = registerInput(key);
@@ -81,20 +78,25 @@ namespace Renderer
 		}
 
 	private:
-		void createLayout(const std::vector<std::shared_ptr<Shader>>& shaders, VkDescriptorSetLayout& dLayout, VkPipelineLayout& pLayout)
+		void createLayout(const std::vector<std::shared_ptr<Shader>>& shaders, VkDescriptorSetLayout& dLayout,
+		                  VkPipelineLayout& pLayout)
 		{
 			std::vector<VkPushConstantRange> pushConstants;
 			std::vector<VkDescriptorSetLayoutBinding> bindings;
 
-			for (const std::shared_ptr<Shader> shader : shaders) {
+			for (const std::shared_ptr<Shader> shader : shaders)
+			{
 				if (shader->getStatus() == ShaderStatus::Uninitialised)
 				{
 					shader->compileGLSL();
 					shader->reflectSPIRV();
 				}
 
-				for (const auto& resource : shader->getResources()) {
-					if (resource.type == VK_DESCRIPTOR_TYPE_MAX_ENUM) { // push constant (ref. Shader.cpp ~ line 400)
+				for (const auto& resource : shader->getResources())
+				{
+					if (resource.type == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+					{
+						// push constant (ref. Shader.cpp ~ line 400)
 						VkPushConstantRange range;
 						range.offset = resource.offset;
 						range.size = resource.size;

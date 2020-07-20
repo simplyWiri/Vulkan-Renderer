@@ -13,16 +13,14 @@
 	N - 0xe6546b64
 */
 
-class Hasher {
+class Hasher
+{
 public:
 
 	Hasher(uint32_t seed)
 		: hash(seed), seed(seed) { }
 
-	void reseed(uint32_t seed)
-	{
-		hash = seed;
-	}
+	void reseed(uint32_t seed) { hash = seed; }
 
 	uint32_t gethash() { return hash; }
 
@@ -30,7 +28,7 @@ public:
 	{
 		// get ptr -> convert to a uint64, split in two halves, process two halves together.
 		auto u64 = reinterpret_cast<uintptr_t>(key);
-		std::array<uint32_t, 2> u32{ {u64 & 0xffffffffu, u64 >> 32} };
+		std::array<uint32_t, 2> u32{{u64 & 0xffffffffu, u64 >> 32}};
 
 		Hash(u32.data(), 2);
 	}
@@ -62,7 +60,8 @@ public:
 		// now we deal with any remainders, i.e the 'tail'
 		const uint8_t* tail = (const uint8_t*)(data + blockCount * 4);
 
-		switch (len & 3) {
+		switch (len & 3)
+		{
 		case 3: block ^= tail[2] << 16;
 		case 2: block ^= tail[1] << 8;
 		case 1: block ^= tail[0];

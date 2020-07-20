@@ -6,7 +6,7 @@ namespace Renderer
 {
 	// T is our type, for ex. Renderpass
 	// K is our key, for ex. RenderpassKey
-	template<class T, class K>
+	template <class T, class K>
 	class Cache
 	{
 	protected:
@@ -37,9 +37,9 @@ namespace Renderer
 
 		T* operator[](K key) { return get(key); }
 		T* operator[](const uint16_t& index) { return get(localToKey.at(index)); }
-		T* indexToValue(const uint16_t& index) { get(localToKey.at(index)); }
+		T* indexToValue(const uint16_t& index) { return get(localToKey.at(index)); }
 
-		K indexToKey(const uint16_t& index) { localToKey.at(index); }
+		K indexToKey(const uint16_t& index) { return localToKey.at(index); }
 
 		uint16_t registerInput(K key)
 		{

@@ -1,7 +1,8 @@
 #pragma once
 #include "Event.h"
 
-class Layer {
+class Layer
+{
 public:
 	virtual void Attach() = 0; // when attached to layerstack
 	virtual void Detach() = 0; // when detached from layertstack

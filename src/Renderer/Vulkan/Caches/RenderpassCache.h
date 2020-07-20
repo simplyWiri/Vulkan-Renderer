@@ -8,11 +8,7 @@ namespace Renderer
 	class RenderpassCache : public Cache<Renderpass, RenderpassKey>
 	{
 	public:
-		void buildCache(VkDevice* device)
-		{
-			this->device = device;
-		}
-
+		void buildCache(VkDevice* device) { this->device = device; }
 
 		Renderpass* get(RenderpassKey key) override
 		{
@@ -21,14 +17,13 @@ namespace Renderer
 			{
 				renderPass = new Renderpass(device, key);
 				registerInput(key);
-			} 
+			}
 			return renderPass;
 		}
 
 		bool add(RenderpassKey key) override
 		{
-			if (cache.find(key) != cache.end())
-				return false;
+			if (cache.find(key) != cache.end()) return false;
 
 			cache.emplace(key, new Renderpass(device, key));
 			registerInput(key);
@@ -38,8 +33,7 @@ namespace Renderer
 
 		bool add(RenderpassKey key, uint16_t& local) override
 		{
-			if (cache.find(key) != cache.end())
-				return false;
+			if (cache.find(key) != cache.end()) return false;
 
 			cache.emplace(key, new Renderpass(device, key));
 			local = registerInput(key);
@@ -51,7 +45,7 @@ namespace Renderer
 		{
 			vkDestroyRenderPass(*device, renderpass->getHandle(), nullptr);
 		}
-		
+
 	private:
 		VkDevice* device;
 	};

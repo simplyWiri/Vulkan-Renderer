@@ -5,7 +5,8 @@
 #include <iostream>
 #include "Renderpass.h"
 
-namespace Renderer {
+namespace Renderer
+{
 	struct FramebufferKey
 	{
 	public:
@@ -16,7 +17,11 @@ namespace Renderer {
 		Renderpass renderpass;
 		VkExtent2D extent;
 
-		bool operator < (const FramebufferKey& other) const { return std::tie(imageViews, extent.width, extent.height) < std::tie(other.imageViews, other.extent.width, other.extent.height); }
+		bool operator <(const FramebufferKey& other) const
+		{
+			return std::tie(imageViews, extent.width, extent.height) < std::tie(
+				other.imageViews, other.extent.width, other.extent.height);
+		}
 	};
 
 	struct Framebuffer
@@ -25,7 +30,7 @@ namespace Renderer {
 		Framebuffer(VkDevice* device, FramebufferKey key)
 			: device(device)
 		{
-			VkFramebufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+			VkFramebufferCreateInfo createInfo = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
 			createInfo.attachmentCount = 1;
 			createInfo.pAttachments = key.imageViews.data();
 			createInfo.width = key.extent.width;
