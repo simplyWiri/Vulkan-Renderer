@@ -274,7 +274,7 @@ namespace Renderer
 			fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 			fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-			for (int i = 0; i < framesInFlight; i++)
+			for (auto i = 0; i < framesInFlight; i++)
 			{
 				auto& frame = frames[i];
 				frame = {};

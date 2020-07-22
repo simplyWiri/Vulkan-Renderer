@@ -9,7 +9,8 @@
 #include "Caches/FramebufferCache.h"
 #include "../Resources/Buffer.h"
 
-//#include "RenderGraph/Rendergraph.h"
+#include "RenderGraph/Rendergraph.h"
+#include "../Resources/ShaderManager.h"
 
 namespace Renderer
 {
@@ -49,6 +50,8 @@ namespace Renderer
 		GraphicsPipelineCache pipelineCache;
 		FramebufferCache framebufferCache;
 
+		ShaderManager shaderManager;
+		
 		VkCommandPool commandPool;
 
 		Buffer* vertexBuffer;
@@ -59,7 +62,7 @@ namespace Renderer
 		std::vector<VkDescriptorSet> descriptorSets;
 		std::vector<VkCommandBuffer> buffers;
 
-		//std::unique_ptr<Rendergraph> rendergraph;
+		std::unique_ptr<Rendergraph> rendergraph;
 
 	private:
 
@@ -70,7 +73,7 @@ namespace Renderer
 
 	public:
 
-		//Rendergraph* Rendergraph() { return rendergraph.get(); }
+		Rendergraph* Rendergraph() { return rendergraph.get(); }
 
 	private:
 		RendererSettings settings;

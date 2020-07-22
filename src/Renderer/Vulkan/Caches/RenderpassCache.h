@@ -10,7 +10,7 @@ namespace Renderer
 	public:
 		void buildCache(VkDevice* device) { this->device = device; }
 
-		Renderpass* get(RenderpassKey key) override
+		Renderpass* get(const RenderpassKey& key) override
 		{
 			auto& renderPass = cache[key];
 			if (!renderPass)
@@ -21,7 +21,7 @@ namespace Renderer
 			return renderPass;
 		}
 
-		bool add(RenderpassKey key) override
+		bool add(const RenderpassKey& key) override
 		{
 			if (cache.find(key) != cache.end()) return false;
 
@@ -31,7 +31,7 @@ namespace Renderer
 			return true;
 		}
 
-		bool add(RenderpassKey key, uint16_t& local) override
+		bool add(const RenderpassKey& key, uint16_t& local) override
 		{
 			if (cache.find(key) != cache.end()) return false;
 

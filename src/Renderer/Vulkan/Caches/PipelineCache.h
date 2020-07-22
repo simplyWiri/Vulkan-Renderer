@@ -17,8 +17,8 @@ namespace Renderer
 		void buildCache(VkDevice* device) { this->device = device; }
 
 		GraphicsPipelineKey bakeKey(VkRenderPass renderpass, VkExtent2D extent, DepthSettings depthSettings,
-		                            const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology,
-		                            std::vector<std::shared_ptr<Shader>> shaders)
+			const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology,
+			std::vector<Shader*> shaders)
 		{
 			GraphicsPipelineKey key = {};
 			key.shaders = shaders;
@@ -31,6 +31,11 @@ namespace Renderer
 
 			return key;
 		}
+		GraphicsPipelineKey& bakeKey(GraphicsPipelineKey key)
+		{
+			createLayout(key.shaders, key.dLayout, key.pLayout);
+			return key;
+		}
 
 		void bindGraphicsPipeline(VkCommandBuffer buffer, GraphicsPipelineKey key)
 		{
@@ -39,7 +44,7 @@ namespace Renderer
 			vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		}
 
-		Pipeline* get(GraphicsPipelineKey key) override
+		Pipeline* get(const GraphicsPipelineKey& key) override
 		{
 			auto& pipeline = cache[key];
 			if (!pipeline)
@@ -50,7 +55,7 @@ namespace Renderer
 			return pipeline;
 		}
 
-		bool add(GraphicsPipelineKey key) override
+		bool add(const GraphicsPipelineKey& key) override
 		{
 			if (cache.find(key) != cache.end()) return false;
 
@@ -60,7 +65,7 @@ namespace Renderer
 			return true;
 		}
 
-		bool add(GraphicsPipelineKey key, uint16_t& local) override
+		bool add(const GraphicsPipelineKey& key, uint16_t& local) override
 		{
 			if (cache.find(key) != cache.end()) return false;
 
@@ -78,13 +83,13 @@ namespace Renderer
 		}
 
 	private:
-		void createLayout(const std::vector<std::shared_ptr<Shader>>& shaders, VkDescriptorSetLayout& dLayout,
-		                  VkPipelineLayout& pLayout)
+		void createLayout(const std::vector<Shader*>& shaders, VkDescriptorSetLayout& dLayout,
+			VkPipelineLayout& pLayout)
 		{
 			std::vector<VkPushConstantRange> pushConstants;
 			std::vector<VkDescriptorSetLayoutBinding> bindings;
 
-			for (const std::shared_ptr<Shader> shader : shaders)
+			for (const auto& shader : shaders)
 			{
 				if (shader->getStatus() == ShaderStatus::Uninitialised)
 				{

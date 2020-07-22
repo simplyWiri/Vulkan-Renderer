@@ -62,8 +62,8 @@ namespace Renderer
 			{ BlendSettings::Add() },
 			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 			{
-				std::make_shared<Shader>(ShaderType::Vertex, "resources/VertexShader.vert"),
-				std::make_shared<Shader>(ShaderType::Fragment, "resources/FragmentShader.frag")
+				shaderManager.defaultVertex(),
+				shaderManager.defaultFragment(),
 			});
 
 		VerboseLog("Inserting pipeline Key");
@@ -132,6 +132,7 @@ namespace Renderer
 			renderPassInfo.pClearValues = &clearColor;
 
 			vkCmdBeginRenderPass(buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			
 			vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineCache[gpKey]->getPipeline());
 
 			VkBuffer vertexBuffers[] = { vertexBuffer->buffer };
@@ -142,7 +143,7 @@ namespace Renderer
 
 			uint32_t offset = 0;
 			vkCmdBindDescriptorSets(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, gpKey.pLayout, 0, 1, &descriptorSets[i], 1, &offset);
-
+			
 			vkCmdDrawIndexed(buffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(buffers[i]);

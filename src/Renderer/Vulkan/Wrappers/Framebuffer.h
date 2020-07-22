@@ -31,7 +31,7 @@ namespace Renderer
 			: device(device)
 		{
 			framebuffers.resize(key.imageViews.size());
-			
+
 			for (int i = 0; i < key.imageViews.size(); i++)
 			{
 				VkFramebufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
@@ -41,7 +41,7 @@ namespace Renderer
 				createInfo.height = key.extent.height;
 				createInfo.renderPass = key.renderpass.getHandle();
 				createInfo.layers = 1;
-				
+
 				vkCreateFramebuffer(*device, &createInfo, nullptr, &framebuffers[i]);
 			}
 		}

@@ -5,7 +5,7 @@
 
 namespace Renderer
 {
-	enum class ShaderType
+	enum class ShaderType : unsigned
 	{
 		Vertex,
 		Fragment,
@@ -14,7 +14,7 @@ namespace Renderer
 		// todo -- support for RTX
 	};
 
-	const VkShaderStageFlagBits getFlagBits(ShaderType kind);
+	VkShaderStageFlagBits getFlagBits(ShaderType kind);
 
 	// this allows us to avoid compiling the same shader twice
 	enum class ShaderStatus
@@ -67,6 +67,7 @@ namespace Renderer
 
 		It will be used as a class to pass into a pipeline, which then does the internal compilation and reflection, finally (internally) parsing the ShaderResources into the relevant descriptors
 	*/
+	
 	class Shader
 	{
 	private:
@@ -80,10 +81,10 @@ namespace Renderer
 		bool glInitialised = false;
 
 	public:
-		Shader(ShaderType t, const char* path = "")
+		Shader(ShaderType t, std::string path = "")
 			: type(t) { loadFromPath(t, path); }
 
-		bool loadFromPath(ShaderType t, const char* path);
+		bool loadFromPath(ShaderType t, std::string path);
 		inline const char* getText() const { return shaderText.c_str(); }
 
 		inline ShaderType getType() const { return type; }

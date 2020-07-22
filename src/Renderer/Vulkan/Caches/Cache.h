@@ -16,9 +16,9 @@ namespace Renderer
 		virtual void clearEntry(T*) = 0;
 
 	public:
-		virtual bool add(K key) = 0;
-		virtual bool add(K key, uint16_t& local) = 0;
-		virtual T* get(K key) = 0;
+		virtual bool add(const K& key) = 0;
+		virtual bool add(const K& key, uint16_t& local) = 0;
+		virtual T* get(const K& key) = 0;
 
 		void clearCache()
 		{
@@ -28,7 +28,7 @@ namespace Renderer
 			{
 				clearEntry(iter->second);
 				delete iter->second;
-				iter++;
+				++iter;
 			}
 
 			cache.clear();

@@ -8,18 +8,44 @@
 #include "../../Resources/Buffer.h"
 #include "../../Resources/Shader.h"
 #include "../Wrappers/Pipeline.h"
+#include "../Wrappers/Swapchain.h"
+#include "Tether.h"
 
 namespace Renderer
 {
+	/* Naming:
+	 *
+	 * Rendergraph:
+	 * Rendergraph -> an object which stores a collection of renderpasses, on initialisation orders them, and during runtime, executes the pass
+	 * PassDesc -> a description of a 'renderpass' which occurs inside the rendergraph, it holds the initialisation and execution function for the pass
+	 *
+	 * Setup:
+	 * Tether -> a struct which holds information about the resources a 'PassDesc' reads and writes to
+	 * GraphContext -> a struct which holds pointers to the resources stored inside a renderpass, it is passed to the execution function in the PassDesc
+	 * FrameInfo -> a struct which holds information about the current frame, index, delta, time, etc
+	 *
+	 * Resources:
+	 * Resource -> a struct which is inherited from for specific resources, contains an id
+	 * ImageResource -> a struct containing information about an 'image'
+	 * BufferResource -> a struct containing information about a 'buffer'
+	 */
+	
 	// How is the image attachment sized relative to swapchain?
 	enum SizeClass { Absolute, SwapchainRelative, Input };
 
 	class Core;
+	class Rendergraph;
+	struct GraphContext;
 
 	// Image Attachment
-	struct ImageAttachmentInfo
+	struct Resource
 	{
-		SizeClass sizeClass = SizeClass::SwapchainRelative;
+		uint16_t id;
+	};
+	
+	struct ImageResource : Resource
+	{
+		SizeClass sizeClass = SwapchainRelative;
 		glm::vec3 size = {1.0f, 1.0f, 0.0f};
 		VkFormat format = VK_FORMAT_UNDEFINED;
 		uint32_t samples = 1, levels = 1, layers = 1;
@@ -27,33 +53,10 @@ namespace Renderer
 	};
 
 	// Buffer Attachment
-	struct BufferAttachmentInfo
+	struct BufferResource : Resource
 	{
 		VkDeviceSize size = 0;
 		VkBufferUsageFlags usage = 0;
-	};
-
-	struct GraphContext
-	{
-		std::unordered_map<std::string, Buffer> VertexBuffers;
-		std::unordered_map<std::string, Buffer> IndexBuffers;
-
-		Buffer& VertexBuffer(const std::string& key) { return VertexBuffers.at(key); }
-		Buffer& IndexBuffer(const std::string& key) { return IndexBuffers.at(key); }
-	};
-
-	struct FrameInfo;
-
-	struct Tether
-	{
-		void RegisterVertexBuffer(const char* id);
-		void RegisterIndexBuffer(const char* id);
-
-		void RegisterShader(ShaderType type, const char* path);
-
-		void RegisterPipeline(VkRenderPass renderpass, VkExtent2D extent, DepthSettings depthSettings,
-		                      const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology,
-		                      std::vector<std::shared_ptr<Shader>> shaders);
 	};
 
 	struct PassDesc
@@ -79,9 +82,6 @@ namespace Renderer
 		}
 
 		std::string taskName;
-
-		VkExtent2D renderExtent;
-
 		std::function<void(Tether&)> initialisation;
 		std::function<void(FrameInfo&, GraphContext&)> execute;
 	};
@@ -89,12 +89,31 @@ namespace Renderer
 	class Rendergraph
 	{
 	public:
+		
+	struct GraphContext
+	{
+		GraphContext(Rendergraph* graph)
+		{
+			this->graph = graph;
+		}
+		
+		Rendergraph* graph;
+		Resource& getResource(const std::string& key) const
+		{
+			return graph->resources[graph->strToIndex[key]];
+		}
 
+	};
 	private:
 		bool initialised = false;
 
+		std::unordered_map<std::string, uint16_t> strToIndex;
+		std::vector<Resource> resources;
+		
 	public:
 		Rendergraph(Core* core);
+
+		static std::string GetBackBufferSourceID() { return "graph:backbuffer"; }
 
 		void Initialise();
 		void Execute();
@@ -112,4 +131,6 @@ namespace Renderer
 		void buildTrasients(); // 'merge' or 'reuse' images which are compatible
 		void buildBarriers(); // build synchronisation barriers between items
 	};
+
+
 }

@@ -115,7 +115,7 @@ namespace Renderer
 
 	struct GraphicsPipelineKey
 	{
-		std::vector<std::shared_ptr<Shader>> shaders;
+		std::vector<Shader*> shaders;
 		VkRenderPass renderpass;
 		VkPipelineLayout pLayout;
 		VkDescriptorSetLayout dLayout;
@@ -265,7 +265,7 @@ namespace Renderer
 		inline VkDescriptorSetLayout& getDescriptorLayout() { return this->descriptorSetLayout; }
 
 	private:
-		VkShaderModule Pipeline::createShaderModule(std::shared_ptr<Shader> shader)
+		VkShaderModule Pipeline::createShaderModule(Shader* shader)
 		{
 			VkShaderModuleCreateInfo createInfo = {};
 			createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

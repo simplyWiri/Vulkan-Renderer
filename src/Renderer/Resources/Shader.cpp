@@ -9,7 +9,7 @@
 
 namespace Renderer
 {
-	std::vector<char> loadFromFile(const char* path)
+	std::vector<char> loadFromFile(std::string path)
 	{
 		std::ifstream file(path, std::ios::ate | std::ios::binary);
 
@@ -38,7 +38,7 @@ namespace Renderer
 		return EShLangCallable;
 	}
 
-	const VkShaderStageFlagBits getFlagBits(ShaderType kind)
+	VkShaderStageFlagBits getFlagBits(ShaderType kind)
 	{
 		switch (kind)
 		{
@@ -184,7 +184,7 @@ namespace Renderer
 		return pFirstMemberInfo;
 	}
 
-	bool Shader::loadFromPath(ShaderType t, const char* path)
+	bool Shader::loadFromPath(ShaderType t, std::string path)
 	{
 		auto charVec = loadFromFile(path);
 		this->shaderText = *new std::string(charVec.begin(), charVec.end());

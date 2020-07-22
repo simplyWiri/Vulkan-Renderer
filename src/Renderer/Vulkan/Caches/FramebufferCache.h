@@ -10,22 +10,7 @@ namespace Renderer
 	public:
 		void buildCache(VkDevice* device) { this->device = device; }
 
-		//void beginPass(VkCommandBuffer commandBuffer, FramebufferKey key)
-		//{
-		//	Framebuffer* framebuffer = get(key);
-
-		//	VkRenderPassBeginInfo beginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO };
-		//	beginInfo.renderPass = key.renderpass.getHandle();
-		//	beginInfo.framebuffer = framebuffer->getHandle();
-		//	beginInfo.renderArea.extent = key.extent;
-		//	beginInfo.renderArea.offset = { 0, 0 };
-
-		//	vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		//}
-
-		//inline void endPass(VkCommandBuffer commandBuffer) { vkCmdEndRenderPass(commandBuffer); }
-
-		Framebuffer* get(FramebufferKey key) override
+		Framebuffer* get(const FramebufferKey& key) override
 		{
 			auto& renderPass = cache[key];
 			if (!renderPass)
@@ -36,7 +21,7 @@ namespace Renderer
 			return renderPass;
 		}
 
-		bool add(FramebufferKey key) override
+		bool add(const FramebufferKey& key) override
 		{
 			if (cache.find(key) != cache.end()) return false;
 
@@ -46,7 +31,7 @@ namespace Renderer
 			return true;
 		}
 
-		bool add(FramebufferKey key, uint16_t& local) override
+		bool add(const FramebufferKey& key, uint16_t& local) override
 		{
 			if (cache.find(key) != cache.end()) return false;
 
