@@ -44,6 +44,7 @@ namespace Renderer
 	// A generic reflection struct which contains enough information to create descriptors per relevant resource, for parsing into descriptors
 	struct ShaderResources
 	{
+		std::string name;
 		VkShaderStageFlagBits flags;
 		VkDescriptorType type;
 		VkAccessFlags access;
@@ -57,6 +58,14 @@ namespace Renderer
 		uint32_t offset = 0;
 		uint32_t size;
 		const ShaderMember* pMembers;
+
+		bool operator <(const ShaderResources& other) const
+		{
+			return
+				std::tie(name, flags, type, access, set, binding, location, inputAttachmentIndex, vecSize, columns, descriptorCount, offset, size)
+				<
+				std::tie(other.name, other.flags, other.type, other.access, other.set, other.binding, other.location, other.inputAttachmentIndex, other.vecSize, other.columns, other.descriptorCount, other.offset, other.size);
+		}
 	};
 
 	/*
@@ -67,10 +76,9 @@ namespace Renderer
 
 		It will be used as a class to pass into a pipeline, which then does the internal compilation and reflection, finally (internally) parsing the ShaderResources into the relevant descriptors
 	*/
-	
+
 	class Shader
 	{
-	private:
 		ShaderType type;
 		ShaderStatus status = ShaderStatus::Uninitialised;
 		std::vector<ShaderResources> resources;
@@ -82,7 +90,9 @@ namespace Renderer
 
 	public:
 		Shader(ShaderType t, std::string path = "")
-			: type(t) { loadFromPath(t, path); }
+			: type(t) {
+			loadFromPath(t, path);
+		}
 
 		bool loadFromPath(ShaderType t, std::string path);
 		inline const char* getText() const { return shaderText.c_str(); }
@@ -90,7 +100,7 @@ namespace Renderer
 		inline ShaderType getType() const { return type; }
 		inline ShaderStatus getStatus() const { return status; } // For checking if a shader has already been compiled
 		inline uint32_t getSize() const { return static_cast<uint32_t>(spv.size() * 4); }
-		inline std::vector<ShaderResources> getResources() const { return resources; }
+		inline std::vector<ShaderResources> getResources() { return resources; }
 		inline std::vector<uint32_t>& getSPV() { return spv; }
 
 		/*

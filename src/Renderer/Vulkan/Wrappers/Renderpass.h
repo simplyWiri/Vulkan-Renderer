@@ -18,9 +18,9 @@ namespace Renderer
 			if (!earlyExit) return false;
 
 			bool clearVal = std::tie(clearValue.color.int32[0], clearValue.color.int32[1], clearValue.color.int32[2],
-			                         clearValue.color.int32[3]) <
+				clearValue.color.int32[3]) <
 				std::tie(other.clearValue.color.int32[0], other.clearValue.color.int32[1],
-				         other.clearValue.color.int32[2], other.clearValue.color.int32[3]);
+					other.clearValue.color.int32[2], other.clearValue.color.int32[3]);
 
 			return clearVal;
 		}
@@ -45,6 +45,9 @@ namespace Renderer
 	struct Renderpass
 	{
 	public:
+
+		operator VkRenderPass() { return renderpass; }
+
 		Renderpass(VkDevice* device, RenderpassKey key)
 			: device(device), colourAttachments(key.colourAttachments)
 		{
@@ -112,7 +115,7 @@ namespace Renderer
 			dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 			dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-			VkRenderPassCreateInfo createInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
+			VkRenderPassCreateInfo createInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
 			createInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
 			createInfo.pAttachments = attachmentDescriptions.data();
 			createInfo.subpassCount = 1;

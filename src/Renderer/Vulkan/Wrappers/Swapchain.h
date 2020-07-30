@@ -15,6 +15,7 @@ namespace Renderer
 		uint32_t frameIndex;
 		long long time;
 		long long delta;
+		VkImageView imageView;
 	};
 
 	class Swapchain
@@ -69,7 +70,7 @@ namespace Renderer
 
 		// info
 		uint32_t currentIndex = 0;
-		uint32_t framesInFlight;
+		uint32_t framesInFlight = 3;
 		int width = 640;
 		int height;
 		const char* title;
@@ -89,6 +90,7 @@ namespace Renderer
 		std::vector<VkImageView>& getImageViews() { return views; }
 		VkExtent2D getExtent() { return extent; }
 		uint32_t getIndex() { return currentIndex; }
+		uint32_t getFramesInFlight() { return framesInFlight; }
 
 		void Initialise(VkDevice* device, VkInstance* instance, VkPhysicalDevice* physDevice)
 		{
@@ -149,13 +151,10 @@ namespace Renderer
 
 			uint32_t swapImagesCount = surfCaps.minImageCount + 1;
 			if ((surfCaps.maxImageCount > 0) && (swapImagesCount > surfCaps.maxImageCount))
-				swapImagesCount = surfCaps.
-				maxImageCount;
+				swapImagesCount = surfCaps.maxImageCount;
 
 			VkSurfaceTransformFlagsKHR preTransform;
-			if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
-				preTransform =
-				VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+			if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 			else preTransform = surfCaps.currentTransform;
 
 			VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -215,12 +214,8 @@ namespace Renderer
 			swapchainCI.clipped = VK_TRUE;
 			swapchainCI.compositeAlpha = compositeAlpha;
 
-			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
-				swapchainCI.imageUsage |=
-				VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-				swapchainCI.imageUsage |=
-				VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+			if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 			auto success = vkCreateSwapchainKHR(*device, &swapchainCI, nullptr, &swapchain);
 			Assert(success == VK_SUCCESS, "Failed to create swapchain");
@@ -274,7 +269,7 @@ namespace Renderer
 			fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 			fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-			for (auto i = 0; i < framesInFlight; i++)
+			for (uint32_t i = 0; i < framesInFlight; i++)
 			{
 				auto& frame = frames[i];
 				frame = {};
@@ -291,11 +286,10 @@ namespace Renderer
 			auto& curFrame = frames[currentIndex];
 			curFrame.buffer = buffer;
 
-			vkWaitForFences(*device, 1, &frames[(currentIndex + 2) % framesInFlight].inFlightFence, VK_TRUE,
+			vkWaitForFences(*device, 1, &frames[(currentIndex + framesInFlight - 1) % framesInFlight].inFlightFence, VK_TRUE,
 				UINT64_MAX);
 
 			auto time = std::chrono::high_resolution_clock::now();
-
 
 			uint32_t imageIndex;
 			vkAcquireNextImageKHR(*device, swapchain, UINT64_MAX, curFrame.imageAcquired, nullptr, &imageIndex);
@@ -306,7 +300,8 @@ namespace Renderer
 			prevDelta = info.time;
 			info.frameIndex = imageIndex;
 			info.offset = currentIndex;
-
+			info.imageView = views[currentIndex];
+			
 			return info;
 		}
 

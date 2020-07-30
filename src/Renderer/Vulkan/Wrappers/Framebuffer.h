@@ -24,19 +24,18 @@ namespace Renderer
 		}
 	};
 
-	struct Framebuffer
+	struct FramebufferBundle
 	{
-	public:
-		Framebuffer(VkDevice* device, FramebufferKey key)
+		FramebufferBundle(VkDevice* device, FramebufferKey key, uint32_t count)
 			: device(device)
 		{
-			framebuffers.resize(key.imageViews.size());
+			framebuffers.resize(count);
 
-			for (int i = 0; i < key.imageViews.size(); i++)
+			for (uint32_t i = 0; i < count; i++)
 			{
 				VkFramebufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-				createInfo.attachmentCount = 1;
-				createInfo.pAttachments = &key.imageViews[i];
+				createInfo.attachmentCount = static_cast<uint32_t>(key.imageViews.size());
+				createInfo.pAttachments = key.imageViews.data();
 				createInfo.width = key.extent.width;
 				createInfo.height = key.extent.height;
 				createInfo.renderPass = key.renderpass.getHandle();

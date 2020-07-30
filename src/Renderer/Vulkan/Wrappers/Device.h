@@ -4,6 +4,7 @@
 #include "glfw3.h"
 #include <set>
 #include <vector>
+#include "vk_mem_alloc.h"
 
 namespace Renderer
 {

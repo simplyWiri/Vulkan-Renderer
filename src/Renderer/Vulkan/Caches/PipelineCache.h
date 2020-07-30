@@ -13,29 +13,23 @@ namespace Renderer
 		VkDevice* device;
 
 	public:
-		// We want to move shader ownership into this class; It will contain; Pipeline(s), Shaders (compiled SPV, Descriptor Sets)
 		void buildCache(VkDevice* device) { this->device = device; }
 
-		GraphicsPipelineKey bakeKey(VkRenderPass renderpass, VkExtent2D extent, DepthSettings depthSettings,
-			const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology,
-			std::vector<Shader*> shaders)
-		{
-			GraphicsPipelineKey key = {};
-			key.shaders = shaders;
-			key.extent = extent;
-			key.depthSetting = depthSettings;
-			key.blendSettings = blendSettings;
-			key.topology = topology;
-			createLayout(shaders, key.dLayout, key.pLayout);
-			key.renderpass = renderpass;
+		//GraphicsPipelineKey bakeKey(VkRenderPass renderpass, VkExtent2D extent, DepthSettings depthSettings,
+		//	const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology,
+		//	std::vector<Shader*> shaders)
+		//{
+		//	GraphicsPipelineKey key = {};
+		//	key.shaders = shaders;
+		//	key.extent = extent;
+		//	key.depthSetting = depthSettings;
+		//	key.blendSettings = blendSettings;
+		//	key.topology = topology;
+		//	createLayout(shaders, key.dLayout, key.pLayout);
+		//	key.renderpass = renderpass;
 
-			return key;
-		}
-		GraphicsPipelineKey& bakeKey(GraphicsPipelineKey key)
-		{
-			createLayout(key.shaders, key.dLayout, key.pLayout);
-			return key;
-		}
+		//	return key;
+		//}
 
 		void bindGraphicsPipeline(VkCommandBuffer buffer, GraphicsPipelineKey key)
 		{

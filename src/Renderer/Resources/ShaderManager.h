@@ -2,6 +2,8 @@
 #include "Shader.h"
 #include <unordered_map>
 
+#include "ShaderProgram.h"
+
 namespace std
 {
 	template<> struct hash<std::pair<Renderer::ShaderType, std::string>>
@@ -20,6 +22,7 @@ namespace Renderer
 	private:
 		const std::pair<ShaderType, std::string> defVert = { ShaderType::Vertex, "resources/VertexShader.vert" };
 		const std::pair<ShaderType, std::string> defFrag = { ShaderType::Fragment,  "resources/FragmentShader.frag" };
+		
 	public:
 		ShaderManager()
 		{
@@ -53,6 +56,11 @@ namespace Renderer
 			return value;
 		}
 
+		ShaderProgram getProgram(const std::vector<Shader*>& shaders)
+		{
+			return ShaderProgram(shaders);
+		}
+		
 		std::unordered_map<std::pair<ShaderType, std::string>, Shader*> shaders;
 	};
 

@@ -1,8 +1,10 @@
 #pragma once
 #include "glm/glm.hpp"
 #include "vulkan.h"
+#include "vk_mem_alloc.h"
 #include <vector>
 #include <functional>
+#include <optional>
 #include <unordered_map>
 #include <string>
 #include "../../Resources/Buffer.h"
@@ -10,6 +12,14 @@
 #include "../Wrappers/Pipeline.h"
 #include "../Wrappers/Swapchain.h"
 #include "Tether.h"
+#include "GraphContext.h"
+#include "../Caches/FramebufferCache.h"
+#include "../Caches/PipelineCache.h"
+#include "../Caches/RenderpassCache.h"
+#include "../Wrappers/Renderpass.h"
+#include "PassDesc.h"
+#include "../Caches/DescriptorSetCache.h"
+
 
 namespace Renderer
 {
@@ -29,24 +39,23 @@ namespace Renderer
 	 * ImageResource -> a struct containing information about an 'image'
 	 * BufferResource -> a struct containing information about a 'buffer'
 	 */
-	
-	// How is the image attachment sized relative to swapchain?
+
+	 // How is the image attachment sized relative to swapchain?
 	enum SizeClass { Absolute, SwapchainRelative, Input };
 
 	class Core;
 	class Rendergraph;
-	struct GraphContext;
 
 	// Image Attachment
 	struct Resource
 	{
 		uint16_t id;
 	};
-	
+
 	struct ImageResource : Resource
 	{
 		SizeClass sizeClass = SwapchainRelative;
-		glm::vec3 size = {1.0f, 1.0f, 0.0f};
+		glm::vec3 size = { 1.0f, 1.0f, 0.0f };
 		VkFormat format = VK_FORMAT_UNDEFINED;
 		uint32_t samples = 1, levels = 1, layers = 1;
 		VkImageUsageFlags usage = 0;
@@ -57,79 +66,72 @@ namespace Renderer
 	{
 		VkDeviceSize size = 0;
 		VkBufferUsageFlags usage = 0;
-	};
-
-	struct PassDesc
-	{
-		PassDesc() { }
-
-		PassDesc& SetName(const char* name)
-		{
-			this->taskName = name;
-			return *this;
-		}
-
-		PassDesc& SetInitialisationFunc(std::function<void(Tether&)> func)
-		{
-			this->initialisation = func;
-			return *this;
-		}
-
-		PassDesc& SetRecordFunc(std::function<void(FrameInfo&, GraphContext&)> func)
-		{
-			this->execute = func;
-			return *this;
-		}
-
-		std::string taskName;
-		std::function<void(Tether&)> initialisation;
-		std::function<void(FrameInfo&, GraphContext&)> execute;
+		VkMemoryPropertyFlags props;
+		VmaMemoryUsage memUsage;
 	};
 
 	class Rendergraph
 	{
-	public:
-		
-	struct GraphContext
-	{
-		GraphContext(Rendergraph* graph)
-		{
-			this->graph = graph;
-		}
-		
-		Rendergraph* graph;
-		Resource& getResource(const std::string& key) const
-		{
-			return graph->resources[graph->strToIndex[key]];
-		}
-
-	};
 	private:
 		bool initialised = false;
+		uint16_t curIndex = 1;
+		ShaderManager shaderManager;
 
 		std::unordered_map<std::string, uint16_t> strToIndex;
-		std::vector<Resource> resources;
-		
-	public:
-		Rendergraph(Core* core);
 
-		static std::string GetBackBufferSourceID() { return "graph:backbuffer"; }
+		std::vector<PassDesc> passes;
+		std::vector<PassDesc> uniquePasses;
+
+
+		Core* core;
+
+		RenderpassCache renderCache;
+		GraphicsPipelineCache graphicsPipelineCache;
+		FramebufferCache framebufferCache;
+		DescriptorSetCache descriptorSetCache;
+
+		VkCommandPool pool;
+		std::vector<VkCommandBuffer> buffers;
+		uint32_t currentOffset = 0;
+
+
+	public:
+		//std::unordered_map<std::string, Buffer*> buffers;
+
+		Rendergraph(Core* core);
 
 		void Initialise();
 		void Execute();
 
 		void AddPass(PassDesc passDesc);
 
+		GraphicsPipelineCache& getGraphicsPipelineCache() { return graphicsPipelineCache; }
+		RenderpassCache& getRenderpassCache() { return renderCache; }
+		FramebufferCache& getFramebufferCache() { return framebufferCache; }
+		ShaderManager& getShaderManger() { return shaderManager; }
+		DescriptorSetCache& getDescriptorSetCache() { return descriptorSetCache; }
+
+
 	private:
 
 		// Baking utility (initialisation)
+		void extractGraphInformation();
+		// assigns id's, locates resources required, builds a dependancy graph
+		// builds the required resources
 		void validateGraph(); // debug
-		void extractGraphInformation(); // assigns id's, locates resources required, builds a dependancy graph
 
-		void buildResources(); // builds resources associated by id
 		void mergePasses(); // merges passes which are compatible
-		void buildTrasients(); // 'merge' or 'reuse' images which are compatible
+		void buildTransients(); // 'merge' or 'reuse' images which are compatible
 		void buildBarriers(); // build synchronisation barriers between items
+
+	private:
+		uint16_t assignId() { return ++curIndex; }
+		void processBuffer(const std::string& resName, VkBufferUsageFlags usage);
+		void processImage(std::string resName, VkImageUsageFlags usage);
+
+
+
+
 	};
 
 

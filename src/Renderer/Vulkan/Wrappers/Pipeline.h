@@ -1,8 +1,9 @@
 #pragma once
 #include "vulkan.h"
-#include "..\..\Resources\Shader.h" /* Accessing Shader Functionality */
 #include <vector>
 #include <memory>
+
+#include "../../Resources/ShaderProgram.h"
 #include "../../Resources/Vertex.h"
 
 namespace Renderer
@@ -115,10 +116,9 @@ namespace Renderer
 
 	struct GraphicsPipelineKey
 	{
-		std::vector<Shader*> shaders;
+		ShaderProgram program;
+
 		VkRenderPass renderpass;
-		VkPipelineLayout pLayout;
-		VkDescriptorSetLayout dLayout;
 		VkExtent2D extent;
 		DepthSettings depthSetting;
 		std::vector<BlendSettings> blendSettings;
@@ -127,8 +127,8 @@ namespace Renderer
 		bool operator <(const GraphicsPipelineKey& other) const
 		{
 			return
-				std::tie(shaders, pLayout, depthSetting, blendSettings, topology, renderpass) <
-				std::tie(other.shaders, other.pLayout, other.depthSetting, other.blendSettings, other.topology,
+				std::tie(depthSetting, blendSettings, topology, renderpass) <
+				std::tie(other.depthSetting, other.blendSettings, other.topology,
 					other.renderpass);
 		}
 	};
@@ -144,6 +144,7 @@ namespace Renderer
 		std::vector<VkPushConstantRange> pushConstants;
 		VkDescriptorSetLayout descriptorSetLayout;
 
+
 	public:
 		Pipeline(VkDevice* device, GraphicsPipelineKey key)
 		{
@@ -151,19 +152,14 @@ namespace Renderer
 				Assert(false, "Failed to obtain required information to create the graphics pipeline");
 
 			this->device = device;
-			this->layout = key.pLayout;
-			this->descriptorSetLayout = key.dLayout;
+			key.program.initialiseResources(device);
+			this->layout = key.program.getPipelineLayout();
+			this->descriptorSetLayout = key.program.getDescriptorLayout();
 
 			std::vector<VkPipelineShaderStageCreateInfo> shaderCreateInfo = {};
 
-			for (const auto& shader : key.shaders)
+			for (const auto& shader : key.program.getShaders())
 			{
-				if (shader->getStatus() == ShaderStatus::Uninitialised)
-				{
-					shader->compileGLSL();
-					shader->reflectSPIRV();
-				}
-
 				switch (shader->getType())
 				{
 				case ShaderType::Vertex:
@@ -245,7 +241,7 @@ namespace Renderer
 			graphicsPipelineCreateInfo.pMultisampleState = &multisampleCreateInfo;
 			graphicsPipelineCreateInfo.pColorBlendState = &colorBlendCreateInfo;
 			graphicsPipelineCreateInfo.pDepthStencilState = &depthStencil;
-			graphicsPipelineCreateInfo.layout = key.pLayout; // we have pre-baked the layout in the key
+			graphicsPipelineCreateInfo.layout = key.program.getPipelineLayout(); // we have pre-baked the layout in the key
 			graphicsPipelineCreateInfo.renderPass = key.renderpass;
 
 			//// TODO
@@ -258,6 +254,8 @@ namespace Renderer
 
 			for (auto shaderModule : shaderModules) { vkDestroyShaderModule(*device, shaderModule, nullptr); }
 		}
+
+		operator VkPipeline () { return pipeline; }
 
 		VkPipeline& getPipeline() { return this->pipeline; }
 		VkPipelineLayout& getLayout() { return this->layout; }

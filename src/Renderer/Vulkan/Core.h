@@ -11,6 +11,7 @@
 
 #include "RenderGraph/Rendergraph.h"
 #include "../Resources/ShaderManager.h"
+#include "Caches/DescriptorSetCache.h"
 
 namespace Renderer
 {
@@ -20,9 +21,6 @@ namespace Renderer
 		DoubleBuffered - Two copies of each type of buffer, the optimal scenario, while one buffer is submitted and drawn on, there is an alternate buffer being filled by CPU
 		TripleBuffered - Three copies of each type of buffer, used when the CPU can outperform the GPU - Will potentially noticable input lag (rectifiable)
 	*/
-
-
-	//return true;
 
 	enum class RendererBufferSettings { SwapchainSync, SingleBuffered, DoubleBuffered, TripleBuffered, };
 
@@ -40,23 +38,25 @@ namespace Renderer
 		bool Run();
 
 		~Core();
-		Device device;
 	private:
 
+		Device device;
 		Swapchain swapchain; // VkSwapchainKHR
 
 		// caches
 		RenderpassCache renderpassCache;
 		GraphicsPipelineCache pipelineCache;
 		FramebufferCache framebufferCache;
+		DescriptorSetCache descriptorCache;
+		DescriptorSetKey descKey;
 
 		ShaderManager shaderManager;
-		
 		VkCommandPool commandPool;
+		VmaAllocator allocator;
 
 		Buffer* vertexBuffer;
 		Buffer* indexBuffer;
-		Buffer* ubo;
+		//Buffer* ubo;
 
 		VkDescriptorPool descriptorPool;
 		std::vector<VkDescriptorSet> descriptorSets;
@@ -73,7 +73,13 @@ namespace Renderer
 
 	public:
 
-		Rendergraph* Rendergraph() { return rendergraph.get(); }
+		Rendergraph* GetRendergraph() { return rendergraph.get(); }
+		VmaAllocator* GetAllocator() { return device.getAllocator(); }
+		Device* GetDevice() { return &device; }
+		Swapchain* GetSwapchain() { return &swapchain; }
+
+		void BeginFrame(VkCommandBuffer& buffer, FrameInfo& info);
+		void EndFrame(FrameInfo info);
 
 	private:
 		RendererSettings settings;
