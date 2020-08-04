@@ -29,12 +29,12 @@ namespace Renderer
 			descSet->setResource(resName, data, size, offset);
 		}
 
-		void bindDescriptorSet(VkCommandBuffer buffer, VkPipelineBindPoint bindPoint, VkPipelineLayout pLayout, const DescriptorSetKey& key, uint32_t offset)
+		void bindDescriptorSet(VkCommandBuffer buffer, VkPipelineBindPoint bindPoint, const DescriptorSetKey& key, uint32_t offset)
 		{
 			auto descSet = get(key);
 
 			uint32_t dynOffset = 0;
-			vkCmdBindDescriptorSets(buffer, bindPoint, pLayout, 0, 1, descSet->get(offset), 1, &dynOffset);
+			vkCmdBindDescriptorSets(buffer, bindPoint, key.program.getPipelineLayout(), 0, 1, descSet->get(offset), 1, &dynOffset);
 		}
 
 		DescriptorSetBundle* get(const DescriptorSetKey& key) override

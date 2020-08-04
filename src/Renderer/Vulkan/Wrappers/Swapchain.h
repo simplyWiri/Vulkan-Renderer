@@ -69,6 +69,7 @@ namespace Renderer
 		VkExtent2D extent;
 
 		// info
+		uint32_t frameCount = 0;
 		uint32_t currentIndex = 0;
 		uint32_t framesInFlight = 3;
 		int width = 640;
@@ -298,7 +299,7 @@ namespace Renderer
 			info.time = std::chrono::time_point_cast<std::chrono::nanoseconds>(time).time_since_epoch().count();
 			info.delta = prevDelta - info.time;
 			prevDelta = info.time;
-			info.frameIndex = imageIndex;
+			info.frameIndex = frameCount++;
 			info.offset = currentIndex;
 			info.imageView = views[currentIndex];
 			
@@ -334,7 +335,7 @@ namespace Renderer
 			presentInfo.pWaitSemaphores = &frames[currentIndex].renderFinished;
 			presentInfo.swapchainCount = 1;
 			presentInfo.pSwapchains = &swapchain;
-			presentInfo.pImageIndices = &info.frameIndex;
+			presentInfo.pImageIndices = &info.offset;
 
 			success = vkQueuePresentKHR(presentQueue, &presentInfo);
 

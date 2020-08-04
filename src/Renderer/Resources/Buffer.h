@@ -83,7 +83,7 @@ namespace Renderer
 
 				Assert(success == VK_SUCCESS, "Failed to re-create Buffer");
 			}
-			
+
 			uint8_t* dst = map();
 			std::copy(data, data + size, dst + offset);
 			unMap();

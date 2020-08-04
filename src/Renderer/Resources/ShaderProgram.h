@@ -14,9 +14,9 @@ namespace Renderer
 		{
 			this->shaders = shaders;
 
-			for(auto shader : shaders)
+			for (auto shader : shaders)
 			{
-				if(shader->getStatus() == ShaderStatus::Uninitialised)
+				if (shader->getStatus() == ShaderStatus::Uninitialised)
 				{
 					shader->compileGLSL();
 					shader->reflectSPIRV();
@@ -26,10 +26,15 @@ namespace Renderer
 			}
 		}
 
+		bool operator <(const ShaderProgram& other) const
+		{
+			return std::tie(shaderResources, pLayout, dLayout) < std::tie(other.shaderResources, other.pLayout, other.dLayout);
+		}
+
 		void initialiseResources(VkDevice* device)
 		{
-			if(initialised) return;
-			
+			if (initialised) return;
+
 			std::vector<VkPushConstantRange> pushConstants;
 			std::vector<VkDescriptorSetLayoutBinding> bindings;
 
@@ -63,8 +68,8 @@ namespace Renderer
 
 					bindings.push_back(binding);
 				}
-			}			
-			
+			}
+
 			VkDescriptorSetLayoutCreateInfo desclayout = {};
 			desclayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			desclayout.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -83,20 +88,20 @@ namespace Renderer
 
 			initialised = true;
 		}
-		
+
 		std::vector<Shader*> getShaders() const { return shaders; }
 		std::vector<ShaderResources> getResources() const { return shaderResources; }
 
-		VkPipelineLayout& getPipelineLayout() { return pLayout; }
-		VkDescriptorSetLayout& getDescriptorLayout() { return dLayout; }
+		VkPipelineLayout getPipelineLayout() const { return pLayout; }
+		VkDescriptorSetLayout getDescriptorLayout() const { return dLayout; }
 
 	private:
 		bool initialised = false;
-		
+
 		VkPipelineLayout pLayout;
 		VkDescriptorSetLayout dLayout;
-		
-		
+
+
 		std::vector<Shader*> shaders;
 		std::vector<ShaderResources> shaderResources;
 	};

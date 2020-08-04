@@ -127,9 +127,9 @@ namespace Renderer
 		bool operator <(const GraphicsPipelineKey& other) const
 		{
 			return
-				std::tie(depthSetting, blendSettings, topology, renderpass) <
+				std::tie(depthSetting, blendSettings, topology, renderpass, program) <
 				std::tie(other.depthSetting, other.blendSettings, other.topology,
-					other.renderpass);
+					other.renderpass, other.program);
 		}
 	};
 

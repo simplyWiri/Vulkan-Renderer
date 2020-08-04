@@ -61,7 +61,7 @@ namespace Renderer
 		default: VerboseLog("[{0}]: {1}", mt, pCallbackData->pMessage);
 			break;
 		}
-
+		__debugbreak();
 		return VK_FALSE;
 	}
 
@@ -127,12 +127,19 @@ namespace Renderer
 		QueueFamilyIndices indices;
 		VmaAllocator allocator;
 
+		// physical device details
+		VkPhysicalDeviceFeatures features;
+		VkPhysicalDeviceProperties properties;
+
 	public:
 		VkDevice* getDevice() { return &device; }
 		VkPhysicalDevice* getPhysicalDevice() { return &physDevice; }
 		VkInstance* getInstance() { return &instance; }
 		QueueFamilyIndices* getIndices() { return &indices; }
 		VmaAllocator* getAllocator() { return &allocator; }
+
+		VkPhysicalDeviceFeatures getPhysicalDeviceFeatures() { return features; }
+		VkPhysicalDeviceProperties getPhysicalDeviceProperties() { return properties; }
 
 
 		void BuildInstance(bool debugLayers)
@@ -214,6 +221,8 @@ namespace Renderer
 					this->swapDetails.presentModes))
 				{
 					this->physDevice = physDevice;
+					vkGetPhysicalDeviceFeatures(physDevice, &features);
+					vkGetPhysicalDeviceProperties(physDevice, &properties);
 					this->indices = getIndices(physDevice, surface);
 					return;
 				}

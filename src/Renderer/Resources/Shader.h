@@ -9,9 +9,8 @@ namespace Renderer
 	{
 		Vertex,
 		Fragment,
-		Compute,
-		Mesh
-		// todo -- support for RTX
+		Compute
+		// todo -- support for RTX / Mesh
 	};
 
 	VkShaderStageFlagBits getFlagBits(ShaderType kind);
@@ -23,12 +22,6 @@ namespace Renderer
 		Compiled
 	};
 
-	/*
-		Shader is a class which contains a GLSL shader; It should be cleaned up after the compiled SPIR-V is linked into a pipeline
-			- Contains functions for getting information about a shader
-			- It contains all the information that will be required for reflection to create vulkan objects
-	*/
-
 	// If a UBO/SSBO/Push Constant contains a struct, this member will be filled with the details of the contents within the struct
 	struct ShaderMember
 	{
@@ -39,6 +32,14 @@ namespace Renderer
 		uint32_t arraySize;
 		const ShaderMember* pNext;
 		const ShaderMember* pMembers;
+
+		bool operator <(const ShaderMember& other) const
+		{
+			return
+				std::tie(offset, size, vecSize, arraySize, columns, pNext, pMembers)
+				<
+				std::tie(other.offset, other.size, other.vecSize, other.columns, other.arraySize, other.pNext, other.pMembers);
+		}
 	};
 
 	// A generic reflection struct which contains enough information to create descriptors per relevant resource, for parsing into descriptors
@@ -62,9 +63,9 @@ namespace Renderer
 		bool operator <(const ShaderResources& other) const
 		{
 			return
-				std::tie(name, flags, type, access, set, binding, location, inputAttachmentIndex, vecSize, columns, descriptorCount, offset, size)
+				std::tie(name, flags, type, access, set, binding, location, inputAttachmentIndex, vecSize, columns, descriptorCount, offset, size, pMembers)
 				<
-				std::tie(other.name, other.flags, other.type, other.access, other.set, other.binding, other.location, other.inputAttachmentIndex, other.vecSize, other.columns, other.descriptorCount, other.offset, other.size);
+				std::tie(other.name, other.flags, other.type, other.access, other.set, other.binding, other.location, other.inputAttachmentIndex, other.vecSize, other.columns, other.descriptorCount, other.offset, other.size, other.pMembers);
 		}
 	};
 

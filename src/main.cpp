@@ -26,42 +26,27 @@ struct UniformBufferObject {
 int main()
 {
 	auto renderer = std::make_unique<Core>(640, 400, "Window");
-	
+
 	renderer->Initialise();
 
-	Buffer* vertexBuffer;
-	Buffer* indexBuffer;
-
-	vertexBuffer = new Buffer(renderer->GetAllocator(), VkDeviceSize(64 * 64), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		VMA_MEMORY_USAGE_CPU_TO_GPU);
-	indexBuffer = new Buffer(renderer->GetAllocator(), VkDeviceSize(64 * 64), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+	Buffer* tribuffer = new Buffer(renderer->GetAllocator(), VkDeviceSize(64 * 64), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-	vertexBuffer->load((void*)vertices.data(), sizeof(Vertex) * vertices.size());
-	indexBuffer->load((void*)indices.data(), sizeof(uint16_t) * indices.size());
+	tribuffer->load((void*)vertices.data(), sizeof(Vertex) * vertices.size());
+	tribuffer->load((void*)indices.data(), sizeof(uint16_t) * indices.size(), sizeof(Vertex) * vertices.size());
 
-	auto& program = renderer->GetRendergraph()->getShaderManger().getProgram({renderer->GetRendergraph()->getShaderManger().defaultVertex(), renderer->GetRendergraph()->getShaderManger().defaultFragment()});
+	auto program = renderer->GetRendergraph()->getShaderManger().getProgram({ renderer->GetRendergraph()->getShaderManger().defaultVertex(), renderer->GetRendergraph()->getShaderManger().defaultFragment() });
 	program.initialiseResources(renderer->GetDevice()->getDevice());
-	
+
 	renderer->GetRendergraph()->AddPass(PassDesc()
 		.SetName("Triangle")
 		.SetInitialisationFunc([](Tether& tether) {})
-		.SetRecordFunc([vertexBuffer, indexBuffer, program](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context) -> void
+		.SetRecordFunc([tribuffer, program](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context) -> void
 			{
-
-				GraphicsPipelineKey key = {};
-				key.renderpass = context.getDefaultRenderpass();
-				key.extent = context.getExtent();
-				key.depthSetting = DepthSettings::Disabled();
-				key.blendSettings = { BlendSettings::Add() };
-				key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-				key.program = program;
-
-				DescriptorSetKey descriptorSetKey = {};
-				descriptorSetKey.dLayout = key.program.getDescriptorLayout();
-				descriptorSetKey.resources = context.graph->getShaderManger().defaultVertex()->getResources();
+				DescriptorSetKey descriptorSetKey = { program };
 
 				{ // update our buffers
+
 					static auto startTime = std::chrono::high_resolution_clock::now();
 
 					auto currentTime = std::chrono::high_resolution_clock::now();
@@ -76,15 +61,15 @@ int main()
 					context.graph->getDescriptorSetCache().setResource(descriptorSetKey, "ubo", frameInfo.offset, &ubo, sizeof(UniformBufferObject));
 				}
 
-				context.graph->getGraphicsPipelineCache().bindGraphicsPipeline(buffer, key);
+				context.graph->getGraphicsPipelineCache().bindGraphicsPipeline(buffer, context.getDefaultRenderpass(), context.getExtent(), DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, program);
 
-				VkBuffer vertexBuffers[] = { vertexBuffer->getBuffer() };
+				VkBuffer vertexBuffers[] = { tribuffer->getBuffer() };
 				VkDeviceSize offsets[] = { 0 };
 
 				vkCmdBindVertexBuffers(buffer, 0, 1, vertexBuffers, offsets);
-				vkCmdBindIndexBuffer(buffer, indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
+				vkCmdBindIndexBuffer(buffer, tribuffer->getBuffer(), sizeof(Vertex) * vertices.size(), VK_INDEX_TYPE_UINT16);
 
-				context.graph->getDescriptorSetCache().bindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, key.program.getPipelineLayout(), descriptorSetKey, frameInfo.offset);
+				context.graph->getDescriptorSetCache().bindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey, frameInfo.offset);
 
 				vkCmdDrawIndexed(buffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 			}));

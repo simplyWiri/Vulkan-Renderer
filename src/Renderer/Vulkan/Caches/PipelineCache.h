@@ -15,21 +15,18 @@ namespace Renderer
 	public:
 		void buildCache(VkDevice* device) { this->device = device; }
 
-		//GraphicsPipelineKey bakeKey(VkRenderPass renderpass, VkExtent2D extent, DepthSettings depthSettings,
-		//	const std::vector<BlendSettings>& blendSettings, VkPrimitiveTopology topology,
-		//	std::vector<Shader*> shaders)
-		//{
-		//	GraphicsPipelineKey key = {};
-		//	key.shaders = shaders;
-		//	key.extent = extent;
-		//	key.depthSetting = depthSettings;
-		//	key.blendSettings = blendSettings;
-		//	key.topology = topology;
-		//	createLayout(shaders, key.dLayout, key.pLayout);
-		//	key.renderpass = renderpass;
+		void bindGraphicsPipeline(VkCommandBuffer buffer, VkRenderPass pass, VkExtent2D extent, DepthSettings depthSettings, std::vector<BlendSettings> blendSettings, VkPrimitiveTopology topology, ShaderProgram program)
+		{
+			GraphicsPipelineKey key;
+			key.renderpass = pass;
+			key.extent = extent;
+			key.depthSetting = depthSettings;
+			key.blendSettings = blendSettings;
+			key.topology = topology;
+			key.program = program;
 
-		//	return key;
-		//}
+			bindGraphicsPipeline(buffer, key);
+		}
 
 		void bindGraphicsPipeline(VkCommandBuffer buffer, GraphicsPipelineKey key)
 		{
