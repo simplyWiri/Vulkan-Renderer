@@ -77,7 +77,7 @@ namespace Renderer
 				{
 					VkDescriptorBufferInfo descBufferInfo = {};
 					descBufferInfo.buffer = buffers[res.name]->getBuffer();
-					descBufferInfo.offset = 256; // buffer looks like [0 -> res.size, res.size -> res.size * 2] [firstFrameInFlight, secondFrameInFlight]
+					descBufferInfo.offset = i * 256; // buffer looks like [0 -> res.size, res.size -> res.size * 2] [firstFrameInFlight, secondFrameInFlight]
 					descBufferInfo.range = res.size;
 
 					VkWriteDescriptorSet writeDescSet = {};

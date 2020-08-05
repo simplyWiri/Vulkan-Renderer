@@ -13,36 +13,13 @@ namespace Renderer
 	struct Tether
 	{
 		std::string passId;
-		ShaderManager* shaderManager;
 
-		static std::string getDefaultRenderpass() { return "main:renderpass"; }
-		static std::string getDefaultExtent() { return "main:renderpass";}
+		void AddColourOutput(const std::string& resName) { }
 		
-		std::vector<std::tuple<std::string, VkBufferUsageFlags>> buffers;
-		std::vector<std::tuple<std::string, VkImageUsageFlags>> images;
-		std::vector<std::tuple<std::string, VkShaderStageFlagBits, std::string>> shaders;
+		void RegisterDependancy(const std::string resName) { }
+		void RegisterStorageIn(const std::string resName) { }
 
-		struct PipelineInfo
-		{
-			std::string id;
-			std::string rpId;
-			std::string extId;
-			GraphicsPipelineKey key;
-		};
-		std::vector<PipelineInfo> pipelineKeys;
-		
-		/* Buffers */
-		void RegisterBuffer(std::string id, VkBufferUsageFlags usageFlags)
-		{
-			buffers.emplace_back(passId + id, usageFlags);
-		}
-		void RegisterImage(std::string id, VkImageUsageFlags usageFlags)
-		{
-			images.emplace_back(passId + id, usageFlags);
-		}
-
-
-
+		std::vector<std::string> dependencies;
 	};
 
 }

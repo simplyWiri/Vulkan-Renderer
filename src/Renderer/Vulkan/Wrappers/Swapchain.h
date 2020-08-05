@@ -15,6 +15,7 @@ namespace Renderer
 		uint32_t frameIndex;
 		long long time;
 		long long delta;
+		uint32_t imageIndex;
 		VkImageView imageView;
 	};
 
@@ -69,17 +70,18 @@ namespace Renderer
 		VkExtent2D extent;
 
 		// info
+		long long prevTime = 0;
 		uint32_t frameCount = 0;
 		uint32_t currentIndex = 0;
 		uint32_t framesInFlight = 3;
+		
 		int width = 640;
-		int height;
-		const char* title;
+		int height = 400;
+		const char* title = "Default Title";
 
 		VkDevice* device;
 		VkInstance* instance;
 		VkPhysicalDevice* physDevice;
-		long long prevDelta = 0;
 
 	public:
 		operator VkSwapchainKHR() { return swapchain; }
@@ -287,22 +289,27 @@ namespace Renderer
 			auto& curFrame = frames[currentIndex];
 			curFrame.buffer = buffer;
 
-			vkWaitForFences(*device, 1, &frames[(currentIndex + framesInFlight - 1) % framesInFlight].inFlightFence, VK_TRUE,
-				UINT64_MAX);
+			VkFence waitFences[] = { curFrame.inFlightFence, frames[(currentIndex + framesInFlight - 1) % framesInFlight].inFlightFence };
+			vkWaitForFences(*device, 1, waitFences, VK_TRUE, UINT64_MAX);
+			vkResetFences(*device, 1, &curFrame.inFlightFence);
 
 			auto time = std::chrono::high_resolution_clock::now();
 
-			uint32_t imageIndex;
+			uint32_t imageIndex = 0;
 			vkAcquireNextImageKHR(*device, swapchain, UINT64_MAX, curFrame.imageAcquired, nullptr, &imageIndex);
 
 			FrameInfo info = {};
+			
 			info.time = std::chrono::time_point_cast<std::chrono::nanoseconds>(time).time_since_epoch().count();
-			info.delta = prevDelta - info.time;
-			prevDelta = info.time;
+			info.delta = prevTime - info.time;
+			prevTime = info.time;
+			
 			info.frameIndex = frameCount++;
 			info.offset = currentIndex;
-			info.imageView = views[currentIndex];
-			
+
+			info.imageIndex = imageIndex;
+			info.imageView = views[imageIndex];
+
 			return info;
 		}
 
@@ -325,7 +332,6 @@ namespace Renderer
 			submitInfo.signalSemaphoreCount = 1;
 			submitInfo.pSignalSemaphores = signalSemaphores;
 
-			vkResetFences(*device, 1, &frame.inFlightFence);
 			auto success = vkQueueSubmit(graphicsQueue, 1, &submitInfo, frame.inFlightFence);
 			Assert(success == VK_SUCCESS, "Failed to submit queue");
 
@@ -335,7 +341,7 @@ namespace Renderer
 			presentInfo.pWaitSemaphores = &frames[currentIndex].renderFinished;
 			presentInfo.swapchainCount = 1;
 			presentInfo.pSwapchains = &swapchain;
-			presentInfo.pImageIndices = &info.offset;
+			presentInfo.pImageIndices = &info.imageIndex;
 
 			success = vkQueuePresentKHR(presentQueue, &presentInfo);
 

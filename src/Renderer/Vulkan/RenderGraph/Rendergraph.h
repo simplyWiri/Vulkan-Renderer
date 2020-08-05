@@ -91,17 +91,16 @@ namespace Renderer
 		DescriptorSetCache descriptorSetCache;
 
 		VkCommandPool pool;
+		Image* depthImage;
 		std::vector<VkCommandBuffer> buffers;
-		uint32_t currentOffset = 0;
 
 
 	public:
-		//std::unordered_map<std::string, Buffer*> buffers;
-
 		Rendergraph(Core* core);
 
 		void Initialise();
 		void Execute();
+		void Rebuild();
 
 		void AddPass(PassDesc passDesc);
 

@@ -24,9 +24,9 @@ namespace Renderer
 			renderPassInfo.renderArea.offset = { 0, 0 };
 			renderPassInfo.renderArea.extent = extent;
 
-			VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-			renderPassInfo.clearValueCount = 1;
-			renderPassInfo.pClearValues = &clearColor;
+			std::vector<VkClearValue> clearColors = { { 0.0f, 0.0f, 0.0f, 1.0f }, {1.0f, 0} };
+			renderPassInfo.clearValueCount = 2;
+			renderPassInfo.pClearValues = clearColors.data();
 
 			VkViewport viewport = {};
 			viewport.width = static_cast<float>(extent.width);

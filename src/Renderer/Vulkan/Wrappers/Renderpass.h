@@ -99,7 +99,7 @@ namespace Renderer
 				desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 				desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-				desc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 				attachmentDescriptions.push_back(desc);

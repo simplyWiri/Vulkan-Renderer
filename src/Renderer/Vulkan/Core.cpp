@@ -10,23 +10,6 @@ namespace Renderer
 		TempLogger::Init();
 	}
 
-	const std::vector<Vertex> vertices = {
-	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
-	};
-
-	const std::vector<uint16_t> indices = {
-		0, 1, 2, 2, 3, 0
-	};
-
-	struct UniformBufferObject {
-		alignas(16) glm::mat4 model;
-		alignas(16) glm::mat4 view;
-		alignas(16) glm::mat4 proj;
-	};
-
 	bool Core::Initialise()
 	{
 		/*
@@ -47,7 +30,7 @@ namespace Renderer
 		swapchain.InitialiseSyncObjects();
 
 		rendergraph = std::make_unique<Rendergraph>(this);
-		
+
 		return true;
 	}
 
@@ -57,32 +40,21 @@ namespace Renderer
 
 		glfwPollEvents();
 
-		//auto frameInfo = swapchain.BeginFrame(buffers[swapchain.getIndex()]);
-
-
-		//static auto startTime = std::chrono::high_resolution_clock::now();
-
-		//auto currentTime = std::chrono::high_resolution_clock::now();
-		//float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-		//UniformBufferObject ubo{};
-		//ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		//ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		//ubo.proj = glm::perspective(glm::radians(45.0f), swapchain.getExtent().width / (float)swapchain.getExtent().height, 0.1f, 10.0f);
-		//ubo.proj[1][1] *= -1;
-		//
-		//descriptorCache.setResource(descKey, "ubo", frameInfo.offset, &ubo, sizeof(UniformBufferObject));
-
-		//auto result = swapchain.EndFrame(frameInfo, device.queues.graphics);
-		//if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-		//	windowResize();
-
 		return true;
 	}
 
 	void Core::windowResize()
 	{
-
+		int width = 0, height = 0;
+		while (width == 0 || height == 0) {
+			glfwGetFramebufferSize(swapchain.getWindow(), &width, &height);
+			glfwWaitEvents();
+		}
+		vkDeviceWaitIdle(device);
+		vkQueueWaitIdle(device.queues.graphics);
+		
+		swapchain.BuildSwapchain();
+		rendergraph->Rebuild();
 	}
 
 	void Core::BeginFrame(VkCommandBuffer& buffer, FrameInfo& info)

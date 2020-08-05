@@ -5,6 +5,8 @@
 
 namespace Renderer
 {
+	struct FrameInfo;
+
 	class Allocator
 	{
 		enum ResourceType
@@ -24,6 +26,15 @@ namespace Renderer
 
 	public:
 
+		void beginFrame(const FrameInfo& frameInfo)
+		{
+			
+		}
+
+		void endFrame()
+		{
+			
+		}
 
 	private:
 		void allocateChunk(const size_t& size, const ResourceType& type)

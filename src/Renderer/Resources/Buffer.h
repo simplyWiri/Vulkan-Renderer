@@ -48,7 +48,7 @@ namespace Renderer
 			vmaDestroyBuffer(*allocator, buffer, bufferAllocation);
 		}
 
-		VkBuffer getBuffer() { return buffer; }
+		VkBuffer& getBuffer() { return buffer; }
 		VkBufferUsageFlags getUsage() { return usage; }
 		VkMemoryPropertyFlags getMemoryProps() { return props; };
 		VmaMemoryUsage getMemUsage() { return memUsage; }
