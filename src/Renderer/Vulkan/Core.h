@@ -45,22 +45,10 @@ namespace Renderer
 
 		// caches
 		RenderpassCache renderpassCache;
-		GraphicsPipelineCache pipelineCache;
+		GraphicsPipelineCache graphicsPipelineCache;
 		FramebufferCache framebufferCache;
 		DescriptorSetCache descriptorCache;
-		DescriptorSetKey descKey;
-
 		ShaderManager shaderManager;
-		VkCommandPool commandPool;
-		VmaAllocator allocator;
-
-		Buffer* vertexBuffer;
-		Buffer* indexBuffer;
-		//Buffer* ubo;
-
-		VkDescriptorPool descriptorPool;
-		std::vector<VkDescriptorSet> descriptorSets;
-		std::vector<VkCommandBuffer> buffers;
 
 		std::unique_ptr<Rendergraph> rendergraph;
 
@@ -74,9 +62,18 @@ namespace Renderer
 	public:
 
 		Rendergraph* GetRendergraph() { return rendergraph.get(); }
-		VmaAllocator* GetAllocator() { return device.getAllocator(); }
+
 		Device* GetDevice() { return &device; }
+		VmaAllocator* GetAllocator() { return device.getAllocator(); }
+
 		Swapchain* GetSwapchain() { return &swapchain; }
+
+		RenderpassCache* GetRenderpassCache() { return &renderpassCache; }
+		GraphicsPipelineCache* GetGraphicsPipelineCache() { return &graphicsPipelineCache; }
+		FramebufferCache* GetFramebufferCache() { return &framebufferCache; }
+		DescriptorSetCache* GetDescriptorSetCache() { return &descriptorCache; }
+
+		ShaderManager* GetShaderManager() { return &shaderManager; }
 
 		void BeginFrame(VkCommandBuffer& buffer, FrameInfo& info);
 		void EndFrame(FrameInfo info);

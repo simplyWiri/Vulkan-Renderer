@@ -341,7 +341,6 @@ namespace Renderer
 			resource.flags = stage;
 			resource.access = VK_ACCESS_SHADER_READ_BIT;
 			resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
-			resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
 			resources.push_back(resource);
 		}
 

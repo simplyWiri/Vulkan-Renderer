@@ -121,15 +121,16 @@ namespace Renderer
 		VkRenderPass renderpass;
 		VkExtent2D extent;
 		DepthSettings depthSetting;
+		VertexAttributes vertexAttributes;
 		std::vector<BlendSettings> blendSettings;
 		VkPrimitiveTopology topology;
 
 		bool operator <(const GraphicsPipelineKey& other) const
 		{
 			return
-				std::tie(depthSetting, blendSettings, topology, renderpass, program) <
+				std::tie(depthSetting, blendSettings, topology, renderpass, program, extent.width, extent.height, vertexAttributes) <
 				std::tie(other.depthSetting, other.blendSettings, other.topology,
-					other.renderpass, other.program);
+					other.renderpass, other.program, other.extent.width, other.extent.height, other.vertexAttributes);
 		}
 	};
 
@@ -148,8 +149,7 @@ namespace Renderer
 	public:
 		Pipeline(VkDevice* device, GraphicsPipelineKey key)
 		{
-			if (device == nullptr || key.renderpass == nullptr || key.extent.width == 0 || key.extent.height == 0)
-				Assert(false, "Failed to obtain required information to create the graphics pipeline");
+			Assert(!(device == nullptr || key.renderpass == nullptr || key.extent.width == 0 || key.extent.height == 0), "Failed to obtain required information to create the graphics pipeline");
 
 			this->device = device;
 			key.program.initialiseResources(device);
@@ -172,13 +172,13 @@ namespace Renderer
 				}
 			}
 
-			auto bindingDescription = Vertex::getVertexBindingDescription();
-			auto attributeDescription = Vertex::getAttributeDescriptions();
+			auto bindingDescription = key.vertexAttributes.getBindings();
+			auto attributeDescription = key.vertexAttributes.getAttributes();
 
 			VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
 			vertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-			vertexInputCreateInfo.vertexBindingDescriptionCount = 1;
-			vertexInputCreateInfo.pVertexBindingDescriptions = &bindingDescription;
+			vertexInputCreateInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescription.size());
+			vertexInputCreateInfo.pVertexBindingDescriptions = bindingDescription.data();
 			vertexInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescription.size());
 			vertexInputCreateInfo.pVertexAttributeDescriptions = attributeDescription.data();
 

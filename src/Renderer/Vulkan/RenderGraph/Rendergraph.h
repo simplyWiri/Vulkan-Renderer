@@ -75,8 +75,6 @@ namespace Renderer
 	private:
 		bool initialised = false;
 		uint16_t curIndex = 1;
-		ShaderManager shaderManager;
-
 		std::unordered_map<std::string, uint16_t> strToIndex;
 
 		std::vector<PassDesc> passes;
@@ -84,11 +82,6 @@ namespace Renderer
 
 
 		Core* core;
-
-		RenderpassCache renderCache;
-		GraphicsPipelineCache graphicsPipelineCache;
-		FramebufferCache framebufferCache;
-		DescriptorSetCache descriptorSetCache;
 
 		VkCommandPool pool;
 		Image* depthImage;
@@ -103,12 +96,6 @@ namespace Renderer
 		void Rebuild();
 
 		void AddPass(PassDesc passDesc);
-
-		GraphicsPipelineCache& getGraphicsPipelineCache() { return graphicsPipelineCache; }
-		RenderpassCache& getRenderpassCache() { return renderCache; }
-		FramebufferCache& getFramebufferCache() { return framebufferCache; }
-		ShaderManager& getShaderManger() { return shaderManager; }
-		DescriptorSetCache& getDescriptorSetCache() { return descriptorSetCache; }
 
 
 	private:

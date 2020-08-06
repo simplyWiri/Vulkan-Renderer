@@ -8,10 +8,6 @@ namespace Renderer
 	Rendergraph::Rendergraph(Core* core)
 	{
 		this->core = core;
-		framebufferCache.buildCache(core->GetDevice()->getDevice(), core->GetSwapchain()->getFramesInFlight());
-		renderCache.buildCache(core->GetDevice()->getDevice());
-		graphicsPipelineCache.buildCache(core->GetDevice()->getDevice());
-		descriptorSetCache.buildCache(core->GetDevice()->getDevice(), core->GetAllocator(), core->GetSwapchain()->getFramesInFlight());
 
 		buffers.resize(core->GetSwapchain()->getFramesInFlight());
 
@@ -58,10 +54,10 @@ namespace Renderer
 		core->BeginFrame(buffer, frameInfo);
 		vkBeginCommandBuffer(buffer, &beginInfo);
 
-		auto renderpass = renderCache.get(RenderpassKey({ {core->GetSwapchain()->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR} }, { depthImage->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR }));
+		auto renderpass = core->GetRenderpassCache()->get(RenderpassKey({ {core->GetSwapchain()->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR} }, { depthImage->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR }));
 
 
-		framebufferCache.BeginPass(
+		core->GetFramebufferCache()->BeginPass(
 			buffer,
 			frameInfo.offset,
 			{ frameInfo.imageView, depthImage->getViews()[0]->getView() },
@@ -81,7 +77,7 @@ namespace Renderer
 			pass.execute(buffer, frameInfo, context);
 		}
 
-		framebufferCache.EndPass(buffer);
+		core->GetFramebufferCache()->EndPass(buffer);
 
 		vkEndCommandBuffer(buffer);
 

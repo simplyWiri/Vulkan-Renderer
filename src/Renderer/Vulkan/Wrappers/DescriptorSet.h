@@ -125,6 +125,8 @@ namespace Renderer
 				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
 					buffers.emplace(name, new Buffer(allocator, 256 * framesInFlight, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
 					break;
+				//case VK_DESCRIPTOR_TYPE_SAMPLER:
+				//	samplers.emplace(name, new Sampler());
 				}
 			}
 		}

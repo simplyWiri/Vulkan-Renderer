@@ -29,6 +29,11 @@ namespace Renderer
 		swapchain.BuildSwapchain();
 		swapchain.InitialiseSyncObjects();
 
+		framebufferCache.buildCache(device.getDevice(), swapchain.getFramesInFlight());
+		renderpassCache.buildCache(device.getDevice());
+		graphicsPipelineCache.buildCache(device.getDevice());
+		descriptorCache.buildCache(device.getDevice(), GetAllocator(), swapchain.getFramesInFlight());
+		
 		rendergraph = std::make_unique<Rendergraph>(this);
 
 		return true;
@@ -54,6 +59,7 @@ namespace Renderer
 		vkQueueWaitIdle(device.queues.graphics);
 		
 		swapchain.BuildSwapchain();
+
 		rendergraph->Rebuild();
 	}
 
