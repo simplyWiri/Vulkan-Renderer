@@ -40,7 +40,7 @@ namespace Renderer
 	 * BufferResource -> a struct containing information about a 'buffer'
 	 */
 
-	 // How is the image attachment sized relative to swapchain?
+	// How is the image attachment sized relative to swapchain?
 	enum SizeClass { Absolute, SwapchainRelative, Input };
 
 	class Core;
@@ -55,7 +55,7 @@ namespace Renderer
 	struct ImageResource : Resource
 	{
 		SizeClass sizeClass = SwapchainRelative;
-		glm::vec3 size = { 1.0f, 1.0f, 0.0f };
+		glm::vec3 size = {1.0f, 1.0f, 0.0f};
 		VkFormat format = VK_FORMAT_UNDEFINED;
 		uint32_t samples = 1, levels = 1, layers = 1;
 		VkImageUsageFlags usage = 0;
@@ -72,53 +72,48 @@ namespace Renderer
 
 	class Rendergraph
 	{
-	private:
-		bool initialised = false;
-		uint16_t curIndex = 1;
-		std::unordered_map<std::string, uint16_t> strToIndex;
+		private:
+			bool initialised = false;
+			uint16_t curIndex = 1;
+			std::unordered_map<std::string, uint16_t> strToIndex;
 
-		std::vector<PassDesc> passes;
-		std::vector<PassDesc> uniquePasses;
-
-
-		Core* core;
-
-		VkCommandPool pool;
-		Image* depthImage;
-		std::vector<VkCommandBuffer> buffers;
+			std::vector<PassDesc> passes;
+			std::vector<PassDesc> uniquePasses;
 
 
-	public:
-		Rendergraph(Core* core);
+			Core* core;
 
-		void Initialise();
-		void Execute();
-		void Rebuild();
-
-		void AddPass(PassDesc passDesc);
+			VkCommandPool pool;
+			Image* depthImage;
+			std::vector<VkCommandBuffer> buffers;
 
 
-	private:
+		public:
+			Rendergraph(Core* core);
+			~Rendergraph();
 
-		// Baking utility (initialisation)
-		void extractGraphInformation();
-		// assigns id's, locates resources required, builds a dependancy graph
-		// builds the required resources
-		void validateGraph(); // debug
+			void Initialise();
+			void Execute();
+			void Rebuild();
 
-		void mergePasses(); // merges passes which are compatible
-		void buildTransients(); // 'merge' or 'reuse' images which are compatible
-		void buildBarriers(); // build synchronisation barriers between items
-
-	private:
-		uint16_t assignId() { return ++curIndex; }
-		void processBuffer(const std::string& resName, VkBufferUsageFlags usage);
-		void processImage(std::string resName, VkImageUsageFlags usage);
+			void AddPass(PassDesc passDesc);
 
 
+		private:
 
+			// Baking utility (initialisation)
+			void extractGraphInformation();
+			// assigns id's, locates resources required, builds a dependancy graph
+			// builds the required resources
+			void validateGraph(); // debug
 
+			void mergePasses(); // merges passes which are compatible
+			void buildTransients(); // 'merge' or 'reuse' images which are compatible
+			void buildBarriers(); // build synchronisation barriers between items
+
+		private:
+			uint16_t assignId() { return ++curIndex; }
+			void processBuffer(const std::string& resName, VkBufferUsageFlags usage);
+			void processImage(std::string resName, VkImageUsageFlags usage);
 	};
-
-
 }

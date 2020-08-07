@@ -15,7 +15,7 @@ namespace Renderer
 
 		if (!file.is_open()) { throw std::runtime_error("failed to open file!"); }
 
-		size_t fileSize = (size_t)file.tellg();
+		size_t fileSize = static_cast<size_t>(file.tellg());
 		std::vector<char> buffer(fileSize);
 
 		file.seekg(0);
@@ -29,10 +29,10 @@ namespace Renderer
 	{
 		switch (kind)
 		{
-		case ShaderType::Vertex: return EShLangVertex;
-		case ShaderType::Compute: return EShLangCompute;
-		case ShaderType::Fragment: return EShLangFragment;
-		//case ShaderType::Mesh: return EShLangMeshNV;
+			case ShaderType::Vertex: return EShLangVertex;
+			case ShaderType::Compute: return EShLangCompute;
+			case ShaderType::Fragment: return EShLangFragment;
+				//case ShaderType::Mesh: return EShLangMeshNV;
 		}
 		throw std::runtime_error("Currently unsupported language type");
 		return EShLangCallable;
@@ -42,10 +42,10 @@ namespace Renderer
 	{
 		switch (kind)
 		{
-		case ShaderType::Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
-		case ShaderType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
-		case ShaderType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
-		//case ShaderType::Mesh: return VK_SHADER_STAGE_MESH_BIT_NV;
+			case ShaderType::Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
+			case ShaderType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
+			case ShaderType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
+				//case ShaderType::Mesh: return VK_SHADER_STAGE_MESH_BIT_NV;
 		}
 		throw std::runtime_error("Currently unsupported shader type");
 		return VK_SHADER_STAGE_ALL;
@@ -250,7 +250,7 @@ namespace Renderer
 		spvOptions.disableOptimizer = false;
 		spvOptions.optimizeSize = true;
 
-		glslang::GlslangToSpv(*program.getIntermediate(lang), this->spv, &logger, &spvOptions);
+		GlslangToSpv(*program.getIntermediate(lang), this->spv, &logger, &spvOptions);
 
 		return true;
 	}

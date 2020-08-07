@@ -9,17 +9,15 @@
 
 namespace Renderer
 {
-
 	struct Tether
 	{
 		std::string passId;
 
 		void AddColourOutput(const std::string& resName) { }
-		
+
 		void RegisterDependancy(const std::string resName) { }
 		void RegisterStorageIn(const std::string resName) { }
 
 		std::vector<std::string> dependencies;
 	};
-
 }

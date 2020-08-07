@@ -4,7 +4,6 @@
 
 namespace Renderer
 {
-
 	Rendergraph::Rendergraph(Core* core)
 	{
 		this->core = core;
@@ -28,8 +27,13 @@ namespace Renderer
 		success = vkAllocateCommandBuffers(*core->GetDevice(), &commandBufferAllocInfo, buffers.data());
 		Assert(success == VK_SUCCESS, "Failed to allocate command buffers");
 
-		depthImage = new Image(core->GetAllocator(), core->GetSwapchain()->getExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-		new ImageView(core->GetDevice()->getDevice(), depthImage);
+		depthImage = new Image(core->GetDevice(), core->GetSwapchain()->getExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	}
+
+	Rendergraph::~Rendergraph()
+	{
+		vkDestroyCommandPool(*core->GetDevice(), pool, nullptr);
+		delete depthImage;
 	}
 
 	void Rendergraph::Initialise()
@@ -44,7 +48,6 @@ namespace Renderer
 
 	void Rendergraph::Execute()
 	{
-
 		FrameInfo frameInfo;
 		VkCommandBuffer buffer = buffers[core->GetSwapchain()->getIndex()];
 
@@ -54,15 +57,10 @@ namespace Renderer
 		core->BeginFrame(buffer, frameInfo);
 		vkBeginCommandBuffer(buffer, &beginInfo);
 
-		auto renderpass = core->GetRenderpassCache()->get(RenderpassKey({ {core->GetSwapchain()->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR} }, { depthImage->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR }));
+		auto renderpass = core->GetRenderpassCache()->get(RenderpassKey({{core->GetSwapchain()->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR}}, {depthImage->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR}));
 
 
-		core->GetFramebufferCache()->BeginPass(
-			buffer,
-			frameInfo.offset,
-			{ frameInfo.imageView, depthImage->getViews()[0]->getView() },
-			renderpass,
-			core->GetSwapchain()->getExtent());
+		core->GetFramebufferCache()->BeginPass(buffer, frameInfo.offset, {frameInfo.imageView, depthImage->getViews()[0]}, renderpass, core->GetSwapchain()->getExtent());
 
 		GraphContext context;
 		context.extent = core->GetSwapchain()->getExtent();
@@ -99,8 +97,8 @@ namespace Renderer
 		Assert(success == VK_SUCCESS, "Failed to allocate command buffers");
 		depthImage = nullptr;
 
-		depthImage = new Image(core->GetAllocator(), core->GetSwapchain()->getExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-		new ImageView(core->GetDevice()->getDevice(), depthImage);
+		depthImage = new Image(core->GetDevice(), core->GetSwapchain()->getExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
 	}
 
 	void Rendergraph::AddPass(PassDesc passDesc)
@@ -132,20 +130,11 @@ namespace Renderer
 		//	}
 	}
 
-	void Rendergraph::validateGraph()
-	{
-	}
+	void Rendergraph::validateGraph() { }
 
-	void Rendergraph::mergePasses()
-	{
-	}
+	void Rendergraph::mergePasses() { }
 
-	void Rendergraph::buildTransients()
-	{
-	}
+	void Rendergraph::buildTransients() { }
 
-	void Rendergraph::buildBarriers()
-	{
-	}
-
+	void Rendergraph::buildBarriers() { }
 }

@@ -9,22 +9,27 @@ namespace Renderer
 	{
 		enum class Type
 		{
-			singlefloat, vec2, vec3, vec4, colour32 // r8g8b8a8
+			singlefloat,
+			vec2,
+			vec3,
+			vec4,
+			colour32 // r8g8b8a8
 		};
+
 		static VkFormat typeToFormat(Type type)
 		{
 			switch (type)
 			{
-			case Type::singlefloat: return VK_FORMAT_R32_SFLOAT;
-			case Type::vec2: return VK_FORMAT_R32G32_SFLOAT;
-			case Type::vec3: return VK_FORMAT_R32G32B32_SFLOAT;
-			case Type::vec4: return VK_FORMAT_R32G32B32A32_SFLOAT;
-			case Type::colour32: return VK_FORMAT_B8G8R8_UNORM;
+				case Type::singlefloat: return VK_FORMAT_R32_SFLOAT;
+				case Type::vec2: return VK_FORMAT_R32G32_SFLOAT;
+				case Type::vec3: return VK_FORMAT_R32G32B32_SFLOAT;
+				case Type::vec4: return VK_FORMAT_R32G32B32A32_SFLOAT;
+				case Type::colour32: return VK_FORMAT_B8G8R8_UNORM;
 			}
 
 			Assert(false, "Failed to recognise given type");
 
-			return (VkFormat)0;
+			return static_cast<VkFormat>(0);
 		}
 
 		struct Binding
@@ -32,11 +37,9 @@ namespace Renderer
 			uint32_t stride = 0;
 			int binding = -1;
 
-			bool operator <(const Binding& other) const
-			{
-				return std::tie(stride, binding) < std::tie(other.stride, other.binding);
-			}
+			bool operator <(const Binding& other) const { return std::tie(stride, binding) < std::tie(other.stride, other.binding); }
 		};
+
 		struct Attribute
 		{
 			int binding = -1;
@@ -44,15 +47,12 @@ namespace Renderer
 			Type type = Type::vec4;
 			uint32_t offset = 0;
 
-			bool operator <(const Attribute& other) const
-			{
-				return std::tie(binding, location, type, offset) < std::tie(other.binding, other.location, other.type, other.offset);
-			}
+			bool operator <(const Attribute& other) const { return std::tie(binding, location, type, offset) < std::tie(other.binding, other.location, other.type, other.offset); }
 		};
 
 		VertexAttributes() { }
-		VertexAttributes(std::vector<Binding> bindings, std::vector<Attribute> attributes)
-			: bindings(bindings), attributes(attributes)
+
+		VertexAttributes(std::vector<Binding> bindings, std::vector<Attribute> attributes) : bindings(bindings), attributes(attributes)
 		{
 			for (auto& binding : bindings)
 			{
@@ -83,37 +83,20 @@ namespace Renderer
 		std::vector<VkVertexInputBindingDescription> getBindings() { return bindingDescs; };
 		std::vector<VkVertexInputAttributeDescription> getAttributes() { return attributeDescs; };
 
-		bool operator <(const VertexAttributes& other) const
-		{
-			return std::tie(bindings, attributes) < std::tie(other.bindings, other.attributes);
-		}
+		bool operator <(const VertexAttributes& other) const { return std::tie(bindings, attributes) < std::tie(other.bindings, other.attributes); }
 
-	private:
-		std::vector<Binding> bindings;
-		std::vector<Attribute> attributes;
-		std::vector<VkVertexInputBindingDescription> bindingDescs;
-		std::vector<VkVertexInputAttributeDescription> attributeDescs;
+		private:
+			std::vector<Binding> bindings;
+			std::vector<Attribute> attributes;
+			std::vector<VkVertexInputBindingDescription> bindingDescs;
+			std::vector<VkVertexInputAttributeDescription> attributeDescs;
 	};
 
 	struct Vertex
 	{
-
 		glm::vec3 pos; // x y
 		glm::vec3 colour; // r g b
 
-		static VertexAttributes defaultVertex()
-		{
-			return VertexAttributes(
-				{
-							{ sizeof(Vertex), 0}
-				},
-				{
-							{0, 0, VertexAttributes::Type::vec3, offsetof(Vertex, pos)},
-							{ 0, 1, VertexAttributes::Type::vec3, offsetof(Vertex, colour)
-						} });
-		}
+		static VertexAttributes defaultVertex() { return VertexAttributes({{sizeof(Vertex), 0}}, {{0, 0, VertexAttributes::Type::vec3, offsetof(Vertex, pos)}, {0, 1, VertexAttributes::Type::vec3, offsetof(Vertex, colour)}}); }
 	};
-
-
-
 }

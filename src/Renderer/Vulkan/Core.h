@@ -31,56 +31,65 @@ namespace Renderer
 
 	class Core
 	{
-	public:
-		Core(int x = 640, int y = 400, const char* name = "Vulkan Renderer");
+		public:
+			Core(int x = 640, int y = 400, const char* name = "Vulkan Renderer");
 
-		bool Initialise();
-		bool Run();
+			bool Initialise();
+			bool Run();
 
-		~Core();
-	private:
+			~Core();
+		private:
 
-		Device device;
-		Swapchain swapchain; // VkSwapchainKHR
+			Device device;
+			Swapchain swapchain; // VkSwapchainKHR
 
-		// caches
-		RenderpassCache renderpassCache;
-		GraphicsPipelineCache graphicsPipelineCache;
-		FramebufferCache framebufferCache;
-		DescriptorSetCache descriptorCache;
-		ShaderManager shaderManager;
+			// caches
+			RenderpassCache renderpassCache;
+			GraphicsPipelineCache graphicsPipelineCache;
+			FramebufferCache framebufferCache;
+			DescriptorSetCache descriptorCache;
+			ShaderManager shaderManager;
 
-		std::unique_ptr<Rendergraph> rendergraph;
+			VkCommandPool commandPool;
 
-	private:
+			std::unique_ptr<Rendergraph> rendergraph;
 
-		void initialiseCommandPool();
-		void initialiseDescriptorPool(GraphicsPipelineKey key);
-		void initialiseDescriptorSets(GraphicsPipelineKey key);
-		void windowResize();
+		private:
 
-	public:
+			void initialiseCommandPool();
+			void initialiseDescriptorPool(GraphicsPipelineKey key);
+			void initialiseDescriptorSets(GraphicsPipelineKey key);
+			void windowResize();
 
-		Rendergraph* GetRendergraph() { return rendergraph.get(); }
+		public:
 
-		Device* GetDevice() { return &device; }
-		VmaAllocator* GetAllocator() { return device.getAllocator(); }
+			Rendergraph* GetRendergraph() { return rendergraph.get(); }
 
-		Swapchain* GetSwapchain() { return &swapchain; }
+			Device* GetDevice() { return &device; }
+			VmaAllocator* GetAllocator() { return device.getAllocator(); }
 
-		RenderpassCache* GetRenderpassCache() { return &renderpassCache; }
-		GraphicsPipelineCache* GetGraphicsPipelineCache() { return &graphicsPipelineCache; }
-		FramebufferCache* GetFramebufferCache() { return &framebufferCache; }
-		DescriptorSetCache* GetDescriptorSetCache() { return &descriptorCache; }
+			Swapchain* GetSwapchain() { return &swapchain; }
 
-		ShaderManager* GetShaderManager() { return &shaderManager; }
+			RenderpassCache* GetRenderpassCache() { return &renderpassCache; }
+			GraphicsPipelineCache* GetGraphicsPipelineCache() { return &graphicsPipelineCache; }
+			FramebufferCache* GetFramebufferCache() { return &framebufferCache; }
+			DescriptorSetCache* GetDescriptorSetCache() { return &descriptorCache; }
 
-		void BeginFrame(VkCommandBuffer& buffer, FrameInfo& info);
-		void EndFrame(FrameInfo info);
+			ShaderManager* GetShaderManager() { return &shaderManager; }
 
-	private:
-		RendererSettings settings;
-		uint32_t maxFramesInFlight;
-		int bufferCopies = 2;
+
+			void copyBufferToImage(Buffer buffer, Image image);
+			void setImageLayout(VkCommandBuffer buffer, VkImage image, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask);
+
+			VkCommandBuffer getCommandBuffer(VkCommandBufferLevel level, bool begin);
+			void flushCommandBuffer(VkCommandBuffer buffer);
+
+			void BeginFrame(VkCommandBuffer& buffer, FrameInfo& info);
+			void EndFrame(FrameInfo info);
+
+		private:
+			RendererSettings settings;
+			uint32_t maxFramesInFlight;
+			int bufferCopies = 2;
 	};
 }

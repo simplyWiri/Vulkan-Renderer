@@ -7,46 +7,43 @@ namespace Renderer
 {
 	class RenderpassCache : public Cache<Renderpass, RenderpassKey>
 	{
-	public:
-		void buildCache(VkDevice* device) { this->device = device; }
+		public:
+			void buildCache(VkDevice* device) { this->device = device; }
 
-		Renderpass* get(const RenderpassKey& key) override
-		{
-			auto& renderPass = cache[key];
-			if (!renderPass)
+			Renderpass* get(const RenderpassKey& key) override
 			{
-				renderPass = new Renderpass(device, key);
-				registerInput(key);
+				auto& renderPass = cache[key];
+				if (!renderPass)
+				{
+					renderPass = new Renderpass(device, key);
+					registerInput(key);
+				}
+				return renderPass;
 			}
-			return renderPass;
-		}
 
-		bool add(const RenderpassKey& key) override
-		{
-			if (cache.find(key) != cache.end()) return false;
+			bool add(const RenderpassKey& key) override
+			{
+				if (cache.find(key) != cache.end()) return false;
 
-			cache.emplace(key, new Renderpass(device, key));
-			registerInput(key);
+				cache.emplace(key, new Renderpass(device, key));
+				registerInput(key);
 
-			return true;
-		}
+				return true;
+			}
 
-		bool add(const RenderpassKey& key, uint16_t& local) override
-		{
-			if (cache.find(key) != cache.end()) return false;
+			bool add(const RenderpassKey& key, uint16_t& local) override
+			{
+				if (cache.find(key) != cache.end()) return false;
 
-			cache.emplace(key, new Renderpass(device, key));
-			local = registerInput(key);
+				cache.emplace(key, new Renderpass(device, key));
+				local = registerInput(key);
 
-			return true;
-		}
+				return true;
+			}
 
-		void clearEntry(Renderpass* renderpass) override
-		{
-			vkDestroyRenderPass(*device, renderpass->getHandle(), nullptr);
-		}
+			void clearEntry(Renderpass* renderpass) override { vkDestroyRenderPass(*device, renderpass->getHandle(), nullptr); }
 
-	private:
-		VkDevice* device;
+		private:
+			VkDevice* device;
 	};
 }

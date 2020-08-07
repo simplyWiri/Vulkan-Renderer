@@ -11,36 +11,26 @@ namespace Renderer
 	{
 		enum ResourceType
 		{
-			Buffer, Image
+			Buffer,
+			Image
 		};
-		
-	public:
-		
 
-		
-	private:
-		VmaAllocator allocator;
+		public:
 
-		size_t totalUtilised;
-		size_t totalAllocation;
 
-	public:
+		private:
+			VmaAllocator allocator;
 
-		void beginFrame(const FrameInfo& frameInfo)
-		{
-			
-		}
+			size_t totalUtilised;
+			size_t totalAllocation;
 
-		void endFrame()
-		{
-			
-		}
+		public:
 
-	private:
-		void allocateChunk(const size_t& size, const ResourceType& type)
-		{
-			
-		}
-		
+			void beginFrame(const FrameInfo& frameInfo) { }
+
+			void endFrame() { }
+
+		private:
+			void allocateChunk(const size_t& size, const ResourceType& type) { }
 	};
 }

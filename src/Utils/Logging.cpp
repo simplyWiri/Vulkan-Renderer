@@ -12,7 +12,7 @@ void TempLogger::Init()
 	logSinks[0]->set_pattern("[%M:%S.%ems] %^[%L] >>>%$ %v");
 
 	logger = std::make_shared<spdlog::logger>("R", begin(logSinks), end(logSinks));
-	spdlog::register_logger(logger);
+	register_logger(logger);
 
 	logger->set_level(spdlog::level::trace);
 	logger->flush_on(spdlog::level::trace);

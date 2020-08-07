@@ -20,4 +20,3 @@ namespace Renderer
 		Renderpass getDefaultRenderpass() { return *renderpass; }
 	};
 }
-
