@@ -18,11 +18,13 @@ namespace Renderer
 	class ShaderManager
 	{
 		private:
-			const std::pair<ShaderType, std::string> defVert = {ShaderType::Vertex, "resources/VertexShader.vert"};
-			const std::pair<ShaderType, std::string> defFrag = {ShaderType::Fragment, "resources/FragmentShader.frag"};
+			const std::pair<ShaderType, std::string> defVert = { ShaderType::Vertex, "resources/VertexShader.vert" };
+			const std::pair<ShaderType, std::string> defFrag = { ShaderType::Fragment, "resources/FragmentShader.frag" };
 
 		public:
-			ShaderManager()
+			ShaderManager() {}
+
+			ShaderManager(VkDevice* device) : device(device)
 			{
 				shaders.emplace(defVert, new Shader(defVert.first, defVert.second));
 				shaders.emplace(defFrag, new Shader(defFrag.first, defFrag.second));
@@ -45,14 +47,18 @@ namespace Renderer
 
 			Shader* get(const ShaderType& type, const std::string& path)
 			{
-				auto& value = shaders[{type, path}];
+				auto& value = shaders[{ type, path }];
 				if (!value) { value = new Shader(type, path); }
 
 				return value;
 			}
 
-			ShaderProgram getProgram(const std::vector<Shader*>& shaders) { return ShaderProgram(shaders); }
+			ShaderProgram* getProgram(const std::vector<Shader*>& shaders)
+			{
+				return new ShaderProgram(device, shaders);
+			}
 
 			std::unordered_map<std::pair<ShaderType, std::string>, Shader*> shaders;
+			VkDevice* device;
 	};
 }

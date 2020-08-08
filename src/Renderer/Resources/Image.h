@@ -5,13 +5,11 @@
 
 namespace Renderer
 {
-	class ImageView;
-
 	class Image
 	{
 		private:
 			VkImage image;
-			std::vector<VkImageView> views;
+			VkImageView view;
 			VmaAllocation allocation;
 
 			VkExtent3D extent;
@@ -24,6 +22,10 @@ namespace Renderer
 			Device* device;
 
 		public:
+			Image(const Image&) = delete;
+			Image& operator=(const Image&) = delete; 
+			Image& operator=(Image&&) = delete;
+
 			Image(Device* device, VkExtent2D extent, VkFormat format, VkImageUsageFlags usage, VmaMemoryUsage memUsage) : format(format), usage(usage), device(device)
 			{
 				VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -65,8 +67,7 @@ namespace Renderer
 
 				viewInfo.subresourceRange = range;
 
-				views.resize(1);
-				result = vkCreateImageView(*device, &viewInfo, nullptr, &views[0]);
+				result = vkCreateImageView(*device, &viewInfo, nullptr, &view);
 				Assert(result == VK_SUCCESS, "Failed to create imageview");
 			}
 
@@ -77,17 +78,17 @@ namespace Renderer
 				if (device != nullptr)
 				{
 					vmaDestroyImage(*device->getAllocator(), image, allocation);
-					for (auto view : views) { vkDestroyImageView(*device, view, nullptr); }
+					vkDestroyImageView(*device, view, nullptr); 
 				}
 			}
 
 			VkImage& getImage() { return image; }
-			std::vector<VkImageView> getViews() { return views; }
+			VkImageView getView() { return view; }
 			VkExtent2D getExtent() { return { extent.width, extent.height }; }
 			VkExtent3D getExtent3D() { return extent; }
 			VkFormat& getFormat() { return format; }
 			VkImageSubresourceRange getSubresourceRange() { return range; }
 
-			void registerImageView(VkImageView view) { views.push_back(view); }
+			//void registerImageView(VkImageView view) { views.push_back(view); }
 	};
 }

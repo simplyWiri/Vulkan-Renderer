@@ -1,23 +1,23 @@
 #pragma once
-#include "../../Resources/Shader.h"
-#include "vulkan.h"
 #include <vector>
-#include <tuple>
 
 #include "../../Resources/ShaderManager.h"
-#include "../Wrappers/Pipeline.h"
+#include "../Caches/DescriptorSetCache.h"
 
 namespace Renderer
 {
+	class Rendergraph;
+
 	struct Tether
 	{
-		std::string passId;
+		private:
 
-		void AddColourOutput(const std::string& resName) { }
+			DescriptorSetCache* descriptorCache;
 
-		void RegisterDependancy(const std::string resName) { }
-		void RegisterStorageIn(const std::string resName) { }
+		public:
 
-		std::vector<std::string> dependencies;
+			DescriptorSetCache* GetDescriptorCache() { return descriptorCache; }
+
+		friend class Rendergraph;
 	};
 }

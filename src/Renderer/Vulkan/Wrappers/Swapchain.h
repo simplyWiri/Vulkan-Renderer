@@ -11,10 +11,11 @@ namespace Renderer
 {
 	struct FrameInfo
 	{
+		uint32_t fps;
 		uint32_t offset;
 		uint32_t frameIndex;
 		long long time;
-		long long delta;
+		double delta;
 		uint32_t imageIndex;
 		VkImageView imageView;
 	};
@@ -70,6 +71,9 @@ namespace Renderer
 			VkExtent2D extent;
 
 			// info
+			uint32_t fps = 0;
+			uint32_t prevFrames = 0;
+			long long prevFpsSample = 0;
 			long long prevTime = 0;
 			uint32_t frameCount = 0;
 			uint32_t currentIndex = 0;
@@ -279,17 +283,20 @@ namespace Renderer
 				vkWaitForFences(*device, 1, waitFences, VK_TRUE, UINT64_MAX);
 				vkResetFences(*device, 1, &curFrame.inFlightFence);
 
-				auto time = std::chrono::high_resolution_clock::now();
-
 				uint32_t imageIndex = 0;
 				vkAcquireNextImageKHR(*device, swapchain, UINT64_MAX, curFrame.imageAcquired, nullptr, &imageIndex);
 
 				FrameInfo info = {};
 
-				info.time = std::chrono::time_point_cast<std::chrono::nanoseconds>(time).time_since_epoch().count();
-				info.delta = prevTime - info.time;
-				prevTime = info.time;
-
+				info.time = std::chrono::time_point_cast<std::chrono::milliseconds>( std::chrono::high_resolution_clock::now()).time_since_epoch().count();
+				if(info.time - prevFpsSample > 1000)
+				{
+					fps = (frameCount + 1) - prevFrames;
+					prevFrames = frameCount + 1;
+					prevFpsSample = info.time;	
+				}
+				
+				info.fps = fps;
 				info.frameIndex = frameCount++;
 				info.offset = currentIndex;
 

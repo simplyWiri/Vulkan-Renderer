@@ -2,6 +2,7 @@
 #include "Cache.h"
 #include "../Wrappers/DescriptorSet.h"
 #include "../Wrappers/Device.h"
+#include "vulkan.h"
 
 namespace Renderer
 {
@@ -19,6 +20,28 @@ namespace Renderer
 				this->framesInFlight = framesInFlight;
 			}
 
+			void writeBuffer(DescriptorSetKey& key, const std::string& resName)
+			{
+				auto descBundle = get(key);
+
+				descBundle->writeBuffer(resName);
+			}
+
+			void writeBuffer(DescriptorSetKey& key, const std::string& resName, Buffer* buffer)
+			{
+				auto descBundle = get(key);
+
+				descBundle->writeBuffer(resName, buffer);
+			}
+
+			void writeSampler(DescriptorSetKey& key, const std::string& resName) { }
+
+			void writeSampler(DescriptorSetKey& key, const std::string& resName, Image* image, Sampler* sampler, VkImageLayout layout)
+			{
+				auto descBundle = get(key);
+
+				descBundle->writeSampler(resName, image, sampler, layout);
+			}
 
 			template <typename T>
 			T* getResource(const DescriptorSetKey& key, std::string resName, uint32_t offset)
@@ -40,7 +63,8 @@ namespace Renderer
 				auto descSet = get(key);
 
 				uint32_t dynOffset = 0;
-				vkCmdBindDescriptorSets(buffer, bindPoint, key.program.getPipelineLayout(), 0, 1, descSet->get(offset), 1, &dynOffset);
+				if (key.program->getResources().size() == 1) vkCmdBindDescriptorSets(buffer, bindPoint, key.program->getPipelineLayout(), 0, 1, descSet->get(offset), 1, &dynOffset);
+				else vkCmdBindDescriptorSets(buffer, bindPoint, key.program->getPipelineLayout(), 0, 1, descSet->get(offset), 0, nullptr);
 			}
 
 			DescriptorSetBundle* get(const DescriptorSetKey& key) override
@@ -79,7 +103,7 @@ namespace Renderer
 			void clearEntry(DescriptorSetBundle* set) override
 			{
 				vkDestroyDescriptorPool(*device, set->getPool(), nullptr);
-				set->clear();	
+				set->clear();
 			}
 	};
 }

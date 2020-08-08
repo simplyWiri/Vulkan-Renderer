@@ -48,7 +48,7 @@ namespace Renderer
 			GraphicsPipelineCache graphicsPipelineCache;
 			FramebufferCache framebufferCache;
 			DescriptorSetCache descriptorCache;
-			ShaderManager shaderManager;
+			ShaderManager* shaderManager;
 
 			VkCommandPool commandPool;
 
@@ -75,10 +75,9 @@ namespace Renderer
 			FramebufferCache* GetFramebufferCache() { return &framebufferCache; }
 			DescriptorSetCache* GetDescriptorSetCache() { return &descriptorCache; }
 
-			ShaderManager* GetShaderManager() { return &shaderManager; }
+			ShaderManager* GetShaderManager() { return shaderManager; }
 
 
-			void copyBufferToImage(Buffer buffer, Image image);
 			void setImageLayout(VkCommandBuffer buffer, VkImage image, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask);
 
 			VkCommandBuffer getCommandBuffer(VkCommandBufferLevel level, bool begin);

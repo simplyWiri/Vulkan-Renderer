@@ -26,6 +26,7 @@ namespace Renderer
 		renderpassCache.buildCache(device.getDevice());
 		graphicsPipelineCache.buildCache(device.getDevice());
 		descriptorCache.buildCache(device.getDevice(), GetAllocator(), swapchain.getFramesInFlight());
+		shaderManager = new ShaderManager(device.getDevice());
 
 		VkCommandPoolCreateInfo poolCreateInfo = {};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -63,37 +64,6 @@ namespace Renderer
 		swapchain.BuildSwapchain();
 
 		rendergraph->Rebuild();
-	}
-
-	void Core::copyBufferToImage(Buffer buffer, Image image)
-	{
-		VkCommandBuffer commandBuffer = getCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-		VkBufferImageCopy region{};
-		region.bufferOffset = 0;
-		region.bufferRowLength = 0;
-		region.bufferImageHeight = 0;
-		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		region.imageSubresource.mipLevel = 0;
-		region.imageSubresource.baseArrayLayer = 0;
-		region.imageSubresource.layerCount = 1;
-		region.imageOffset = { 0, 0, 0 };
-		region.imageExtent = image.getExtent3D();
-
-		vkCmdCopyBufferToImage(commandBuffer, buffer.getBuffer(), image.getImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-		vkEndCommandBuffer(commandBuffer);
-
-
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffer;
-
-		vkQueueSubmit(device.queues.transfer, 1, &submitInfo, nullptr);
-		vkQueueWaitIdle(device.queues.transfer);
-
-		vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 	}
 
 	void Core::setImageLayout(VkCommandBuffer buffer, VkImage image, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
@@ -199,5 +169,7 @@ namespace Renderer
 		graphicsPipelineCache.clearCache();
 		renderpassCache.clearCache();
 		descriptorCache.clearCache();
+		
+		delete shaderManager;
 	}
 }

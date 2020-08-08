@@ -186,8 +186,8 @@ namespace Renderer
 
 	bool Shader::loadFromPath(ShaderType t, std::string path)
 	{
-		auto charVec = loadFromFile(path);
-		this->shaderText = *new std::string(charVec.begin(), charVec.end());
+		auto charVec = loadFromFile(std::move(path));
+		this->shaderText = std::string(charVec.begin(), charVec.end());
 		return true;
 	}
 
@@ -209,7 +209,6 @@ namespace Renderer
 
 		const char* glsl = this->shaderText.c_str();
 		shader.setStrings(&glsl, 1);
-
 		//	Targeting Vulkan 1.2 & SPIRV-1.3
 		auto vulkanVersion = glslang::EShTargetVulkan_1_2;
 		shader.setEnvInput(glslang::EShSourceGlsl, lang, glslang::EShClientVulkan, 110);

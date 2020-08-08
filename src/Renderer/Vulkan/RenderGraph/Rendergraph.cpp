@@ -57,10 +57,10 @@ namespace Renderer
 		core->BeginFrame(buffer, frameInfo);
 		vkBeginCommandBuffer(buffer, &beginInfo);
 
-		auto renderpass = core->GetRenderpassCache()->get(RenderpassKey({{core->GetSwapchain()->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR}}, {depthImage->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR}));
+		auto renderpass = core->GetRenderpassCache()->get(RenderpassKey({ { core->GetSwapchain()->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR } }, { depthImage->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR }));
 
 
-		core->GetFramebufferCache()->BeginPass(buffer, frameInfo.offset, {frameInfo.imageView, depthImage->getViews()[0]}, renderpass, core->GetSwapchain()->getExtent());
+		core->GetFramebufferCache()->BeginPass(buffer, frameInfo.offset, { frameInfo.imageView, depthImage->getView() }, renderpass, core->GetSwapchain()->getExtent());
 
 		GraphContext context;
 		context.extent = core->GetSwapchain()->getExtent();
@@ -98,7 +98,6 @@ namespace Renderer
 		depthImage = nullptr;
 
 		depthImage = new Image(core->GetDevice(), core->GetSwapchain()->getExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
 	}
 
 	void Rendergraph::AddPass(PassDesc passDesc)
@@ -109,25 +108,16 @@ namespace Renderer
 
 	void Rendergraph::extractGraphInformation()
 	{
-		//	auto ProcessPass = [&](PassDesc& pass)
-		//	{
-		//		Tether passResources;
-		//		passResources.passId = pass.taskName + "-"; // looks like "passname-resource"
+		auto ProcessPass = [&](PassDesc& pass)
+		{
+			Tether passResources;
+			passResources.descriptorCache = core->GetDescriptorSetCache();
 
-		//		pass.initialisation(passResources);
+			if(pass.initialisation != nullptr) pass.initialisation(passResources);
+		};
 
-		//		for(auto& dependency)
-		//		
-		//	};
-
-		//	for (auto& pass : passes)
-		//	{
-		//		ProcessPass(pass);
-		//	}
-		//	for (auto& pass : uniquePasses)
-		//	{
-		//		ProcessPass(pass);
-		//	}
+		for (auto& pass : passes) { ProcessPass(pass); }
+		for (auto& pass : uniquePasses) { ProcessPass(pass); }
 	}
 
 	void Rendergraph::validateGraph() { }

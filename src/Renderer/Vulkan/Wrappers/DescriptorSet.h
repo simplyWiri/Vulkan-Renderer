@@ -1,13 +1,13 @@
 #pragma once
 #include <vector>
 #include <vulkan.h>
+
 #include "../../../Utils/Logging.h"
 #include "../../Resources/Buffer.h"
 #include "../../Resources/Shader.h"
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../../Resources/Image.h"
-#include "../../Resources/ImageView.h"
 #include "../../Resources/Sampler.h"
 
 
@@ -15,9 +15,7 @@ namespace Renderer
 {
 	struct DescriptorSetKey
 	{
-		ShaderProgram program;
-		//std::vector<ShaderResources> resources;
-		//VkDescriptorSetLayout dLayout;
+		ShaderProgram* program;
 
 		bool operator <(const DescriptorSetKey& other) const { return program < other.program; }
 	};
@@ -25,12 +23,12 @@ namespace Renderer
 	class DescriptorSetBundle
 	{
 		public:
-			DescriptorSetBundle(VkDevice* device, VmaAllocator* allocator, DescriptorSetKey key, uint32_t framesInFlight)
+			DescriptorSetBundle(VkDevice* device, VmaAllocator* allocator, DescriptorSetKey key, uint32_t framesInFlight) : device(device), allocator(allocator), resources(key.program->getResources()), framesInFlight(framesInFlight)
 			{
 				std::vector<VkDescriptorPoolSize> poolSizes;
 
 				// initialise our pools
-				for (const auto& resource : key.program.getResources())
+				for (const auto& resource : key.program->getResources())
 				{
 					if (resource.type == VK_DESCRIPTOR_TYPE_MAX_ENUM) continue; // this is a push constant
 
@@ -41,7 +39,6 @@ namespace Renderer
 					poolSizes.emplace_back(poolSize);
 				}
 
-
 				VkDescriptorPoolCreateInfo poolCreateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 				poolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 				poolCreateInfo.pPoolSizes = poolSizes.data();
@@ -51,7 +48,7 @@ namespace Renderer
 				auto success = vkCreateDescriptorPool(*device, &poolCreateInfo, nullptr, &pool);
 				Assert(success == VK_SUCCESS, "Failed to create descriptor pool");
 
-				std::vector<VkDescriptorSetLayout> layouts(framesInFlight, key.program.getDescriptorLayout());
+				std::vector<VkDescriptorSetLayout> layouts(framesInFlight, key.program->getDescriptorLayout());
 
 				VkDescriptorSetAllocateInfo allocInfo = {};
 				allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -62,45 +59,109 @@ namespace Renderer
 				sets.resize(framesInFlight);
 				success = vkAllocateDescriptorSets(*device, &allocInfo, sets.data());
 				Assert(success == VK_SUCCESS, "Failed to allocator descriptor sets");
+			}
 
-				// get size of buffer upfront
-				createResources(key.program.getResources(), allocator, framesInFlight);
+			void writeBuffer(const std::string& resName)
+			{
+				ShaderResources res;
+				for (auto resource : resources)
+					if (resource.name == resName)
+					{
+						res = resource;
+						break;
+					}
 
-				// update our descriptor sets and create required resources
+				switch (res.type)
+				{
+					case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: writeBuffer(resName, new Buffer(allocator, 256U * framesInFlight, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+						return;
+					case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: writeBuffer(resName, new Buffer(allocator, 256U * framesInFlight, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+				}
+			}
+
+			void writeBuffer(const std::string& resName, Buffer* buffer)
+			{
+				buffers.emplace(resName, buffer);
+
+				ShaderResources res;
+				for (auto resource : resources)
+					if (resource.name == resName)
+					{
+						res = resource;
+						break;
+					}
+
+
+				if (buffer->getSize() < res.size * framesInFlight) { buffer->reSize(res.size * framesInFlight); }
+
 				for (uint32_t i = 0; i < framesInFlight; i++)
 				{
 					std::vector<VkWriteDescriptorSet> writeSets;
-					for (const auto& res : key.program.getResources())
+
+					VkDescriptorBufferInfo descBufferInfo = {};
+					descBufferInfo.buffer = buffer->getBuffer();
+					descBufferInfo.offset = std::max(i * 256U, i * res.size);
+					descBufferInfo.range = std::max(256U, res.size);
+
+					VkWriteDescriptorSet writeDescSet = {};
+					writeDescSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					writeDescSet.dstSet = sets[i];
+					writeDescSet.dstBinding = res.binding;
+					writeDescSet.dstArrayElement = 0;
+					writeDescSet.descriptorType = res.type;
+					writeDescSet.descriptorCount = res.descriptorCount;
+					writeDescSet.pBufferInfo = &descBufferInfo;
+
+					writeSets.push_back(writeDescSet);
+
+					vkUpdateDescriptorSets(*device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
+				}
+			}
+
+			void writeSampler(const std::string& resName, Image* image, Sampler* sampler, VkImageLayout layout)
+			{
+				ShaderResources res;
+				for (auto resource : resources)
+					if (resource.name == resName)
 					{
-						VkDescriptorBufferInfo descBufferInfo = {};
-						descBufferInfo.buffer = buffers[res.name]->getBuffer();
-						descBufferInfo.offset = i * 256;
-						// buffer looks like [0 -> res.size, res.size -> res.size * 2] [firstFrameInFlight, secondFrameInFlight]
-						descBufferInfo.range = res.size;
-
-						VkWriteDescriptorSet writeDescSet = {};
-						writeDescSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-						writeDescSet.dstSet = sets[i];
-						writeDescSet.dstBinding = res.binding;
-						writeDescSet.dstArrayElement = 0;
-						writeDescSet.descriptorType = res.type;
-						writeDescSet.descriptorCount = res.descriptorCount;
-						writeDescSet.pBufferInfo = &descBufferInfo;
-
-						writeSets.push_back(writeDescSet);
+						res = resource;
+						break;
 					}
+
+				VkDescriptorImageInfo imageInfo = {};
+				imageInfo.imageView = image->getView();
+				images.emplace(resName, image);
+				imageInfo.sampler = sampler->getSampler();
+				samplers.emplace(resName, sampler);
+				imageInfo.imageLayout = layout;
+
+				for (uint32_t i = 0; i < framesInFlight; i++)
+				{
+					std::vector<VkWriteDescriptorSet> writeSets;
+
+					VkWriteDescriptorSet writeDescSet = {};
+					writeDescSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					writeDescSet.dstSet = sets[i];
+					writeDescSet.dstBinding = res.binding;
+					writeDescSet.dstArrayElement = 0;
+					writeDescSet.descriptorType = res.type;
+					writeDescSet.descriptorCount = res.descriptorCount;
+					writeDescSet.pImageInfo = &imageInfo;
+
+					writeSets.push_back(writeDescSet);
+
 					vkUpdateDescriptorSets(*device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
 				}
 			}
 
 			VkDescriptorSet* get(uint32_t offset) { return &sets[offset]; }
+
 			VkDescriptorPool getPool() { return pool; }
 
 			void* getResource(const std::string& name, uint32_t offset) { return buffers[name]->map(); }
 
-			void setResource(const std::string& name, void* data, const size_t size, const size_t offset) { buffers[name]->load(data, size, 256 * offset); }
+			void setResource(const std::string& name, void* data, const size_t size, const size_t offset) { buffers[name]->load(data, size, std::max(size * offset, 256 * offset)); }
 
-			void writeSet(const std::string& name) { }
 
 			void clear()
 			{
@@ -109,25 +170,14 @@ namespace Renderer
 				for (auto& val : samplers) { delete val.second; }
 			}
 
-		private:
-
+		private :
+			uint32_t framesInFlight;
+			std::vector<ShaderResources> resources;
+			VkDevice* device;
+			VmaAllocator* allocator;
 			std::unordered_map<std::string, Buffer*> buffers;
 			std::unordered_map<std::string, Image*> images;
 			std::unordered_map<std::string, Sampler*> samplers;
-
-			void createResources(std::vector<ShaderResources> resources, VmaAllocator* allocator, uint32_t framesInFlight)
-			{
-				for (const auto& resource : resources)
-				{
-					auto& name = resource.name;
-
-					switch (resource.type)
-					{
-						case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: buffers.emplace(name, new Buffer(allocator, 256 * framesInFlight, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
-							break;
-					}
-				}
-			}
 
 			std::vector<VkDescriptorSet> sets;
 			VkDescriptorPool pool;

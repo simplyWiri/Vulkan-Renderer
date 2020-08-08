@@ -93,7 +93,7 @@ namespace Renderer
 
 	struct GraphicsPipelineKey
 	{
-		ShaderProgram program;
+		ShaderProgram* program;
 
 		VkRenderPass renderpass;
 		VkExtent2D extent;
@@ -109,9 +109,9 @@ namespace Renderer
 	{
 		private:
 			VkDevice* device;
-			VkPipeline pipeline;
-			VkPipelineLayout layout;
+			ShaderProgram* program;
 
+			VkPipeline pipeline;
 			std::vector<VkShaderModule> shaderModules;
 			std::vector<VkPushConstantRange> pushConstants;
 			VkDescriptorSetLayout descriptorSetLayout;
@@ -123,13 +123,13 @@ namespace Renderer
 				Assert(!(device == nullptr || key.renderpass == nullptr || key.extent.width == 0 || key.extent.height == 0 ), "Failed to obtain required information to create the graphics pipeline");
 
 				this->device = device;
-				key.program.initialiseResources(device);
-				this->layout = key.program.getPipelineLayout();
-				this->descriptorSetLayout = key.program.getDescriptorLayout();
+				key.program->initialiseResources(device);
+				this->program = key.program;
+				this->descriptorSetLayout = key.program->getDescriptorLayout();
 
 				std::vector<VkPipelineShaderStageCreateInfo> shaderCreateInfo = {};
 
-				for (const auto& shader : key.program.getShaders())
+				for (const auto& shader : key.program->getShaders())
 				{
 					switch (shader->getType())
 					{
@@ -175,7 +175,7 @@ namespace Renderer
 				viewportCreateInfo.pScissors = &scissor;
 
 				//// Rasterizer create info stage
-				VkPipelineRasterizationStateCreateInfo rasterizerCreateInfo = createRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+				VkPipelineRasterizationStateCreateInfo rasterizerCreateInfo = createRasterizationState(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
 				//// Multisampling create info stage
 				VkPipelineMultisampleStateCreateInfo multisampleCreateInfo = {};
@@ -214,7 +214,7 @@ namespace Renderer
 				graphicsPipelineCreateInfo.pColorBlendState = &colorBlendCreateInfo;
 				graphicsPipelineCreateInfo.pDepthStencilState = &depthStencil;
 				graphicsPipelineCreateInfo.pDynamicState = &dynamicState;
-				graphicsPipelineCreateInfo.layout = key.program.getPipelineLayout();
+				graphicsPipelineCreateInfo.layout = key.program->getPipelineLayout();
 				// we have pre-baked the layout in the key
 				graphicsPipelineCreateInfo.renderPass = key.renderpass;
 
@@ -228,9 +228,9 @@ namespace Renderer
 			operator VkPipeline() { return pipeline; }
 
 			VkPipeline& getPipeline() { return this->pipeline; }
-			VkPipelineLayout& getLayout() { return this->layout; }
+			VkPipelineLayout getLayout() { return this->program->getPipelineLayout(); }
 
-			VkDescriptorSetLayout& getDescriptorLayout() { return this->descriptorSetLayout; }
+			VkDescriptorSetLayout getDescriptorLayout() { return this->program->getDescriptorLayout(); }
 
 		private:
 			VkShaderModule Pipeline::createShaderModule(Shader* shader)

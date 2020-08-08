@@ -39,24 +39,29 @@ struct UniformBufferObject
 
 int main()
 {
-	GUI gui;
 	auto renderer = std::make_unique<Core>(640, 400, "Window");
+		GUI gui;
 
 	renderer->Initialise();
-	//gui.initialise(renderer.get());
+	gui.initialise(renderer.get());
 
 	Buffer* tribuffer = new Buffer(renderer->GetAllocator(), (sizeof(Vertex) * vertices.size() + sizeof(uint16_t) * indices.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	tribuffer->load((void*)vertices.data(), sizeof(Vertex) * vertices.size());
 	tribuffer->load((void*)indices.data(), sizeof(uint16_t) * indices.size(), sizeof(Vertex) * vertices.size());
 
 	auto program = renderer->GetShaderManager()->getProgram({ renderer->GetShaderManager()->defaultVertex(), renderer->GetShaderManager()->defaultFragment() });
-	program.initialiseResources(renderer->GetDevice()->getDevice());
+	program->initialiseResources(renderer->GetDevice()->getDevice());
 
-	renderer->GetRendergraph()->AddPass(PassDesc().SetName("GPU Drawing Triangle").SetInitialisationFunc([](Tether& tether) {}).SetRecordFunc(
-		[&renderer, tribuffer, program](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
+	DescriptorSetKey descriptorSetKey = { program };
+
+	renderer->GetRendergraph()->AddPass(PassDesc()
+		.SetName("GPU Drawing Triangle")
+		.SetInitialisationFunc([&descriptorSetKey](Tether& tether)
 		{
-			DescriptorSetKey descriptorSetKey = { program };
-
+			tether.GetDescriptorCache()->writeBuffer(descriptorSetKey, "ubo");
+		})
+		.SetRecordFunc([&renderer, &tribuffer, &descriptorSetKey](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
+		{
 			{
 				static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -73,7 +78,7 @@ int main()
 			}
 
 			renderer->GetGraphicsPipelineCache()->bindGraphicsPipeline(buffer, context.getDefaultRenderpass(), context.getExtent(), Vertex::defaultVertex(), DepthSettings::DepthTest(), { BlendSettings::Add() },
-				VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, program);
+				VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, descriptorSetKey.program);
 
 			VkDeviceSize offsets[] = { 0 };
 
@@ -84,7 +89,9 @@ int main()
 
 			vkCmdDrawIndexed(buffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 		}));
-
+	
+	gui.AddToGraph(renderer->GetRendergraph());
+	
 	renderer->GetRendergraph()->Initialise();
 
 	while (renderer->Run()) { renderer->GetRendergraph()->Execute(); }
@@ -92,4 +99,4 @@ int main()
 	vkDeviceWaitIdle(*renderer->GetDevice());
 
 	delete tribuffer;
-}
+ }

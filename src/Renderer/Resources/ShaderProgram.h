@@ -10,7 +10,7 @@ namespace Renderer
 		public:
 			ShaderProgram() {}
 
-			ShaderProgram(std::vector<Shader*> shaders)
+			ShaderProgram(VkDevice* device, std::vector<Shader*> shaders) : device(device)
 			{
 				this->shaders = shaders;
 
@@ -24,6 +24,12 @@ namespace Renderer
 					auto& res = shader->getResources();
 					shaderResources.insert(shaderResources.end(), res.begin(), res.end());
 				}
+			}
+
+			~ShaderProgram()
+			{
+				vkDestroyDescriptorSetLayout(*device, dLayout, nullptr);
+				vkDestroyPipelineLayout(*device, pLayout, nullptr);
 			}
 
 			bool operator <(const ShaderProgram& other) const { return std::tie(shaderResources, pLayout, dLayout) < std::tie(other.shaderResources, other.pLayout, other.dLayout); }
@@ -61,7 +67,6 @@ namespace Renderer
 						binding.descriptorCount = resource.descriptorCount;
 						binding.descriptorType = resource.type;
 						binding.stageFlags = resource.flags;
-						binding.pImmutableSamplers = nullptr;
 
 						bindings.push_back(binding);
 					}
@@ -95,6 +100,7 @@ namespace Renderer
 		private:
 			bool initialised = false;
 
+			VkDevice* device;
 			VkPipelineLayout pLayout;
 			VkDescriptorSetLayout dLayout;
 

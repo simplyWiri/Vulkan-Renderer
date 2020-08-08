@@ -58,7 +58,7 @@ namespace Renderer
 			default: VerboseLog("[{0}]: {1}", mt, pCallbackData->pMessage);
 				break;
 		}
-		__debugbreak();
+		//__debugbreak();
 		return VK_FALSE;
 	}
 
