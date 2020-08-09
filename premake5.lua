@@ -38,64 +38,9 @@ workspace "Vulkan Renderer"
 
 	workspace_files
 	{
-		"premake5.lua", "README.md", "premake.bat"
+		"premake5.lua", "README.md", "premake.bat", "externals/premake5.lua",
 	}
 
-project "Vulkan Renderer"
-	location ""
-	kind "ConsoleApp"
-	language "C++"
-	cppdialect "C++17"
-
-	targetdir "bin/"
-	objdir "bin-int/"
-
-	files
-	{
-		"resources/**",
-		"src/**.h",
-		"src/**.cpp",
-		"externals/stb/stb_image.h",
-		"externals/glm/glm/glm.hpp",
-		"externals/imgui/imgui.h",
-		"externals/imgui/imgui.cpp",
-		"externals/imgui/imgui_draw.cpp",
-		"externals/imgui/imgui_widgets.cpp"
-	}
-
-	includedirs
-	{
-		"externals/glfw/include/GLFW",
-		"externals/VulkanMemoryAllocator/src",
-		"externals/imgui",
-		"externals/glm",
-		"externals/stb",
-		"externals/SPIRV-Cross",
-		"externals/spdlog/include",
-		"externals/glslang",
-		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/")
-	}
-
-	links
-	{
-		(_OPTIONS["vulkanPath"] .. "/Lib/vulkan-1.lib"),
-		"externals/glfw/src/Debug/glfw3.lib",
-		
-		-- linking glslang
-		"externals/glslang/builtversion/glslang/Debug/glslangd.lib",
-		"externals/glslang/builtversion/SPIRV/Debug/SPIRVd.lib",
-		"externals/glslang/builtversion/hlsl/Debug/hlsld.lib",
-		"externals/glslang/builtversion/OGLCompilersDLL/Debug/OGLCompilerd.lib",
-		"externals/glslang/builtversion/glslang/OSDependent/Windows/Debug/OSDependentd.lib",
-
-		-- linking SPIRV-Cross
-		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-glsld.lib"),
-		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-reflectd.lib"),
-		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-cppd.lib"),
-		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-utild.lib"),
-		("externals/SPIRV-Cross/builtversion/Debug/spirv-cross-cored.lib"),
-	}
-	
 	filter "configurations:Verbose"
 		defines { "VERBOSE", "TRACE", "DEBUG" }
 		runtime "Debug"
@@ -115,3 +60,48 @@ project "Vulkan Renderer"
 		defines "NDEBUG"
 		runtime "Release"
 		optimize "on"
+
+group "Third Party"
+	include "externals/"
+group ""
+
+project "Vulkan Renderer"
+	location ""
+	kind "ConsoleApp"
+	language "C++"
+	cppdialect "C++17"
+
+	targetdir "bin/"
+	objdir "bin-int/"
+
+
+	files
+	{
+		"resources/**",
+		"src/**.h",
+		"src/**.cpp",
+		"externals/stb/stb_image.h",
+		"externals/glm/glm/glm.hpp"
+	}
+
+	includedirs
+	{
+		"externals/glfw/include/GLFW",
+		"externals/imgui",
+		"externals/VulkanMemoryAllocator/src",
+		"externals/glm",
+		"externals/stb",
+		"externals/SPIRV-Cross",
+		"externals/spdlog/include",
+		"externals/glslang",
+		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/")
+	}
+
+	links
+	{
+		(_OPTIONS["vulkanPath"] .. "/Lib/vulkan-1.lib"),
+		"GLFW",
+		"ImGui",
+		"Glslang",
+		"SPIRV-Cross"
+	}
