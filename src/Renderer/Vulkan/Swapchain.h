@@ -1,6 +1,6 @@
 #pragma once
 #include "Device.h"
-#include "../../../Utils/Logging.h"
+#include "../../Utils/Logging.h"
 #include "vulkan.h"
 #include <vector>
 #include <memory>
@@ -55,9 +55,6 @@ namespace Renderer
 				}
 			};
 
-			/*
-				Resources held by this struct
-			*/
 			GLFWwindow* window;
 			VkSurfaceKHR surface;
 			VkSwapchainKHR swapchain = nullptr;
@@ -81,7 +78,6 @@ namespace Renderer
 
 			int width = 640;
 			int height = 400;
-			const char* title = "Default Title";
 
 			VkDevice* device;
 			VkInstance* instance;
@@ -89,15 +85,15 @@ namespace Renderer
 
 		public:
 			operator VkSwapchainKHR() { return swapchain; }
-			VkFormat& getFormat() { return color.format; }
-			GLFWwindow* getWindow() { return window; }
-			VkSurfaceKHR* getSurface() { return &surface; }
-			VkSwapchainKHR* getSwapchain() { return &swapchain; }
-			VkQueue* getPresentQueue() { return &presentQueue; }
-			std::vector<VkImageView>& getImageViews() { return views; }
-			VkExtent2D getExtent() { return extent; }
-			uint32_t getIndex() { return currentIndex; }
-			uint32_t getFramesInFlight() { return framesInFlight; }
+			VkFormat& GetFormat() { return color.format; }
+			GLFWwindow* GetWindow() { return window; }
+			VkSurfaceKHR* GetSurface() { return &surface; }
+			VkSwapchainKHR* GetSwapchain() { return &swapchain; }
+			VkQueue* GetPresentQueue() { return &presentQueue; }
+			std::vector<VkImageView>& GetImageViews() { return views; }
+			VkExtent2D GetExtent() { return extent; }
+			uint32_t GetIndex() { return currentIndex; }
+			uint32_t GetFramesInFlight() { return framesInFlight; }
 
 			void Initialise(VkDevice* device, VkInstance* instance, VkPhysicalDevice* physDevice)
 			{
@@ -105,8 +101,6 @@ namespace Renderer
 				this->instance = instance;
 				this->physDevice = physDevice;
 			}
-
-			void BuildWindow() { BuildWindow(width, height, title); }
 
 			void BuildWindow(int width, int height, const char* title)
 			{
@@ -130,7 +124,7 @@ namespace Renderer
 				VkSurfaceCapabilitiesKHR surfCaps;
 				std::vector<VkSurfaceFormatKHR> formats;
 				std::vector<VkPresentModeKHR> presentModes;
-				checkSwapChainSupport(&surfCaps, formats, presentModes);
+				CheckSwapChainSupport(&surfCaps, formats, presentModes);
 
 				if (surfCaps.currentExtent.width == static_cast<uint32_t>(-1))
 				{
@@ -163,7 +157,9 @@ namespace Renderer
 
 				VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-				std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR, VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR, VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR, VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,};
+				std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
+					VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR, VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR, VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR, VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+				};
 
 				for (auto& compositeAlphaFlag : compositeAlphaFlags)
 				{
@@ -237,7 +233,7 @@ namespace Renderer
 					colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 					colorAttachmentView.pNext = nullptr;
 					colorAttachmentView.format = color.format;
-					colorAttachmentView.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A};
+					colorAttachmentView.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 					colorAttachmentView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 					colorAttachmentView.subresourceRange.baseMipLevel = 0;
 					colorAttachmentView.subresourceRange.levelCount = 1;
@@ -279,7 +275,7 @@ namespace Renderer
 				auto& curFrame = frames[currentIndex];
 				curFrame.buffer = buffer;
 
-				VkFence waitFences[] = {curFrame.inFlightFence, frames[(currentIndex + framesInFlight - 1) % framesInFlight].inFlightFence};
+				VkFence waitFences[] = { curFrame.inFlightFence };
 				vkWaitForFences(*device, 1, waitFences, VK_TRUE, UINT64_MAX);
 				vkResetFences(*device, 1, &curFrame.inFlightFence);
 
@@ -288,14 +284,14 @@ namespace Renderer
 
 				FrameInfo info = {};
 
-				info.time = std::chrono::time_point_cast<std::chrono::milliseconds>( std::chrono::high_resolution_clock::now()).time_since_epoch().count();
-				if(info.time - prevFpsSample > 1000)
+				info.time = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
+				if (info.time - prevFpsSample > 1000)
 				{
 					fps = (frameCount + 1) - prevFrames;
 					prevFrames = frameCount + 1;
-					prevFpsSample = info.time;	
+					prevFpsSample = info.time;
 				}
-				
+
 				info.fps = fps;
 				info.frameIndex = frameCount++;
 				info.offset = currentIndex;
@@ -311,9 +307,9 @@ namespace Renderer
 			{
 				auto& frame = frames[currentIndex];
 
-				VkSemaphore waitSemaphores[] = {frame.imageAcquired};
-				VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-				VkSemaphore signalSemaphores[] = {frame.renderFinished};
+				VkSemaphore waitSemaphores[] = { frame.imageAcquired };
+				VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+				VkSemaphore signalSemaphores[] = { frame.renderFinished };
 
 				VkSubmitInfo submitInfo = {};
 				submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -344,7 +340,7 @@ namespace Renderer
 			}
 
 		private:
-			void checkSwapChainSupport(VkSurfaceCapabilitiesKHR* capabilities, std::vector<VkSurfaceFormatKHR>& formats, std::vector<VkPresentModeKHR>& presentModes)
+			void CheckSwapChainSupport(VkSurfaceCapabilitiesKHR* capabilities, std::vector<VkSurfaceFormatKHR>& formats, std::vector<VkPresentModeKHR>& presentModes)
 			{
 				// load device SwapChain capabilities
 				vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*physDevice, surface, capabilities);

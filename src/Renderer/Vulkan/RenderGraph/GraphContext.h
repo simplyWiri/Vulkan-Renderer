@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "../Wrappers/Renderpass.h"
+#include "../Renderpass.h"
 
 namespace Renderer
 {
@@ -16,7 +16,7 @@ namespace Renderer
 		VkExtent2D extent;
 		Renderpass* renderpass;
 
-		VkExtent2D getExtent() { return extent; }
+		VkExtent2D GetExtent() { return extent; }
 		Renderpass getDefaultRenderpass() { return *renderpass; }
 	};
 }

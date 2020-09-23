@@ -5,7 +5,7 @@
 
 #include "GraphContext.h"
 #include "Tether.h"
-#include "../Wrappers/Swapchain.h"
+#include "../Swapchain.h"
 
 namespace Renderer
 {

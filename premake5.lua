@@ -105,3 +105,4 @@ project "Vulkan Renderer"
 		"Glslang",
 		"SPIRV-Cross"
 	}
+

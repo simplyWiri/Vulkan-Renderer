@@ -11,7 +11,7 @@
 
 using namespace Renderer;
 
-const std::vector<Vertex> vertices = {
+std::vector<Vertex> vertices = {
 	{ { -0.5f, -0.5f, 0.5f }, { 1.0f, 0.0f, 0.0f } }, { { 0.5f, -0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } }, { { 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } }, { { -0.5f, 0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } },
 	{ { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } }, { { 0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } }, { { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f } }, { { -0.5f, 0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f } }
 };
@@ -39,64 +39,80 @@ struct UniformBufferObject
 
 int main()
 {
-	auto renderer = std::make_unique<Core>(640, 400, "Window");
-		GUI gui;
+	auto renderer = std::make_unique<Core>(1200, 800, "Window");
+	GUI gui;
 
 	renderer->Initialise();
 	gui.initialise(renderer.get());
 
-	Buffer* tribuffer = new Buffer(renderer->GetAllocator(), (sizeof(Vertex) * vertices.size() + sizeof(uint16_t) * indices.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	//Memory::Buffer buff = renderer->GetRendergraph()->allocator->AllocBuffer((sizeof(Vertex) * vertices.size() + sizeof(uint16_t) * indices.size()) * 3, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	Buffer* tribuffer = new Buffer(renderer->GetAllocator(), (sizeof(Vertex) * vertices.size() + sizeof(uint16_t) * indices.size()) * 3, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	tribuffer->load((void*)vertices.data(), sizeof(Vertex) * vertices.size());
 	tribuffer->load((void*)indices.data(), sizeof(uint16_t) * indices.size(), sizeof(Vertex) * vertices.size());
 
 	auto program = renderer->GetShaderManager()->getProgram({ renderer->GetShaderManager()->defaultVertex(), renderer->GetShaderManager()->defaultFragment() });
-	program->initialiseResources(renderer->GetDevice()->getDevice());
+	program->initialiseResources(renderer->GetDevice()->GetDevice());
 
 	DescriptorSetKey descriptorSetKey = { program };
+	const auto vert = Vertex::defaultVertex();
 
 	renderer->GetRendergraph()->AddPass(PassDesc()
 		.SetName("GPU Drawing Triangle")
 		.SetInitialisationFunc([&descriptorSetKey](Tether& tether)
-		{
-			tether.GetDescriptorCache()->writeBuffer(descriptorSetKey, "ubo");
-		})
-		.SetRecordFunc([&renderer, &tribuffer, &descriptorSetKey](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
-		{
 			{
-				static auto startTime = std::chrono::high_resolution_clock::now();
+				tether.GetDescriptorCache()->WriteBuffer(descriptorSetKey, "ubo");
+			})
+		.SetRecordFunc([&renderer, &tribuffer, &descriptorSetKey, &vert](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
+			{
+				{
+					static auto startTime = std::chrono::high_resolution_clock::now();
 
-				auto currentTime = std::chrono::high_resolution_clock::now();
-				float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+					auto currentTime = std::chrono::high_resolution_clock::now();
+					float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-				UniformBufferObject ubo = {};
-				ubo.model = rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-				ubo.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-				ubo.proj = glm::perspective(glm::radians(45.0f), context.getExtent().width / static_cast<float>(context.getExtent().height), 0.1f, 10.0f);
-				ubo.proj[1][1] *= -1;
+					UniformBufferObject ubo = {};
+					ubo.model = rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+					ubo.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+					ubo.proj = glm::perspective(glm::radians(45.0f), context.GetExtent().width / static_cast<float>(context.GetExtent().height), 0.1f, 10.0f);
+					ubo.proj[1][1] *= -1;
 
-				renderer->GetDescriptorSetCache()->setResource(descriptorSetKey, "ubo", frameInfo.offset, &ubo, sizeof(UniformBufferObject));
-			}
+					renderer->GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
 
-			renderer->GetGraphicsPipelineCache()->bindGraphicsPipeline(buffer, context.getDefaultRenderpass(), context.getExtent(), Vertex::defaultVertex(), DepthSettings::DepthTest(), { BlendSettings::Add() },
-				VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, descriptorSetKey.program);
+					auto modifier = std::sin(frameInfo.frameIndex / 720.0f);
+					auto modifiedVerts = std::vector<Vertex>(vertices.size());
+					std::transform(vertices.begin(), vertices.end(), modifiedVerts.begin(), [&modifier](Vertex v)
+						{
+							v.pos *= modifier + 1.2;
+							return v;
+						});
 
-			VkDeviceSize offsets[] = { 0 };
+					tribuffer->load(modifiedVerts.data(), sizeof(Vertex) * modifiedVerts.size());
+				}
 
-			vkCmdBindVertexBuffers(buffer, 0, 1, &tribuffer->getBuffer(), offsets);
-			vkCmdBindIndexBuffer(buffer, tribuffer->getBuffer(), offsets[0] + sizeof(Vertex) * vertices.size(), VK_INDEX_TYPE_UINT16);
+				renderer->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.getDefaultRenderpass(), context.GetExtent(), vert, DepthSettings::DepthTest(), { BlendSettings::Opaque() },
+					VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, descriptorSetKey.program);
 
-			renderer->GetDescriptorSetCache()->bindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey, frameInfo.offset);
+				VkDeviceSize offsets[] = { 0 };
 
-			vkCmdDrawIndexed(buffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-		}));
-	
+				vkCmdBindVertexBuffers(buffer, 0, 1, &tribuffer->getBuffer(), offsets);
+				vkCmdBindIndexBuffer(buffer, tribuffer->getBuffer(), sizeof(Vertex) * vertices.size(), VK_INDEX_TYPE_UINT16);
+
+				renderer->GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey);
+
+				vkCmdDrawIndexed(buffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+			}));
+
+
 	gui.AddToGraph(renderer->GetRendergraph());
-	
+
 	renderer->GetRendergraph()->Initialise();
 
-	while (renderer->Run()) { renderer->GetRendergraph()->Execute(); }
+	while (renderer->Run())
+	{
+		renderer->GetRendergraph()->Execute();
+	}
 
 	vkDeviceWaitIdle(*renderer->GetDevice());
 
 	delete tribuffer;
- }
+}

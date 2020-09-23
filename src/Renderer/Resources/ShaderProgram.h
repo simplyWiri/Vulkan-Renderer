@@ -7,105 +7,138 @@ namespace Renderer
 {
 	class ShaderProgram
 	{
-		public:
-			ShaderProgram() {}
+	public:
+		ShaderProgram() {}
 
-			ShaderProgram(VkDevice* device, std::vector<Shader*> shaders) : device(device)
+		ShaderProgram(VkDevice* device, std::vector<Shader*> shaders) : device(device)
+		{
+			this->shaders = shaders;
+
+			for (auto shader : shaders)
 			{
-				this->shaders = shaders;
-
-				for (auto shader : shaders)
+				if (shader->getStatus() == ShaderStatus::Uninitialised)
 				{
-					if (shader->getStatus() == ShaderStatus::Uninitialised)
+					shader->compileGLSL();
+					shader->reflectSPIRV();
+				}
+				auto& res = shader->getResources();
+				shaderResources.insert(shaderResources.end(), res.begin(), res.end());
+
+				ids.push_back(shader->getId());
+			}
+
+
+		}
+
+		~ShaderProgram()
+		{
+			vkDestroyDescriptorSetLayout(*device, dLayout, nullptr);
+			vkDestroyPipelineLayout(*device, pLayout, nullptr);
+		}
+
+		bool operator ==(const ShaderProgram& other) const
+		{
+			return ids == other.ids;
+		}
+
+		void initialiseResources(VkDevice* device)
+		{
+			if (initialised) return;
+
+			std::vector<VkPushConstantRange> pushConstants;
+			std::vector<VkDescriptorSetLayoutBinding> bindings;
+
+			for (const auto& shader : shaders)
+			{
+				if (shader->getStatus() == ShaderStatus::Uninitialised)
+				{
+					shader->compileGLSL();
+					shader->reflectSPIRV();
+				}
+
+				for (const auto& resource : shader->getResources())
+				{
+					if (resource.type == VK_DESCRIPTOR_TYPE_MAX_ENUM)
 					{
-						shader->compileGLSL();
-						shader->reflectSPIRV();
+						// push constant (ref. Shader.cpp ~ line 400)
+						VkPushConstantRange range;
+						range.offset = resource.offset;
+						range.size = resource.size;
+						range.stageFlags = resource.flags;
+						pushConstants.push_back(range);
+						continue;
 					}
-					auto& res = shader->getResources();
-					shaderResources.insert(shaderResources.end(), res.begin(), res.end());
+
+					VkDescriptorSetLayoutBinding binding = {};
+					binding.binding = resource.binding;
+					binding.descriptorCount = resource.descriptorCount;
+					binding.descriptorType = resource.type;
+					binding.stageFlags = resource.flags;
+
+					bindings.push_back(binding);
+
+					if (resource.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC || resource.type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC) { dynOffsets.emplace_back(0); }
 				}
 			}
 
-			~ShaderProgram()
-			{
-				vkDestroyDescriptorSetLayout(*device, dLayout, nullptr);
-				vkDestroyPipelineLayout(*device, pLayout, nullptr);
-			}
+			VkDescriptorSetLayoutCreateInfo desclayout = {};
+			desclayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			desclayout.bindingCount = static_cast<uint32_t>(bindings.size());
+			desclayout.pBindings = bindings.data();
 
-			bool operator <(const ShaderProgram& other) const { return std::tie(shaderResources, pLayout, dLayout) < std::tie(other.shaderResources, other.pLayout, other.dLayout); }
+			vkCreateDescriptorSetLayout(*device, &desclayout, nullptr, &dLayout);
 
-			void initialiseResources(VkDevice* device)
-			{
-				if (initialised) return;
+			VkPipelineLayoutCreateInfo layoutInfo = {};
+			layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+			layoutInfo.setLayoutCount = 1;
+			layoutInfo.pSetLayouts = &dLayout;
+			layoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size());
+			layoutInfo.pPushConstantRanges = pushConstants.data();
 
-				std::vector<VkPushConstantRange> pushConstants;
-				std::vector<VkDescriptorSetLayoutBinding> bindings;
+			vkCreatePipelineLayout(*device, &layoutInfo, nullptr, &pLayout);
 
-				for (const auto& shader : shaders)
-				{
-					if (shader->getStatus() == ShaderStatus::Uninitialised)
-					{
-						shader->compileGLSL();
-						shader->reflectSPIRV();
-					}
+			initialised = true;
+		}
 
-					for (const auto& resource : shader->getResources())
-					{
-						if (resource.type == VK_DESCRIPTOR_TYPE_MAX_ENUM)
-						{
-							// push constant (ref. Shader.cpp ~ line 400)
-							VkPushConstantRange range;
-							range.offset = resource.offset;
-							range.size = resource.size;
-							range.stageFlags = resource.flags;
-							pushConstants.push_back(range);
-							continue;
-						}
+		std::vector<Shader*> getShaders() const { return shaders; }
+		std::vector<ShaderResources> getResources() const { return shaderResources; }
 
-						VkDescriptorSetLayoutBinding binding = {};
-						binding.binding = resource.binding;
-						binding.descriptorCount = resource.descriptorCount;
-						binding.descriptorType = resource.type;
-						binding.stageFlags = resource.flags;
+		VkPipelineLayout getPipelineLayout() const { return pLayout; }
+		VkDescriptorSetLayout getDescriptorLayout() const { return dLayout; }
 
-						bindings.push_back(binding);
-					}
-				}
+		std::vector<uint32_t> getDynOffsets() { return dynOffsets; }
+		std::vector<uint32_t> getIds() const { return ids; }
 
-				VkDescriptorSetLayoutCreateInfo desclayout = {};
-				desclayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-				desclayout.bindingCount = static_cast<uint32_t>(bindings.size());
-				desclayout.pBindings = bindings.data();
+	private:
+		bool initialised = false;
 
-				vkCreateDescriptorSetLayout(*device, &desclayout, nullptr, &dLayout);
+		VkDevice* device;
+		VkPipelineLayout pLayout;
+		VkDescriptorSetLayout dLayout;
 
-				VkPipelineLayoutCreateInfo layoutInfo = {};
-				layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-				layoutInfo.setLayoutCount = 1;
-				layoutInfo.pSetLayouts = &dLayout;
-				layoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size());
-				layoutInfo.pPushConstantRanges = pushConstants.data();
+		std::vector<Shader*> shaders;
 
-				vkCreatePipelineLayout(*device, &layoutInfo, nullptr, &pLayout);
+		std::vector<ShaderResources> shaderResources;
+		std::vector<uint32_t> dynOffsets;
+		std::vector<uint32_t> ids;
+	};
+}
 
-				initialised = true;
-			}
+namespace std
+{
+	template<> struct hash<Renderer::ShaderProgram>
+	{
+		size_t operator()(const Renderer::ShaderProgram& s) const noexcept
+		{
+			//std::size_t bindingsSeed = s.getResources().size();
+			//for (const auto& i : s.getResources())
+				//bindingsSeed ^= hash<Renderer::ShaderResources>{}(i)+0x9e3779b9 + (bindingsSeed << 6) + (bindingsSeed >> 2);
 
-			std::vector<Shader*> getShaders() const { return shaders; }
-			std::vector<ShaderResources> getResources() const { return shaderResources; }
+			size_t seed = s.getIds().size();
+			for (const auto& i : s.getIds())
+				seed ^= hash<uint32_t>{}(i) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 
-			VkPipelineLayout getPipelineLayout() const { return pLayout; }
-			VkDescriptorSetLayout getDescriptorLayout() const { return dLayout; }
-
-		private:
-			bool initialised = false;
-
-			VkDevice* device;
-			VkPipelineLayout pLayout;
-			VkDescriptorSetLayout dLayout;
-
-
-			std::vector<Shader*> shaders;
-			std::vector<ShaderResources> shaderResources;
+			return seed;
+		}
 	};
 }

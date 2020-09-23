@@ -9,28 +9,32 @@ namespace Renderer
 		/*
 			This will initialise the (mostly) static states of the renderer, customisation can come later.
 		*/
-		swapchain.Initialise(device.getDevice(), device.getInstance(), device.getPhysicalDevice());
+		swapchain.Initialise(device.GetDevice(), device.GetInstance(), device.GetPhysicalDevice());
 
-		swapchain.BuildWindow(640, 400, "Vulk");
+		swapchain.BuildWindow(1200, 800, "Vulk");
 
+#ifdef NDEBUG
+		device.BuildInstance(false);
+#elif DEBUG
 		device.BuildInstance(true);
+#endif
 		swapchain.BuildSurface();
-		device.PickPhysicalDevice(swapchain.getSurface());
-		device.BuildLogicalDevice(swapchain.getPresentQueue());
+		device.PickPhysicalDevice(swapchain.GetSurface());
+		device.BuildLogicalDevice(swapchain.GetPresentQueue());
 		device.BuildAllocator();
 
 		swapchain.BuildSwapchain();
 		swapchain.InitialiseSyncObjects();
 
-		framebufferCache.buildCache(device.getDevice(), swapchain.getFramesInFlight());
-		renderpassCache.buildCache(device.getDevice());
-		graphicsPipelineCache.buildCache(device.getDevice());
-		descriptorCache.buildCache(device.getDevice(), GetAllocator(), swapchain.getFramesInFlight());
-		shaderManager = new ShaderManager(device.getDevice());
+		framebufferCache.BuildCache(device.GetDevice(), swapchain.GetFramesInFlight());
+		renderpassCache.BuildCache(device.GetDevice());
+		graphicsPipelineCache.BuildCache(device.GetDevice());
+		descriptorCache.BuildCache(device.GetDevice(), GetAllocator(), swapchain.GetFramesInFlight());
+		shaderManager = new ShaderManager(device.GetDevice());
 
 		VkCommandPoolCreateInfo poolCreateInfo = {};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		poolCreateInfo.queueFamilyIndex = device.getIndices()->graphicsFamily;
+		poolCreateInfo.queueFamilyIndex = device.GetIndices()->graphicsFamily;
 		poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		auto success = vkCreateCommandPool(device, &poolCreateInfo, nullptr, &commandPool);
@@ -43,7 +47,7 @@ namespace Renderer
 
 	bool Core::Run()
 	{
-		if (glfwWindowShouldClose(swapchain.getWindow())) return false;
+		if (glfwWindowShouldClose(swapchain.GetWindow())) return false;
 
 		glfwPollEvents();
 
@@ -55,7 +59,7 @@ namespace Renderer
 		int width = 0, height = 0;
 		while (width == 0 || height == 0)
 		{
-			glfwGetFramebufferSize(swapchain.getWindow(), &width, &height);
+			glfwGetFramebufferSize(swapchain.GetWindow(), &width, &height);
 			glfwWaitEvents();
 		}
 		vkDeviceWaitIdle(device);
@@ -66,7 +70,7 @@ namespace Renderer
 		rendergraph->Rebuild();
 	}
 
-	void Core::setImageLayout(VkCommandBuffer buffer, VkImage image, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
+	void Core::SetImageLayout(VkCommandBuffer buffer, VkImage image, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
 	{
 		// Create an image barrier object
 		VkImageMemoryBarrier imageMemoryBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -118,7 +122,7 @@ namespace Renderer
 		vkCmdPipelineBarrier(buffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
 	}
 
-	VkCommandBuffer Core::getCommandBuffer(VkCommandBufferLevel level, bool begin)
+	VkCommandBuffer Core::GetCommandBuffer(VkCommandBufferLevel level, bool begin)
 	{
 		VkCommandBufferAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -138,7 +142,7 @@ namespace Renderer
 		return cmdBuffer;
 	}
 
-	void Core::flushCommandBuffer(VkCommandBuffer commandBuffer)
+	void Core::FlushCommandBuffer(VkCommandBuffer commandBuffer)
 	{
 		vkEndCommandBuffer(commandBuffer);
 
@@ -153,7 +157,11 @@ namespace Renderer
 		vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 	}
 
-	void Core::BeginFrame(VkCommandBuffer& buffer, FrameInfo& info) { info = swapchain.BeginFrame(buffer); }
+	void Core::BeginFrame(VkCommandBuffer& buffer, FrameInfo& info) 
+	{ 
+		info = swapchain.BeginFrame(buffer); 
+		descriptorCache.BeginFrame(info.offset);
+	}
 
 	void Core::EndFrame(FrameInfo info)
 	{
@@ -165,10 +173,10 @@ namespace Renderer
 	Core::~Core()
 	{
 		vkDestroyCommandPool(device, commandPool, nullptr);
-		framebufferCache.clearCache();
-		graphicsPipelineCache.clearCache();
-		renderpassCache.clearCache();
-		descriptorCache.clearCache();
+		framebufferCache.ClearCache();
+		graphicsPipelineCache.ClearCache();
+		renderpassCache.ClearCache();
+		descriptorCache.ClearCache();
 		
 		delete shaderManager;
 	}

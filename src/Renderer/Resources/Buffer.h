@@ -7,9 +7,9 @@ namespace Renderer
 {
 	class Buffer
 	{
+		
 		VkBuffer buffer;
 		VkBufferUsageFlags usage;
-		VkMemoryPropertyFlags props;
 		VmaMemoryUsage memUsage;
 		VmaAllocation bufferAllocation;
 		VmaAllocator* allocator;
@@ -18,6 +18,7 @@ namespace Renderer
 
 		public:
 			operator VkBuffer() { return buffer; }
+		
 			Buffer(const Buffer&) = delete;
 			Buffer& operator=(const Buffer&) = delete;
 			Buffer& operator=(Buffer&&) = delete;
@@ -27,7 +28,6 @@ namespace Renderer
 				this->allocator = allocator;
 				this->size = size;
 				this->usage = usage;
-				this->props = props;
 				this->memUsage = memUsage;
 
 				VkBufferCreateInfo buffCreateInfo = {};
@@ -38,7 +38,6 @@ namespace Renderer
 
 				VmaAllocationCreateInfo allocCreateInfo = {};
 				allocCreateInfo.usage = memUsage;
-				//allocCreateInfo.requiredFlags = props;
 
 				auto success = vmaCreateBuffer(*allocator, &buffCreateInfo, &allocCreateInfo, &buffer, &bufferAllocation, nullptr);
 				Assert(success == VK_SUCCESS, "Failed to create Buffer");
@@ -48,7 +47,6 @@ namespace Renderer
 
 			VkBuffer& getBuffer() { return buffer; }
 			VkBufferUsageFlags getUsage() { return usage; }
-			VkMemoryPropertyFlags getMemoryProps() { return props; };
 			VmaMemoryUsage getMemUsage() { return memUsage; }
 			VkDeviceSize getSize() { return size; }
 
@@ -83,15 +81,17 @@ namespace Renderer
 				if (size > this->size) reSize(size);
 
 				uint8_t* dst = map();
-				std::copy(data, data + size, dst + offset);
+				memcpy(dst + offset, data, size);
 				unMap();
 			}
 
-			void load(void* data, const size_t size, const size_t offset = 0) { load(reinterpret_cast<const uint8_t*>(data), size, offset); }
+			void load(void* data, const size_t size, const size_t offset = 0)
+			{
+				load(reinterpret_cast<const uint8_t*>(data), size, offset);
+			}
 
 			void unMap() const
-			{				vmaFlushAllocation(*allocator, bufferAllocation, 0, VK_WHOLE_SIZE);
-
+			{
 				vmaUnmapMemory(*allocator, bufferAllocation);
 			}
 	};

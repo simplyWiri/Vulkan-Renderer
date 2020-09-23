@@ -379,7 +379,7 @@ namespace Renderer
 			else if (nonWriteable) resource.access = VK_ACCESS_SHADER_READ_BIT;
 
 			resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
-			resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
+			//resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
 			resource.pMembers = getMembers(compiler, spirType);
 			resources.push_back(resource);
 		}

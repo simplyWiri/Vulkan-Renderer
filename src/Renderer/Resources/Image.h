@@ -1,7 +1,7 @@
 #pragma once
 #include "vulkan.h"
 #include "vk_mem_alloc.h"
-#include "../Vulkan/Wrappers/Device.h"
+#include "../Vulkan/Device.h"
 
 namespace Renderer
 {
@@ -46,7 +46,7 @@ namespace Renderer
 
 				if (usage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT) allocInfo.preferredFlags = VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
 
-				auto result = vmaCreateImage(*device->getAllocator(), &imageInfo, &allocInfo, &image, &allocation, nullptr);
+				auto result = vmaCreateImage(*device->GetAllocator(), &imageInfo, &allocInfo, &image, &allocation, nullptr);
 				Assert(result == VK_SUCCESS, "Failed to create image");
 
 				VkImageViewCreateInfo viewInfo = {};
@@ -77,18 +77,16 @@ namespace Renderer
 			{
 				if (device != nullptr)
 				{
-					vmaDestroyImage(*device->getAllocator(), image, allocation);
+					vmaDestroyImage(*device->GetAllocator(), image, allocation);
 					vkDestroyImageView(*device, view, nullptr); 
 				}
 			}
 
-			VkImage& getImage() { return image; }
-			VkImageView getView() { return view; }
-			VkExtent2D getExtent() { return { extent.width, extent.height }; }
-			VkExtent3D getExtent3D() { return extent; }
-			VkFormat& getFormat() { return format; }
-			VkImageSubresourceRange getSubresourceRange() { return range; }
-
-			//void registerImageView(VkImageView view) { views.push_back(view); }
+			VkImage& GetImage() { return image; }
+			VkImageView GetView() { return view; }
+			VkExtent2D GetExtent() const { return { extent.width, extent.height }; }
+			VkExtent3D GetExtent3D() const { return extent; }
+			VkFormat& GetFormat() { return format; }
+			VkImageSubresourceRange GetSubresourceRange() { return range; }
 	};
 }

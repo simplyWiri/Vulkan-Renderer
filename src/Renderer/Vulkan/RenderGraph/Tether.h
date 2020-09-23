@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "../../Resources/ShaderManager.h"
-#include "../Caches/DescriptorSetCache.h"
+#include "../DescriptorSet.h"
 
 namespace Renderer
 {

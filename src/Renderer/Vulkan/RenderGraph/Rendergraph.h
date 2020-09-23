@@ -9,16 +9,15 @@
 #include <string>
 #include "../../Resources/Buffer.h"
 #include "../../Resources/Shader.h"
-#include "../Wrappers/Pipeline.h"
-#include "../Wrappers/Swapchain.h"
+#include "../Pipeline.h"
+#include "../Swapchain.h"
 #include "Tether.h"
 #include "GraphContext.h"
-#include "../Caches/FramebufferCache.h"
-#include "../Caches/PipelineCache.h"
-#include "../Caches/RenderpassCache.h"
-#include "../Wrappers/Renderpass.h"
+#include "../Framebuffer.h"
+#include "../Renderpass.h"
 #include "PassDesc.h"
-#include "../Caches/DescriptorSetCache.h"
+#include "../DescriptorSet.h"
+#include "../Memory/Allocator.h"
 
 
 namespace Renderer
@@ -97,7 +96,7 @@ namespace Renderer
 			void Rebuild();
 
 			void AddPass(PassDesc passDesc);
-
+			Memory::Allocator* allocator;
 
 		private:
 
@@ -111,9 +110,8 @@ namespace Renderer
 			void buildTransients(); // 'merge' or 'reuse' images which are compatible
 			void buildBarriers(); // build synchronisation barriers between items
 
+			void ShowDebugVisualisation();
 		private:
 			uint16_t assignId() { return ++curIndex; }
-			void processBuffer(const std::string& resName, VkBufferUsageFlags usage);
-			void processImage(std::string resName, VkImageUsageFlags usage);
 	};
 }

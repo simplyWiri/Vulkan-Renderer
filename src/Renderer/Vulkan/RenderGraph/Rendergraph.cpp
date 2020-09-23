@@ -1,6 +1,7 @@
 #include "Rendergraph.h"
 
 #include "../Core.h"
+#include "imgui.h"
 
 namespace Renderer
 {
@@ -8,11 +9,11 @@ namespace Renderer
 	{
 		this->core = core;
 
-		buffers.resize(core->GetSwapchain()->getFramesInFlight());
+		buffers.resize(core->GetSwapchain()->GetFramesInFlight());
 
 		VkCommandPoolCreateInfo poolCreateInfo = {};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		poolCreateInfo.queueFamilyIndex = core->GetDevice()->getIndices()->graphicsFamily;
+		poolCreateInfo.queueFamilyIndex = core->GetDevice()->GetIndices()->graphicsFamily;
 		poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		auto success = vkCreateCommandPool(*core->GetDevice(), &poolCreateInfo, nullptr, &pool);
@@ -27,13 +28,15 @@ namespace Renderer
 		success = vkAllocateCommandBuffers(*core->GetDevice(), &commandBufferAllocInfo, buffers.data());
 		Assert(success == VK_SUCCESS, "Failed to allocate command buffers");
 
-		depthImage = new Image(core->GetDevice(), core->GetSwapchain()->getExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+		depthImage = new Image(core->GetDevice(), core->GetSwapchain()->GetExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+		allocator = new Memory::Allocator(core->GetDevice(), core->GetSwapchain()->GetFramesInFlight());
 	}
 
 	Rendergraph::~Rendergraph()
 	{
 		vkDestroyCommandPool(*core->GetDevice(), pool, nullptr);
 		delete depthImage;
+		delete allocator;
 	}
 
 	void Rendergraph::Initialise()
@@ -49,29 +52,49 @@ namespace Renderer
 	void Rendergraph::Execute()
 	{
 		FrameInfo frameInfo;
-		VkCommandBuffer buffer = buffers[core->GetSwapchain()->getIndex()];
+		VkCommandBuffer buffer = buffers[core->GetSwapchain()->GetIndex()];
 
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
 		core->BeginFrame(buffer, frameInfo);
+
+		ImGui::NewFrame();
+
+		ImGui::SetNextWindowPos({ 5, 5 });
+		ImGui::Begin("Information");
+
+		ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / frameInfo.fps), frameInfo.fps);
+
+		if (ImGui::CollapsingHeader("RenderGraph"))
+		{
+			ShowDebugVisualisation();
+		}
+
+		if (ImGui::CollapsingHeader("Allocations"))
+		{
+			allocator->DebugView();	
+		}
+
+		ImGui::End();
+
 		vkBeginCommandBuffer(buffer, &beginInfo);
 
-		auto renderpass = core->GetRenderpassCache()->get(RenderpassKey({ { core->GetSwapchain()->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR } }, { depthImage->getFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR }));
+		auto renderpass = core->GetRenderpassCache()->Get(RenderpassKey({ { core->GetSwapchain()->GetFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR } }, { depthImage->GetFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR }));
 
 
-		core->GetFramebufferCache()->BeginPass(buffer, frameInfo.offset, { frameInfo.imageView, depthImage->getView() }, renderpass, core->GetSwapchain()->getExtent());
+		core->GetFramebufferCache()->BeginPass(buffer, frameInfo.offset, { frameInfo.imageView, depthImage->GetView() }, renderpass, core->GetSwapchain()->GetExtent());
 
 		GraphContext context;
-		context.extent = core->GetSwapchain()->getExtent();
+		context.extent = core->GetSwapchain()->GetExtent();
 		context.renderpass = renderpass;
 		context.graph = this;
+
+
 
 		for (auto& pass : passes)
 		{
 			context.passId = pass.taskName;
-
-			//VerboseLog("Pass: [{}] running for frame {}", pass.taskName, frameInfo.frameIndex);
 			pass.execute(buffer, frameInfo, context);
 		}
 
@@ -85,7 +108,7 @@ namespace Renderer
 	void Rendergraph::Rebuild()
 	{
 		buffers.clear();
-		buffers.resize(core->GetSwapchain()->getFramesInFlight());
+		buffers.resize(core->GetSwapchain()->GetFramesInFlight());
 
 		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
 		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -95,9 +118,9 @@ namespace Renderer
 
 		auto success = vkAllocateCommandBuffers(*core->GetDevice(), &commandBufferAllocInfo, buffers.data());
 		Assert(success == VK_SUCCESS, "Failed to allocate command buffers");
-		depthImage = nullptr;
 
-		depthImage = new Image(core->GetDevice(), core->GetSwapchain()->getExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+		delete depthImage;
+		depthImage = new Image(core->GetDevice(), core->GetSwapchain()->GetExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	}
 
 	void Rendergraph::AddPass(PassDesc passDesc)
@@ -113,7 +136,7 @@ namespace Renderer
 			Tether passResources;
 			passResources.descriptorCache = core->GetDescriptorSetCache();
 
-			if(pass.initialisation != nullptr) pass.initialisation(passResources);
+			if (pass.initialisation != nullptr) pass.initialisation(passResources);
 		};
 
 		for (auto& pass : passes) { ProcessPass(pass); }
@@ -127,4 +150,36 @@ namespace Renderer
 	void Rendergraph::buildTransients() { }
 
 	void Rendergraph::buildBarriers() { }
+	void Rendergraph::ShowDebugVisualisation()
+	{
+		int i = 0;
+
+		ImGui::Columns(2, "Render Passes", true);
+		ImGui::Separator();
+		ImGui::Text("Name");
+		ImGui::NextColumn();
+		ImGui::Text("Order");
+		ImGui::NextColumn();
+		ImGui::Separator();
+
+		static int selected = -1;
+
+		for (auto& pass : passes)
+		{
+			ImGui::BeginGroup();
+			char label[32];
+			sprintf_s(label, "%s", pass.taskName.c_str());
+			if (ImGui::Selectable(label, selected == i, ImGuiSelectableFlags_SpanAllColumns))
+				selected = selected == i ? -1 : i;
+
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("View Statistics");
+
+			ImGui::NextColumn();
+			ImGui::Text("%d", i++);
+			ImGui::NextColumn();
+			ImGui::EndGroup();
+
+		}
+	}
 }

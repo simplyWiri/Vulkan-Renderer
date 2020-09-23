@@ -1,26 +1,19 @@
 #pragma once
 #include "vulkan.h"
 #include "vk_mem_alloc.h"
-#include "Wrappers/Device.h"
-#include "Wrappers/Swapchain.h"
-#include "Wrappers/Pipeline.h"
-#include "Caches/RenderpassCache.h"
-#include "Caches/PipelineCache.h"
-#include "Caches/FramebufferCache.h"
+#include "Device.h"
+#include "Swapchain.h"
+#include "Pipeline.h"
+#include "Renderpass.h"
+#include "Framebuffer.h"
 #include "../Resources/Buffer.h"
 
 #include "RenderGraph/Rendergraph.h"
 #include "../Resources/ShaderManager.h"
-#include "Caches/DescriptorSetCache.h"
+//#include "Memory/Allocator.h"
 
 namespace Renderer
 {
-	/*
-		SwapchainSync (Default) - One copy of the buffer per image in the swapchain
-		SingleBuffered - Only one copy of each type of buffer, this should only be used when there are large vertex buffers which are not updated often/quickly
-		DoubleBuffered - Two copies of each type of buffer, the optimal scenario, while one buffer is submitted and drawn on, there is an alternate buffer being filled by CPU
-		TripleBuffered - Three copies of each type of buffer, used when the CPU can outperform the GPU - Will potentially noticable input lag (rectifiable)
-	*/
 
 	enum class RendererBufferSettings { SwapchainSync, SingleBuffered, DoubleBuffered, TripleBuffered, };
 
@@ -51,7 +44,7 @@ namespace Renderer
 			ShaderManager* shaderManager;
 
 			VkCommandPool commandPool;
-
+			//Memory::Allocator allocator;
 			std::unique_ptr<Rendergraph> rendergraph;
 
 		private:
@@ -66,7 +59,7 @@ namespace Renderer
 			Rendergraph* GetRendergraph() { return rendergraph.get(); }
 
 			Device* GetDevice() { return &device; }
-			VmaAllocator* GetAllocator() { return device.getAllocator(); }
+			VmaAllocator* GetAllocator() { return device.GetAllocator(); }
 
 			Swapchain* GetSwapchain() { return &swapchain; }
 
@@ -78,10 +71,10 @@ namespace Renderer
 			ShaderManager* GetShaderManager() { return shaderManager; }
 
 
-			void setImageLayout(VkCommandBuffer buffer, VkImage image, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask);
+			void SetImageLayout(VkCommandBuffer buffer, VkImage image, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask);
 
-			VkCommandBuffer getCommandBuffer(VkCommandBufferLevel level, bool begin);
-			void flushCommandBuffer(VkCommandBuffer buffer);
+			VkCommandBuffer GetCommandBuffer(VkCommandBufferLevel level, bool begin);
+			void FlushCommandBuffer(VkCommandBuffer buffer);
 
 			void BeginFrame(VkCommandBuffer& buffer, FrameInfo& info);
 			void EndFrame(FrameInfo info);
