@@ -46,10 +46,13 @@ resharper_cpp_max_line_length=240
 resharper_cpp_outdent_dots=true
 resharper_cpp_simple_embedded_statement_style=on_single_line
 resharper_csharp_align_multiline_calls_chain=false
+resharper_csharp_wrap_chained_method_calls=chop_always
+resharper_csharp_wrap_lines=false
 resharper_function_declaration_return_type_style=on_single_line
 resharper_function_definition_return_type_style=on_single_line
-resharper_indent_access_specifiers_from_class=true
+resharper_indent_access_specifiers_from_class=false
 resharper_indent_class_members_from_access_specifiers=true
+resharper_show_autodetect_configure_formatting_tip=false
 resharper_simple_block_style=on_single_line
 resharper_simple_case_statement_style=on_single_line
 resharper_space_within_initializer_braces=true
@@ -59,7 +62,9 @@ resharper_use_continuous_line_indent_in_expression_braces=true
 resharper_use_continuous_line_indent_in_method_pars=true
 resharper_cpp_align_multiline_calls_chain=true
 resharper_align_multiline_calls_chain=true
+resharper_use_indent_from_vs=false
 resharper_wrap_enumeration_style=wrap_if_long
+resharper_wrap_linq_expressions=chop_always
 
 
 
@@ -74,3 +79,8 @@ resharper_redundant_base_qualifier_highlighting=warning
 resharper_suggest_var_or_type_built_in_types_highlighting=hint
 resharper_suggest_var_or_type_elsewhere_highlighting=hint
 resharper_suggest_var_or_type_simple_types_highlighting=hint
+
+[*.{appxmanifest,asax,ascx,aspx,axml,build,c,c++,cc,cginc,compute,config,cp,cpp,cs,cshtml,csproj,css,cu,cuh,cxx,dbml,discomap,dtd,h,hh,hlsl,hlsli,hlslinc,hpp,htm,html,hxx,inc,inl,ino,ipp,js,json,jsproj,jsx,lsproj,master,mpp,njsproj,nuspec,proj,props,proto,razor,resjson,resw,resx,skin,StyleCop,targets,tasks,tpp,ts,tsx,usf,ush,vb,vbproj,xaml,xamlx,xml,xoml,xsd}]
+indent_style=tab
+indent_size=tab
+tab_width=4

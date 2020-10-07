@@ -71,8 +71,6 @@ namespace Renderer
 				Assert(result == VK_SUCCESS, "Failed to create imageview");
 			}
 
-			Image() {}
-
 			~Image()
 			{
 				if (device != nullptr)

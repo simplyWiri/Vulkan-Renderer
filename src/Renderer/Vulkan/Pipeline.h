@@ -40,7 +40,6 @@ namespace Renderer
 	{
 		VkPipelineColorBlendAttachmentState blendState;
 
-		// todo - Find default values for color attachment state.
 		static VkPipelineColorBlendAttachmentState createColorAttachmentState(VkColorComponentFlags f, VkBool32 b, VkBlendOp a, VkBlendOp c, VkBlendFactor sc, VkBlendFactor dc)
 		{
 			VkPipelineColorBlendAttachmentState info = {};
@@ -52,7 +51,6 @@ namespace Renderer
 			info.dstColorBlendFactor = dc;
 			return info;
 		}
-
 		static VkPipelineColorBlendAttachmentState createColorAttachmentState(VkColorComponentFlags f, VkBool32 b)
 		{
 			VkPipelineColorBlendAttachmentState info = {};
@@ -61,28 +59,24 @@ namespace Renderer
 
 			return info;
 		}
-
 		static BlendSettings Opaque()
 		{
 			BlendSettings settings;
 			settings.blendState = createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), false);
 			return settings;
 		}
-
 		static BlendSettings Add()
 		{
 			BlendSettings settings;
 			settings.blendState = createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE);
 			return settings;
 		}
-
 		static BlendSettings Mixed()
 		{
 			BlendSettings settings;
 			settings.blendState = createColorAttachmentState((VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT), true, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
 			return settings;
 		}
-
 		static BlendSettings AlphaBlend()
 		{
 			BlendSettings settings;
@@ -107,9 +101,10 @@ namespace Renderer
 		bool operator ==(const GraphicsPipelineKey& other) const
 		{
 			if (program->getIds() != other.program->getIds()) return false;
+			if (topology != other.topology) return false;
 
-			return std::tie(vertexAttributes, depthSetting, blendSettings, topology, renderpass, extent.width, extent.height)
-				== std::tie(other.vertexAttributes, other.depthSetting, other.blendSettings, other.topology, other.renderpass, other.extent.width, other.extent.height);
+			return std::tie(vertexAttributes, depthSetting, blendSettings, renderpass, extent.width, extent.height)
+				== std::tie(other.vertexAttributes, other.depthSetting, other.blendSettings, other.renderpass, other.extent.width, other.extent.height);
 		}
 	};
 
@@ -310,8 +305,6 @@ namespace Renderer {
 		}
 		~Pipeline()
 		{
-			vkDestroyDescriptorSetLayout(*device, descriptorSetLayout, nullptr);
-			vkDestroyPipelineLayout(*device, pipelineLayout, nullptr);
 			vkDestroyPipeline(*device, pipeline, nullptr);
 		}
 
@@ -385,7 +378,6 @@ namespace Renderer {
 			if (!pipeline)
 			{
 				pipeline = new Pipeline(device, key);
-				RegisterInput(key);
 			}
 			return pipeline;
 		}
@@ -395,17 +387,6 @@ namespace Renderer {
 			if (cache.find(key) != cache.end()) return false;
 
 			cache.emplace(key, new Pipeline(device, key));
-			RegisterInput(key);
-
-			return true;
-		}
-
-		bool Add(const GraphicsPipelineKey& key, uint16_t& local) override
-		{
-			if (cache.find(key) != cache.end()) return false;
-
-			cache.emplace(key, new Pipeline(device, key));
-			local = RegisterInput(key);
 
 			return true;
 		}
@@ -437,7 +418,6 @@ namespace Renderer {
 			if (!pipeline)
 			{
 				pipeline = new Pipeline(device, key);
-				RegisterInput(key);
 			}
 			return pipeline;
 		}
@@ -447,17 +427,6 @@ namespace Renderer {
 			if (cache.find(key) != cache.end()) return false;
 
 			cache.emplace(key, new Pipeline(device, key));
-			RegisterInput(key);
-
-			return true;
-		}
-
-		bool Add(const ComputePipelineKey& key, uint16_t& local) override
-		{
-			if (cache.find(key) != cache.end()) return false;
-
-			cache.emplace(key, new Pipeline(device, key));
-			local = RegisterInput(key);
 
 			return true;
 		}

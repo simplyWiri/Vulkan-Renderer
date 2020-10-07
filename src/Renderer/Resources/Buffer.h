@@ -7,7 +7,6 @@ namespace Renderer
 {
 	class Buffer
 	{
-		
 		VkBuffer buffer;
 		VkBufferUsageFlags usage;
 		VmaMemoryUsage memUsage;

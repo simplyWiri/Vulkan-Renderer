@@ -1,57 +1,56 @@
 #pragma once
-#include "Allocation.h"
+#include <functional>
+
+#include "MemoryResource.h"
+#include "vulkan.h"
 
 namespace Renderer::Memory
 {
-	class Buffer
+	class Buffer : public MemoryResource<VkBuffer>
 	{
+		friend struct std::hash<Buffer>;
+
 		friend class Allocator;
-		VkBuffer buffer;
+	private:
+		std::function<void(Buffer*)> cleanup;
 		VkBufferUsageFlags usage;
 		VkMemoryPropertyFlags flags;
-		SubAllocation alloc;
+		VkDeviceSize size;
 
 	public:
-		operator VkBuffer() { return buffer; }
+		operator VkBuffer() { return resourceHandle; }
+		VkBufferUsageFlags GetUsageFlags() const { return usage; }
+		VkMemoryPropertyFlags GetMemoryFlags() const { return flags; }
+		VkDeviceSize GetSize() const { return size; }
+		
+	public:
+		Buffer(const Allocation& alloc, VkBuffer buff, const VkBufferUsageFlags usage, const VkMemoryPropertyFlags flags, const VkDeviceSize& size, const std::function<void(Buffer*)>& cleanup);
+		~Buffer();
 
-		Buffer(const Buffer&) = delete;
-		Buffer& operator=(const Buffer&) = delete;
-		Buffer& operator=(Buffer&&) = delete;
+		uint8_t* Map();
+		void Unmap();
 
-		VkBuffer& GetBuffer() { return buffer; }
-		VkBufferUsageFlags GetUsage() { return usage; }
-		VkMemoryPropertyFlags GetMemUsage() { return flags; }
-		VkDeviceSize GetSize() { return alloc.range; }
-		VkDeviceSize GetOffset() { return alloc.offset; }
+		void Load(const void* data, const size_t& size, const size_t& offset = 0);
 
-		Buffer(VkBuffer buffer, SubAllocation& allocation, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags)
+		bool operator==(const Buffer& other) const
 		{
-			this->buffer = buffer;
-			this->alloc = allocation;
-			this->usage = usage;	
-			this->flags = flags;
-		}
-
-		~Buffer()
-		{
-			alloc.parent->RemoveBuffer(buffer, alloc);
-		}
-
-		uint8_t* Map() { return alloc.Map(); }
-		void UnMap() { alloc.UnMap(); }
-
-		void Load(const uint8_t* data, const size_t size, const size_t offset = 0)
-		{
-			if (size > this->alloc.range) LogError("Trying to load more data into a GPU buffer than you have allocated");
-			uint8_t* dst = Map();
-			memcpy(dst + offset, data, size);
-			UnMap();
-		}
-
-		void Load(void* data, const size_t size, const size_t offset = 0)
-		{
-			Load(reinterpret_cast<const uint8_t*>(data), size, offset);
+			return std::tie(resourceHandle, allocation, usage, flags) == std::tie(other.resourceHandle, other.allocation, other.usage, other.flags);
 		}
 	};
+}
 
+namespace std
+{
+	template<>
+	struct hash<Renderer::Memory::Buffer>
+	{
+		size_t operator()(const Renderer::Memory::Buffer& s) const noexcept
+		{
+			std::size_t seed = 0x57C06A1D;
+			seed ^= (seed << 6) + (seed >> 2) + 0x488410ED + reinterpret_cast<std::uint64_t>(s.resourceHandle);
+			seed ^= (seed << 6) + (seed >> 2) + 0x2FC76560 + static_cast<std::size_t>(s.usage);
+			seed ^= (seed << 6) + (seed >> 2) + 0x4E7B13D1 + static_cast<std::size_t>(s.flags);
+			return seed;
+		}
+	};
 }

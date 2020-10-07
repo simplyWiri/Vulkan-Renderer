@@ -38,7 +38,6 @@ namespace Renderer
 			int binding = -1;
 
 			bool operator ==(const Binding& other) const { return std::tie(stride, binding) == std::tie(other.stride, other.binding); }
-
 		};
 
 		struct Attribute
@@ -49,7 +48,6 @@ namespace Renderer
 			uint32_t offset = 0;
 
 			bool operator ==(const Attribute& other) const { return std::tie(binding, location, type, offset) == std::tie(other.binding, other.location, other.type, other.offset); }
-
 		};
 
 		VertexAttributes() { }

@@ -161,7 +161,6 @@ namespace Renderer
 			if (!renderPass)
 			{
 				renderPass = new Renderpass(device, key);
-				RegisterInput(key);
 			}
 			return renderPass;
 		}
@@ -171,17 +170,6 @@ namespace Renderer
 			if (cache.find(key) != cache.end()) return false;
 
 			cache.emplace(key, new Renderpass(device, key));
-			RegisterInput(key);
-
-			return true;
-		}
-
-		bool Add(const RenderpassKey& key, uint16_t& local) override
-		{
-			if (cache.find(key) != cache.end()) return false;
-
-			cache.emplace(key, new Renderpass(device, key));
-			local = RegisterInput(key);
 
 			return true;
 		}

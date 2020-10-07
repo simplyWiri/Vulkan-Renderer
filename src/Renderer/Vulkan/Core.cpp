@@ -26,10 +26,12 @@ namespace Renderer
 		swapchain.BuildSwapchain();
 		swapchain.InitialiseSyncObjects();
 
+		allocator = new Memory::Allocator(GetDevice(), GetSwapchain()->GetFramesInFlight());
+
 		framebufferCache.BuildCache(device.GetDevice(), swapchain.GetFramesInFlight());
 		renderpassCache.BuildCache(device.GetDevice());
 		graphicsPipelineCache.BuildCache(device.GetDevice());
-		descriptorCache.BuildCache(device.GetDevice(), GetAllocator(), swapchain.GetFramesInFlight());
+		descriptorCache.BuildCache(device.GetDevice(), allocator, swapchain.GetFramesInFlight());
 		shaderManager = new ShaderManager(device.GetDevice());
 
 		VkCommandPoolCreateInfo poolCreateInfo = {};
@@ -160,7 +162,11 @@ namespace Renderer
 	void Core::BeginFrame(VkCommandBuffer& buffer, FrameInfo& info) 
 	{ 
 		info = swapchain.BeginFrame(buffer); 
-		descriptorCache.BeginFrame(info.offset);
+
+		descriptorCache.Tick();
+		graphicsPipelineCache.Tick();
+		renderpassCache.Tick();
+		framebufferCache.Tick();
 	}
 
 	void Core::EndFrame(FrameInfo info)
@@ -179,5 +185,6 @@ namespace Renderer
 		descriptorCache.ClearCache();
 		
 		delete shaderManager;
+		delete allocator;
 	}
 }

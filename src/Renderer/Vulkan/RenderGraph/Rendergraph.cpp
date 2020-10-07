@@ -29,14 +29,12 @@ namespace Renderer
 		Assert(success == VK_SUCCESS, "Failed to allocate command buffers");
 
 		depthImage = new Image(core->GetDevice(), core->GetSwapchain()->GetExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-		allocator = new Memory::Allocator(core->GetDevice(), core->GetSwapchain()->GetFramesInFlight());
 	}
 
 	Rendergraph::~Rendergraph()
 	{
 		vkDestroyCommandPool(*core->GetDevice(), pool, nullptr);
 		delete depthImage;
-		delete allocator;
 	}
 
 	void Rendergraph::Initialise()
@@ -51,6 +49,8 @@ namespace Renderer
 
 	void Rendergraph::Execute()
 	{
+		core->GetAllocator()->BeginFrame();
+
 		FrameInfo frameInfo;
 		VkCommandBuffer buffer = buffers[core->GetSwapchain()->GetIndex()];
 
@@ -73,9 +73,9 @@ namespace Renderer
 
 		if (ImGui::CollapsingHeader("Allocations"))
 		{
-			allocator->DebugView();	
+			core->GetAllocator()->DebugView();
 		}
-
+		
 		ImGui::End();
 
 		vkBeginCommandBuffer(buffer, &beginInfo);
@@ -90,8 +90,6 @@ namespace Renderer
 		context.renderpass = renderpass;
 		context.graph = this;
 
-
-
 		for (auto& pass : passes)
 		{
 			context.passId = pass.taskName;
@@ -103,6 +101,7 @@ namespace Renderer
 		vkEndCommandBuffer(buffer);
 
 		core->EndFrame(frameInfo);
+		core->GetAllocator()->EndFrame();
 	}
 
 	void Rendergraph::Rebuild()
@@ -154,8 +153,9 @@ namespace Renderer
 	{
 		int i = 0;
 
+		ImGui::BeginChild("RenderPasses");
+		
 		ImGui::Columns(2, "Render Passes", true);
-		ImGui::Separator();
 		ImGui::Text("Name");
 		ImGui::NextColumn();
 		ImGui::Text("Order");
@@ -178,8 +178,10 @@ namespace Renderer
 			ImGui::NextColumn();
 			ImGui::Text("%d", i++);
 			ImGui::NextColumn();
+			ImGui::Separator();
 			ImGui::EndGroup();
-
 		}
+
+		ImGui::EndChild();
 	}
 }

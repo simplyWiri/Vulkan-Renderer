@@ -232,7 +232,7 @@ namespace Renderer
 			std::cout << shader.getInfoDebugLog() << std::endl;
 			return false;
 		}
-		// link shader to a program
+		// link shader to a glslang program
 		program.addShader(&shader);
 
 		if (!program.link(messages) || !program.mapIO())

@@ -120,7 +120,6 @@ namespace Renderer
 			if (!framebuffer)
 			{
 				framebuffer = new FramebufferBundle(device, key, framesInFlight);
-				RegisterInput(key);
 			}
 			return framebuffer;
 		}
@@ -130,17 +129,6 @@ namespace Renderer
 			if (cache.find(key) != cache.end()) return false;
 
 			cache.emplace(key, new FramebufferBundle(device, key, framesInFlight));
-			RegisterInput(key);
-
-			return true;
-		}
-
-		bool Add(const FramebufferKey& key, uint16_t& local) override
-		{
-			if (cache.find(key) != cache.end()) return false;
-
-			cache.emplace(key, new FramebufferBundle(device, key, framesInFlight));
-			local = RegisterInput(key);
 
 			return true;
 		}

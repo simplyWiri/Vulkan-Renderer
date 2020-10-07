@@ -14,7 +14,6 @@
 
 namespace Renderer
 {
-
 	enum class RendererBufferSettings { SwapchainSync, SingleBuffered, DoubleBuffered, TripleBuffered, };
 
 	struct RendererSettings
@@ -35,6 +34,7 @@ namespace Renderer
 
 			Device device;
 			Swapchain swapchain; // VkSwapchainKHR
+			Memory::Allocator* allocator;
 
 			// caches
 			RenderpassCache renderpassCache;
@@ -59,7 +59,7 @@ namespace Renderer
 			Rendergraph* GetRendergraph() { return rendergraph.get(); }
 
 			Device* GetDevice() { return &device; }
-			VmaAllocator* GetAllocator() { return device.GetAllocator(); }
+			Memory::Allocator* GetAllocator() { return allocator; }
 
 			Swapchain* GetSwapchain() { return &swapchain; }
 

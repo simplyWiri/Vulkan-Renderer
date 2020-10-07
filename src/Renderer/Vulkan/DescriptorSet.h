@@ -10,6 +10,7 @@
 #include "../Resources/Image.h"
 #include "../Resources/Sampler.h"
 #include "../Cache.h"
+#include "Memory/Allocator.h"
 
 
 namespace Renderer
@@ -24,7 +25,7 @@ namespace Renderer
 	class DescriptorSetBundle
 	{
 	public:
-		DescriptorSetBundle(VkDevice* device, VmaAllocator* allocator, DescriptorSetKey key, uint32_t framesInFlight) : device(device), allocator(allocator), resources(key.program->getResources()), framesInFlight(framesInFlight)
+		DescriptorSetBundle(VkDevice* device, Memory::Allocator* allocator, DescriptorSetKey key, uint32_t framesInFlight) : framesInFlight(framesInFlight), resources(key.program->getResources()), device(device), allocator(allocator)
 		{
 			std::vector<VkDescriptorPoolSize> poolSizes;
 
@@ -64,46 +65,38 @@ namespace Renderer
 
 		void WriteBuffer(const std::string& resName)
 		{
-			ShaderResources res;
-			uint32_t size = 0;
-			for (auto resource : resources)
-				if (resource.name == resName)
-				{
-					res = resource;
-					size = resource.size;
-					break;
-				}
-
+			const auto res = GetShaderResource(resName);
+			uint32_t size = res.size;
+			
 			size = std::max(256U, size); // 256U is the min alignment req
 
 			switch (res.type)
 			{
-			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: WriteBuffer(resName, new Buffer(allocator, size * framesInFlight, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU)); break;
-			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: WriteBuffer(resName, new Buffer(allocator, size * framesInFlight, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY)); break;
+			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: WriteBuffer(resName, allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT )); break;
+			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: WriteBuffer(resName, allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)); break;
 			}
 		}
 
-		void WriteBuffer(const std::string& resName, Buffer* buffer)
+		void WriteBuffer(const std::string& resName, Memory::Buffer* buffer)
 		{
 			buffers.emplace(resName, buffer);
 
-			ShaderResources res;
-			for (auto resource : resources)
-				if (resource.name == resName)
-				{
-					res = resource;
-					break;
-				}
+			const auto res = GetShaderResource(resName);
 
-
-			if (buffer->getSize() < res.size * framesInFlight) { buffer->reSize(res.size * framesInFlight); }
+			if (buffer->GetSize() < res.size * framesInFlight)
+			{
+				auto usage = buffer->GetUsageFlags();
+				auto flags = buffer->GetMemoryFlags();
+				delete buffer;
+				buffer = allocator->AllocateBuffer(res.size * framesInFlight, usage, flags);
+			}
 
 			for (uint32_t i = 0; i < framesInFlight; i++)
 			{
 				std::vector<VkWriteDescriptorSet> writeSets;
 
 				VkDescriptorBufferInfo descBufferInfo = {};
-				descBufferInfo.buffer = buffer->getBuffer();
+				descBufferInfo.buffer = buffer->GetResourceHandle();
 				descBufferInfo.offset = i * std::max(256U, res.size);
 				descBufferInfo.range = std::max(256U, res.size);
 
@@ -124,13 +117,7 @@ namespace Renderer
 
 		void WriteSampler(const std::string& resName, Image* image, Sampler* sampler, VkImageLayout layout)
 		{
-			ShaderResources res;
-			for (auto resource : resources)
-				if (resource.name == resName)
-				{
-					res = resource;
-					break;
-				}
+			const auto res = GetShaderResource(resName);
 
 			VkDescriptorImageInfo imageInfo = {};
 			imageInfo.imageView = image->GetView();
@@ -158,13 +145,24 @@ namespace Renderer
 			}
 		}
 
+		ShaderResources GetShaderResource(const std::string& resName) const
+		{
+			for(const auto& res : resources)
+			{
+				if(res.name == resName)
+					return res;
+			}
+
+			Assert(false, "Failed to find shader resource in descriptor set");
+			return ShaderResources{};
+		}
 		VkDescriptorSet* Get(uint32_t offset) { return &sets[offset]; }
 
 		VkDescriptorPool GetPool() { return pool; }
 
-		void* GetResource(const std::string& name, uint32_t offset) { return buffers[name]->map(); }
+		void* GetResource(const std::string& name, uint32_t offset) { return buffers[name]->Map(); }
 
-		void SetResource(const std::string& name, void* data, const size_t size, const size_t offset) { buffers[name]->load(data, size, std::max(size * offset, 256 * offset)); }
+		void SetResource(const std::string& name, void* data, const size_t size, const size_t offset) { buffers[name]->Load(data, size, std::max(size * offset, 256 * offset)); }
 
 
 		void Clear()
@@ -178,8 +176,8 @@ namespace Renderer
 		uint32_t framesInFlight;
 		std::vector<ShaderResources> resources;
 		VkDevice* device;
-		VmaAllocator* allocator;
-		std::unordered_map<std::string, Buffer*> buffers;
+		Memory::Allocator* allocator;
+		std::unordered_map<std::string, Memory::Buffer*> buffers;
 		std::unordered_map<std::string, Image*> images;
 		std::unordered_map<std::string, Sampler*> samplers;
 
@@ -206,23 +204,16 @@ namespace Renderer
 	{
 	private:
 		VkDevice* device;
-		VmaAllocator* allocator;
-		uint32_t framesInFlight;
-		uint32_t curFrame;
+		Memory::Allocator* allocator;
+
 	public:
-		void BuildCache(VkDevice* device, VmaAllocator* allocator, uint32_t framesInFlight)
+		void BuildCache(VkDevice* device, Memory::Allocator* allocator, uint32_t framesInFlight)
 		{
 			this->device = device;
 			this->allocator = allocator;
 			this->framesInFlight = framesInFlight;
-			curFrame = 0;
 		}
 
-
-		void BeginFrame(uint32_t offset)
-		{
-			curFrame = offset;
-		}
 		// we can actually build the buffer from what is known in the shader, in this case, we allow our descriptor bundle to also manage the buffer
 		void WriteBuffer(DescriptorSetKey& key, const std::string& resName)
 		{
@@ -231,7 +222,7 @@ namespace Renderer
 			descBundle->WriteBuffer(resName);
 		}
 
-		void WriteBuffer(DescriptorSetKey& key, const std::string& resName, Buffer* buffer)
+		void WriteBuffer(DescriptorSetKey& key, const std::string& resName, Memory::Buffer* buffer)
 		{
 			auto descBundle = Get(key);
 
@@ -257,21 +248,21 @@ namespace Renderer
 		{
 			auto descSet = Get(key);
 
-			return static_cast<T*>(descSet->GetResource(resName, curFrame));
+			return static_cast<T*>(descSet->GetResource(resName, currentFrame));
 		}
 
 		void SetResource(const DescriptorSetKey& key, std::string resName, void* data, size_t size)
 		{
 			auto descSet = Get(key);
 
-			descSet->SetResource(resName, data, size, curFrame);
+			descSet->SetResource(resName, data, size, currentFrame);
 		}
 
 		void BindDescriptorSet(VkCommandBuffer buffer, VkPipelineBindPoint bindPoint, const DescriptorSetKey& key)
 		{
 			auto descSet = Get(key);
 
-			vkCmdBindDescriptorSets(buffer, bindPoint, key.program->getPipelineLayout(), 0, 1, descSet->Get(curFrame), static_cast<uint32_t>(key.program->getDynOffsets().size()), key.program->getDynOffsets().data());
+			vkCmdBindDescriptorSets(buffer, bindPoint, key.program->getPipelineLayout(), 0, 1, descSet->Get(currentFrame), static_cast<uint32_t>(key.program->getDynOffsets().size()), key.program->getDynOffsets().data());
 		}
 
 		DescriptorSetBundle* Get(const DescriptorSetKey& key) override
@@ -280,7 +271,6 @@ namespace Renderer
 			if (!descriptorSet)
 			{
 				descriptorSet = new DescriptorSetBundle(device, allocator, key, framesInFlight);
-				RegisterInput(key);
 			}
 			return descriptorSet;
 		}
@@ -290,17 +280,6 @@ namespace Renderer
 			if (cache.find(key) != cache.end()) return false;
 
 			cache.emplace(key, new DescriptorSetBundle(device, allocator, key, framesInFlight));
-			RegisterInput(key);
-
-			return true;
-		}
-
-		bool Add(const DescriptorSetKey& key, uint16_t& local) override
-		{
-			if (cache.find(key) != cache.end()) return false;
-
-			cache.emplace(key, new DescriptorSetBundle(device, allocator, key, framesInFlight));
-			local = RegisterInput(key);
 
 			return true;
 		}

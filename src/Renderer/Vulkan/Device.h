@@ -59,7 +59,7 @@ namespace Renderer
 			break;
 		}
 
-		if(mt != "General") __debugbreak();
+		//if(mt != "General") __debugbreak();
 		return VK_FALSE;
 	}
 

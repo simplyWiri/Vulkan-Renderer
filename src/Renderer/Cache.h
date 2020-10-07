@@ -1,5 +1,6 @@
 #pragma once
 #include <unordered_map>
+#include <vector>
 
 namespace Renderer
 {
@@ -8,42 +9,42 @@ namespace Renderer
 	template <class T, class K>
 	class Cache
 	{
-		protected:
-			std::unordered_map<K, T*> cache;
-			std::unordered_map<uint16_t, K> localToKey;
-			uint16_t count = 0;
-			virtual void ClearEntry(T*) = 0;
+	protected:
+		std::unordered_map<K, T*> cache;
 
-		public:
-			virtual bool Add(const K& key) = 0;
-			virtual bool Add(const K& key, uint16_t& local) = 0;
-			virtual T* Get(const K& key) = 0;
+		uint16_t framesInFlight;
+		uint16_t currentFrame;
 
-			void ClearCache()
+		virtual void ClearEntry(T*) = 0;
+
+		Cache(uint16_t framesInFlight = 1)
+		{
+			this->framesInFlight = framesInFlight;
+			this->currentFrame = 0;
+		}
+
+	public:
+		virtual bool Add(const K& key) = 0;
+		virtual T* Get(const K& key) = 0;
+		T* operator[](K key) { return Get(key); }
+
+		void ClearCache()
+		{
+			auto iter = cache.begin();
+
+			while (iter != cache.end())
 			{
-				auto iter = cache.begin();
-
-				while (iter != cache.end())
-				{
-					ClearEntry(iter->second);
-					delete iter->second;
-					++iter;
-				}
-
-				cache.clear();
-				localToKey.clear();
+				ClearEntry(iter->second);
+				delete iter->second;
+				++iter;
 			}
 
-			T* operator[](K key) { return Get(key); }
-			T* operator[](const uint16_t& index) { return Get(localToKey.at(index)); }
-			T* IndexToValue(const uint16_t& index) { return Get(localToKey.at(index)); }
+			cache.clear();
+		}
 
-			K IndexToKey(const uint16_t& index) { return localToKey.at(index); }
-
-			uint16_t RegisterInput(K key)
-			{
-				localToKey.emplace(count, key);
-				return count++;
-			}
+		virtual void Tick()
+		{
+			currentFrame = (currentFrame + 1) % framesInFlight;
+		}
 	};
 }

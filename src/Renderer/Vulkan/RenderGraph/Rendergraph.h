@@ -54,7 +54,7 @@ namespace Renderer
 	struct ImageResource : Resource
 	{
 		SizeClass sizeClass = SwapchainRelative;
-		glm::vec3 size = {1.0f, 1.0f, 0.0f};
+		glm::vec3 size = { 1.0f, 1.0f, 0.0f };
 		VkFormat format = VK_FORMAT_UNDEFINED;
 		uint32_t samples = 1, levels = 1, layers = 1;
 		VkImageUsageFlags usage = 0;
@@ -71,47 +71,44 @@ namespace Renderer
 
 	class Rendergraph
 	{
-		private:
-			bool initialised = false;
-			uint16_t curIndex = 1;
-			std::unordered_map<std::string, uint16_t> strToIndex;
+	private:
+		bool initialised = false;
+		uint16_t curIndex = 1;
+		std::unordered_map<std::string, uint16_t> strToIndex;
 
-			std::vector<PassDesc> passes;
-			std::vector<PassDesc> uniquePasses;
-
-
-			Core* core;
-
-			VkCommandPool pool;
-			Image* depthImage;
-			std::vector<VkCommandBuffer> buffers;
+		std::vector<PassDesc> passes;
+		std::vector<PassDesc> uniquePasses;
 
 
-		public:
-			Rendergraph(Core* core);
-			~Rendergraph();
+		Core* core;
 
-			void Initialise();
-			void Execute();
-			void Rebuild();
+		VkCommandPool pool;
+		Image* depthImage;
+		std::vector<VkCommandBuffer> buffers;
 
-			void AddPass(PassDesc passDesc);
-			Memory::Allocator* allocator;
+	public:
+		Rendergraph(Core* core);
+		~Rendergraph();
 
-		private:
+		void Initialise();
+		void Execute();
+		void Rebuild();
 
-			// Baking utility (initialisation)
-			void extractGraphInformation();
-			// assigns id's, locates resources required, builds a dependancy graph
-			// builds the required resources
-			void validateGraph(); // debug
+		void AddPass(PassDesc passDesc);
+	private:
 
-			void mergePasses(); // merges passes which are compatible
-			void buildTransients(); // 'merge' or 'reuse' images which are compatible
-			void buildBarriers(); // build synchronisation barriers between items
+		// Baking utility (initialisation)
+		void extractGraphInformation();
+		// assigns id's, locates resources required, builds a dependancy graph
+		// builds the required resources
+		void validateGraph(); // debug
 
-			void ShowDebugVisualisation();
-		private:
-			uint16_t assignId() { return ++curIndex; }
+		void mergePasses(); // merges passes which are compatible
+		void buildTransients(); // 'merge' or 'reuse' images which are compatible
+		void buildBarriers(); // build synchronisation barriers between items
+
+		void ShowDebugVisualisation();
+	private:
+		uint16_t assignId() { return ++curIndex; }
 	};
 }
