@@ -27,9 +27,69 @@ premake.override(premake.vstudio.sln2005, "projects", function(base, wks)
   base(wks)
 end)
 
-workspace "Vulkan Renderer"
+function CreateProject(name)
+	project ("" .. name) -- Concatonate name to an empty string
+	location ("Projects/" .. name)
+	kind "ConsoleApp"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+
+	targetdir "Projects/%{prj.name}/bin/"
+	objdir "Projects/%{prj.name}/bin-int/"
+
+	files
+	{
+		("Projects/" .. name .. "/resources/**"),
+		("Projects/" .. name .. "/src/**.h"),
+		("Projects/" .. name .. "/src/**.cpp"),
+		("Projects/" .. name .. "/**.md")
+	}
+
+	includedirs
+	{
+		"src/",
+		"external/",
+		"externals/glfw/include/GLFW",
+		"externals/imgui",
+		"externals/implot",
+		"externals/glm",
+		"externals/stb",
+		"externals/SPIRV-Cross",
+		"externals/spdlog/include",
+		"externals/glslang",
+		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/")
+	}
+
+	links
+	{
+		"Vulkan Renderer"
+	}
+
+	
+	filter "configurations:Verbose"
+		defines { "VERBOSE", "TRACE", "DEBUG" }
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Trace"
+		defines { "TRACE", "DEBUG" }
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Debug"
+		defines "DEBUG"
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Release"
+		defines "NDEBUG"
+		runtime "Release"
+		optimize "on"
+end
+
+workspace "Renderer"
 	architecture "x64"
-	startproject "Vulkan Renderer"
 
 	configurations
 	{
@@ -38,7 +98,7 @@ workspace "Vulkan Renderer"
 
 	workspace_files
 	{
-		"premake5.lua", "README.md", "premake.bat", "externals/premake5.lua",
+		"premake5.lua", "README.md", "premake.bat", "externals/premake5.lua"
 	}
 
 	filter "configurations:Verbose"
@@ -67,9 +127,10 @@ group ""
 
 project "Vulkan Renderer"
 	location ""
-	kind "ConsoleApp"
+	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
+	staticruntime "on"
 
 	targetdir "bin/"
 	objdir "bin-int/"
@@ -105,4 +166,15 @@ project "Vulkan Renderer"
 		"Glslang",
 		"SPIRV-Cross"
 	}
+
+group "Projects"
+
+CreateProject("Fibonacci Sphere")
+CreateProject("2D Metaballs")
+CreateProject("Quasicrystals")
+
+group ""
+
+
+
 

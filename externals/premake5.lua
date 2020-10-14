@@ -1,6 +1,7 @@
 project "ImGui"
 	kind "StaticLib"
     language "C++"
+    staticruntime "on"
 
 	targetdir ("bin/%{prj.name}")
 	objdir ("bin-int/%{prj.name}")
@@ -13,7 +14,8 @@ project "ImGui"
 	}
     
 project "ImPlot"
-	kind "StaticLib"
+    kind "StaticLib"
+    staticruntime "on"
     language "C++"
 
 	targetdir ("bin/%{prj.name}")
@@ -36,7 +38,8 @@ project "ImPlot"
     }
 
 project "GLFW"
-	kind "StaticLib"
+    kind "StaticLib"
+    staticruntime "on"
 	language "C"
 
 	targetdir ("bin/%{prj.name}")
@@ -79,7 +82,8 @@ project "GLFW"
 		}
 
 project "SPIRV-Cross"
-		kind "StaticLib"
+        kind "StaticLib"
+        staticruntime "on"
 		language "C++"
 	
 		targetdir ("bin/%{prj.name}")
@@ -116,7 +120,8 @@ project "SPIRV-Cross"
 		}
 	
 project "Glslang"
-	kind "StaticLib"
+    kind "StaticLib"
+    staticruntime "on"
     language "C++"
 
 	targetdir ("bin/%{prj.name}")

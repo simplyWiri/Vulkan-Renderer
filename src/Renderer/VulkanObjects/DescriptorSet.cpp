@@ -60,9 +60,9 @@ namespace Renderer
 		switch (res.type)
 		{
 			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: WriteBuffer(resName,
-					allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+					allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 				break;
-			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: WriteBuffer(resName, allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: WriteBuffer(resName, allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 				break;
 		}
 	}

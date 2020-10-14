@@ -24,7 +24,6 @@ int main()
 	Settings s = {};
 	s.width = 1200;
 	s.height = 840;
-	//s.vsync = true;
 
 	auto renderer = std::make_unique<Core>(s);
 	GUI gui;

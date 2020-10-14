@@ -18,8 +18,9 @@ namespace Renderer
 	class ShaderManager
 	{
 	private:
-		const std::pair<ShaderType, std::string> defVert = { ShaderType::Vertex, "resources/VertexShader.vert" };
-		const std::pair<ShaderType, std::string> defFrag = { ShaderType::Fragment, "resources/FragmentShader.frag" };
+		const std::pair<ShaderType, std::string> defVert = { ShaderType::Vertex, "../../resources/VertexShader.vert" };
+		const std::pair<ShaderType, std::string> defFrag = { ShaderType::Fragment, "../../resources/FragmentShader.frag" };
+		const std::pair<ShaderType, std::string> fsTri = { ShaderType::Vertex, "../../resources/FullScreenTri.vert" };
 
 	public:
 		ShaderManager() {}
@@ -28,6 +29,7 @@ namespace Renderer
 		{
 			shaders.emplace(defVert, new Shader(defVert.first, defVert.second, getId()));
 			shaders.emplace(defFrag, new Shader(defFrag.first, defFrag.second, getId()));
+			shaders.emplace(fsTri, new Shader(fsTri.first, fsTri.second, getId()));
 		}
 
 		~ShaderManager()
@@ -43,6 +45,7 @@ namespace Renderer
 
 		Shader* defaultVertex() { return shaders[defVert]; }
 		Shader* defaultFragment() { return shaders[defFrag]; }
+		Shader* fullScreenTri() { return shaders[fsTri]; }
 
 
 		Shader* get(const ShaderType& type, const std::string& path)

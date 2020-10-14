@@ -96,6 +96,7 @@ namespace Renderer
 		glm::vec3 colour; // r g b
 
 		static VertexAttributes defaultVertex() { return VertexAttributes({ { sizeof(Vertex), 0 } }, { { 0, 0, VertexAttributes::Type::vec3, offsetof(Vertex, pos) }, { 0, 1, VertexAttributes::Type::vec3, offsetof(Vertex, colour) } }); }
+		static VertexAttributes emptyVertex() { return VertexAttributes{}; }
 	};
 }
 
