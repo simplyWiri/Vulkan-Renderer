@@ -80,15 +80,14 @@ project "Vulkan Renderer"
 		"resources/**",
 		"src/**.h",
 		"src/**.cpp",
-		"externals/stb/stb_image.h",
-		"externals/glm/glm/glm.hpp"
+		"externals/stb/stb_image.h"
 	}
 
 	includedirs
 	{
 		"externals/glfw/include/GLFW",
 		"externals/imgui",
-		"externals/VulkanMemoryAllocator/src",
+		"externals/implot",
 		"externals/glm",
 		"externals/stb",
 		"externals/SPIRV-Cross",
@@ -102,6 +101,7 @@ project "Vulkan Renderer"
 		(_OPTIONS["vulkanPath"] .. "/Lib/vulkan-1.lib"),
 		"GLFW",
 		"ImGui",
+		"ImPlot",
 		"Glslang",
 		"SPIRV-Cross"
 	}

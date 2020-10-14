@@ -11,7 +11,30 @@ project "ImGui"
 		"imgui/imgui_draw.cpp",
 		"imgui/imgui_widgets.cpp"
 	}
-	
+    
+project "ImPlot"
+	kind "StaticLib"
+    language "C++"
+
+	targetdir ("bin/%{prj.name}")
+	objdir ("bin-int/%{prj.name}")
+
+	files
+	{
+        "implot/implot_items.cpp",
+        "implot/implot.cpp"
+    }
+    
+    includedirs
+    {
+        "imgui"
+    }
+
+    links
+    {
+        "ImGui"
+    }
+
 project "GLFW"
 	kind "StaticLib"
 	language "C"

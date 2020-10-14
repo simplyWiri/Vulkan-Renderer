@@ -1,5 +1,8 @@
 #pragma once
-#include "spdlog/spdlog.h"
+#include <memory>
+#include <spdlog/logger.h>
+#undef min
+#undef max
 
 #ifndef NDEBUG
 
@@ -34,10 +37,10 @@
 
 class TempLogger
 {
-	private:
-		static std::shared_ptr<spdlog::logger> logger;
+private:
+	static std::shared_ptr<spdlog::logger> logger;
 
-	public:
-		static void Init();
-		static std::shared_ptr<spdlog::logger> GetLogger() { return logger; }
+public:
+	static void Init();
+	static std::shared_ptr<spdlog::logger> GetLogger() { return logger; }
 };

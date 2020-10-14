@@ -1,6 +1,13 @@
 #pragma once
+#include <implot.h>
+
+#include "glfw3.h"
 #include "imgui.h"
-#include "Renderer/Vulkan/Core.h"
+#include "Renderer/Core.h"
+#include "Renderer/Memory/Allocator.h"
+#include "Renderer/Resources/Sampler.h"
+#include "Renderer/Memory/Buffer.h"
+#include "Renderer/Memory/Image.h"
 
 namespace Renderer
 
@@ -15,32 +22,32 @@ namespace Renderer
 		} pushConstBlock;
 
 		Sampler* sampler;
-		Image* fontImage;
 		DescriptorSetKey key;
 		Core* core;
 
 		Memory::Buffer* buffers;
+		Memory::Image* fontImage;
 
-		const VertexAttributes imguiVerts = VertexAttributes(
-			{
-				{ sizeof(ImDrawVert), 0 }
-			},
-			{
-				{ 0, 0, VertexAttributes::Type::vec2, offsetof(ImDrawVert, pos) },
-				{ 0, 1, VertexAttributes::Type::vec2, offsetof(ImDrawVert, uv) },
-				{ 0, 2, VertexAttributes::Type::colour32, offsetof(ImDrawVert, col) }
-			});
+		const VertexAttributes imguiVerts = VertexAttributes({ { sizeof(ImDrawVert), 0 } }, {
+			{ 0, 0, VertexAttributes::Type::vec2, offsetof(ImDrawVert, pos) }, { 0, 1, VertexAttributes::Type::vec2, offsetof(ImDrawVert, uv) }, { 0, 2, VertexAttributes::Type::colour32, offsetof(ImDrawVert, col) }
+		});
 
 
 	public:
 
 
-		GUI() { ImGui::CreateContext(); }
+		GUI()
+		{
+			ImGui::CreateContext();
+			ImPlot::CreateContext();
+		}
 
 		~GUI()
 		{
+			ImPlot::DestroyContext();
 			ImGui::DestroyContext();
 			delete buffers;
+			delete fontImage;
 		}
 
 		void initialise(Core* core)
@@ -55,7 +62,7 @@ namespace Renderer
 			setupImGuiColour();
 
 			auto program = core->GetShaderManager()->getProgram({ core->GetShaderManager()->get(ShaderType::Vertex, "resources/ImguiVertex.vert"), core->GetShaderManager()->get(ShaderType::Fragment, "resources/ImguiFragment.frag") });
-			program->initialiseResources(core->GetDevice()->GetDevice());
+			program->InitialiseResources(core->GetDevice()->GetDevice());
 
 			key = { program };
 
@@ -67,24 +74,24 @@ namespace Renderer
 
 			stagingBuffer->Load(fontData, texWidth * texHeight * 4 * sizeof(char));
 
-			fontImage = new Image(core->GetDevice(), { static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight) }, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-				VMA_MEMORY_USAGE_GPU_ONLY);
+			fontImage = core->GetAllocator()->AllocateImage(VkExtent2D{ static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight) }, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 			{
 				// transfer data from staging buffer -> image
 
 				auto cmd = core->GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-				core->SetImageLayout(cmd, fontImage->GetImage(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, fontImage->GetSubresourceRange(), VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+				core->SetImageLayout(cmd, fontImage->GetResourceHandle(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, fontImage->GetSubresourceRange(), VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
 				VkBufferImageCopy bufferCopyRegion = {};
 				bufferCopyRegion.imageSubresource.aspectMask = fontImage->GetSubresourceRange().aspectMask;
 				bufferCopyRegion.imageSubresource.layerCount = fontImage->GetSubresourceRange().layerCount;
 				bufferCopyRegion.imageExtent = fontImage->GetExtent3D();
 
-				vkCmdCopyBufferToImage(cmd, stagingBuffer->GetResourceHandle(), fontImage->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
+				vkCmdCopyBufferToImage(cmd, stagingBuffer->GetResourceHandle(), fontImage->GetResourceHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
 
-				core->SetImageLayout(cmd, fontImage->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, fontImage->GetSubresourceRange(), VK_PIPELINE_STAGE_TRANSFER_BIT,
+				core->SetImageLayout(cmd, fontImage->GetResourceHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, fontImage->GetSubresourceRange(), VK_PIPELINE_STAGE_TRANSFER_BIT,
 					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
 				core->FlushCommandBuffer(cmd);
@@ -127,77 +134,75 @@ namespace Renderer
 		void AddToGraph(Rendergraph* graph)
 		{
 			graph->AddPass(PassDesc().SetName("ImGui-CPU").SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& info, GraphContext& context)
-				{
-					ImGuiIO& io = ImGui::GetIO();
-					io.DisplaySize = ImVec2(static_cast<float>(context.extent.width), static_cast<float>(context.extent.height));
+			{
+				ImGuiIO& io = ImGui::GetIO();
+				io.DisplaySize = ImVec2(static_cast<float>(context.GetSwapchainExtent().width), static_cast<float>(context.GetSwapchainExtent().height));
 
-					auto window = core->GetSwapchain()->GetWindow();
+				auto window = core->GetSwapchain()->GetWindow();
 
-					double mouseX, mouseY;
-					glfwGetCursorPos(window, &mouseX, &mouseY);
+				double mouseX, mouseY;
+				glfwGetCursorPos(window, &mouseX, &mouseY);
 
-					io.MousePos = ImVec2(static_cast<float>(mouseX), static_cast<float>(mouseY));
-					//io.KeyCtrl = io.KeysDown[GLFW_KEY_LEFT_CONTROL] || io.KeysDown[GLFW_KEY_RIGHT_CONTROL];
-					//io.KeyShift = io.KeysDown[GLFW_KEY_LEFT_SHIFT] || io.KeysDown[GLFW_KEY_RIGHT_SHIFT];
-					//io.KeyAlt = io.KeysDown[GLFW_KEY_LEFT_ALT] || io.KeysDown[GLFW_KEY_RIGHT_ALT];
-					//io.KeySuper = io.KeysDown[GLFW_KEY_LEFT_SUPER] || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
+				io.MousePos = ImVec2(static_cast<float>(mouseX), static_cast<float>(mouseY));
+				//io.KeyCtrl = io.KeysDown[GLFW_KEY_LEFT_CONTROL] || io.KeysDown[GLFW_KEY_RIGHT_CONTROL];
+				//io.KeyShift = io.KeysDown[GLFW_KEY_LEFT_SHIFT] || io.KeysDown[GLFW_KEY_RIGHT_SHIFT];
+				//io.KeyAlt = io.KeysDown[GLFW_KEY_LEFT_ALT] || io.KeysDown[GLFW_KEY_RIGHT_ALT];
+				//io.KeySuper = io.KeysDown[GLFW_KEY_LEFT_SUPER] || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
 
-					glfwSetInputMode(window, GLFW_CURSOR, io.MouseDrawCursor ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL);
+				glfwSetInputMode(window, GLFW_CURSOR, io.MouseDrawCursor ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL);
 
-					ImGui::Render();
+				ImGui::Render();
 
-					auto* drawData = ImGui::GetDrawData();
-					updateBuffers(drawData);
+				auto* drawData = ImGui::GetDrawData();
+				updateBuffers(drawData);
 
-					pushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
-					pushConstBlock.translate = glm::vec2(-1.0f);
-				}));
+				pushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
+				pushConstBlock.translate = glm::vec2(-1.0f);
+			}));
 
 			graph->AddPass(
-				PassDesc().SetName("ImGui-Render").SetInitialisationFunc([&](Tether& tether)
+				PassDesc().SetName("ImGui-Render").SetInitialisationFunc([&](Tether& tether) { tether.GetDescriptorCache()->WriteSampler(key, "sTexture", fontImage, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); }).SetRecordFunc(
+					[&](VkCommandBuffer buffer, const FrameInfo& info, GraphContext& context)
 					{
-						tether.GetDescriptorCache()->WriteSampler(key, "sTexture", fontImage, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-					}).SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& info, GraphContext& context)
+						ImDrawData* imDrawData = ImGui::GetDrawData();
+						if (imDrawData->CmdListsCount == 0) return;
+
+						core->GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, key);
+
+						core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), imguiVerts, DepthSettings::Disabled(), { BlendSettings::AlphaBlend() },
+							VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, key.program);
+
+						VkViewport viewport = { 0, 0, static_cast<float>(context.GetSwapchainExtent().width), static_cast<float>(context.GetSwapchainExtent().height), 0.0f, 1.0f };
+						vkCmdSetViewport(buffer, 0, 1, &viewport);
+
+						vkCmdPushConstants(buffer, key.program->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+
+						VkDeviceSize offsets[1] = { 0 };
+						vkCmdBindVertexBuffers(buffer, 0, 1, &buffers->GetResourceHandle(), offsets);
+						vkCmdBindIndexBuffer(buffer, buffers->GetResourceHandle(), imDrawData->TotalVtxCount * sizeof(ImDrawVert), VK_INDEX_TYPE_UINT16);
+
+						int32_t vertexOffset = 0;
+						int32_t indexOffset = 0;
+
+						for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
 						{
-							ImDrawData* imDrawData = ImGui::GetDrawData();
-							if (imDrawData->CmdListsCount == 0) return;
-
-							core->GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, key);
-
-							core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.getDefaultRenderpass(), context.extent, imguiVerts, DepthSettings::Disabled(), { BlendSettings::AlphaBlend() },
-								VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, key.program);
-
-							VkViewport viewport = { 0, 0, static_cast<float>(context.extent.width), static_cast<float>(context.extent.height), 0.0f, 1.0f };
-							vkCmdSetViewport(buffer, 0, 1, &viewport);
-
-							vkCmdPushConstants(buffer, key.program->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
-
-							VkDeviceSize offsets[1] = { 0 };
-							vkCmdBindVertexBuffers(buffer, 0, 1, &buffers->GetResourceHandle(), offsets);
-							vkCmdBindIndexBuffer(buffer, buffers->GetResourceHandle(), imDrawData->TotalVtxCount * sizeof(ImDrawVert), VK_INDEX_TYPE_UINT16);
-
-							int32_t vertexOffset = 0;
-							int32_t indexOffset = 0;
-
-							for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
+							const ImDrawList* cmd_list = imDrawData->CmdLists[i];
+							for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
 							{
-								const ImDrawList* cmd_list = imDrawData->CmdLists[i];
-								for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
-								{
-									const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
-									VkRect2D scissorRect = {};
-									scissorRect.offset.x = std::max(static_cast<int32_t>(pcmd->ClipRect.x), 0);
-									scissorRect.offset.y = std::max(static_cast<int32_t>(pcmd->ClipRect.y), 0);
-									scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x);
-									scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y);
-									vkCmdSetScissor(buffer, 0, 1, &scissorRect);
-									vkCmdDrawIndexed(buffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
+								const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
+								VkRect2D scissorRect = {};
+								scissorRect.offset.x = std::max(static_cast<int32_t>(pcmd->ClipRect.x), 0);
+								scissorRect.offset.y = std::max(static_cast<int32_t>(pcmd->ClipRect.y), 0);
+								scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x);
+								scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y);
+								vkCmdSetScissor(buffer, 0, 1, &scissorRect);
+								vkCmdDrawIndexed(buffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
 
-									indexOffset += pcmd->ElemCount;
-								}
-								vertexOffset += cmd_list->VtxBuffer.Size;
+								indexOffset += pcmd->ElemCount;
 							}
-						}));
+							vertexOffset += cmd_list->VtxBuffer.Size;
+						}
+					}));
 		}
 
 
@@ -244,7 +249,7 @@ namespace Renderer
 		static void charCallback(GLFWwindow* window, unsigned int c)
 		{
 			ImGuiIO& imguiIO = ImGui::GetIO();
-			if (c > 0 && c < 0x10000) imguiIO.AddInputCharacter((unsigned short)c);
+			if (c > 0 && c < 0x10000) imguiIO.AddInputCharacter(static_cast<unsigned short>(c));
 		}
 
 		static void mouseButtonCallback(GLFWwindow* window, int button, int action, int /*mods*/)
@@ -256,8 +261,8 @@ namespace Renderer
 		static void scrollCallback(GLFWwindow* window, double xOffset, double yOffset)
 		{
 			ImGuiIO& imguiIO = ImGui::GetIO();
-			imguiIO.MouseWheel += float(yOffset);
-			imguiIO.MouseWheelH += float(xOffset);
+			imguiIO.MouseWheel += static_cast<float>(yOffset);
+			imguiIO.MouseWheelH += static_cast<float>(xOffset);
 		}
 
 		void setupImGuiColour()

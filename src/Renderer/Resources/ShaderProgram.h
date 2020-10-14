@@ -21,13 +21,11 @@ namespace Renderer
 					shader->compileGLSL();
 					shader->reflectSPIRV();
 				}
-				auto& res = shader->getResources();
+				auto res = shader->getResources();
 				shaderResources.insert(shaderResources.end(), res.begin(), res.end());
 
 				ids.push_back(shader->getId());
 			}
-
-
 		}
 
 		~ShaderProgram()
@@ -36,12 +34,9 @@ namespace Renderer
 			vkDestroyPipelineLayout(*device, pLayout, nullptr);
 		}
 
-		bool operator ==(const ShaderProgram& other) const
-		{
-			return ids == other.ids;
-		}
+		bool operator ==(const ShaderProgram& other) const { return ids == other.ids; }
 
-		void initialiseResources(VkDevice* device)
+		void InitialiseResources(VkDevice* device)
 		{
 			if (initialised) return;
 
@@ -126,17 +121,17 @@ namespace Renderer
 
 namespace std
 {
-	template<> struct hash<Renderer::ShaderProgram>
+	template <>
+	struct hash<Renderer::ShaderProgram>
 	{
 		size_t operator()(const Renderer::ShaderProgram& s) const noexcept
 		{
 			//std::size_t bindingsSeed = s.getResources().size();
 			//for (const auto& i : s.getResources())
-				//bindingsSeed ^= hash<Renderer::ShaderResources>{}(i)+0x9e3779b9 + (bindingsSeed << 6) + (bindingsSeed >> 2);
+			//bindingsSeed ^= hash<Renderer::ShaderResources>{}(i)+0x9e3779b9 + (bindingsSeed << 6) + (bindingsSeed >> 2);
 
 			size_t seed = s.getIds().size();
-			for (const auto& i : s.getIds())
-				seed ^= hash<uint32_t>{}(i) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			for (const auto& i : s.getIds()) seed ^= hash<uint32_t>{}(i) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 
 			return seed;
 		}

@@ -1,9 +1,7 @@
 #pragma once
-#include <math.h>
 #include <cmath>
 #include <vector>
-#include "Renderer/Resources/Buffer.h"
-#include "Renderer/Vulkan/Core.h"
+#include "Renderer/Core.h"
 
 using namespace Renderer;
 
@@ -39,15 +37,15 @@ public:
 
 		if (longitude > PI) longitude -= 2 * PI;
 
-		float latitude = asin(-1 + (2 * i / (float)numPoints));
+		float latitude = asin(-1 + (2 * i / static_cast<float>(numPoints)));
 
 		return Point{ latitude, longitude };
 	}
 
 	Point cylindricalDistribution(int i)
 	{
-		if (i == 0) return Point{ 0,0 };
-		if (i == numPoints - 1) return Point{ 1,0 };
+		if (i == 0) return Point{ 0, 0 };
+		if (i == numPoints - 1) return Point{ 1, 0 };
 
 		auto longit = (i + 3.5f) / (numPoints + 6);
 		auto latit = i / GOLDEN_RATIO;
@@ -68,36 +66,36 @@ public:
 
 		std::vector<Vertex> originPoints = std::vector<Vertex>(4);
 		std::vector<uint16_t> originIndices = std::vector<uint16_t>(6);
-		originPoints[0] = { { 0, 0, 0 }, { 1, 0, 0 }};
-		originPoints[1] = { { 0, -1, 0}, { 0, 1, 0 }};
+		originPoints[0] = { { 0, 0, 0 }, { 1, 0, 0 } };
+		originPoints[1] = { { 0, -1, 0 }, { 0, 1, 0 } };
 		originIndices[0] = 0;
 		originIndices[1] = 1;
 
-		originPoints[2] = { { 1, 0, 0}, { 0, 0, 1 }};
+		originPoints[2] = { { 1, 0, 0 }, { 0, 0, 1 } };
 		originIndices[2] = 0;
 		originIndices[3] = 2;
 
-		originPoints[3] = { { 0, 0, 1 }, { 1, 1, 1}};
+		originPoints[3] = { { 0, 0, 1 }, { 1, 1, 1 } };
 		originIndices[4] = 0;
 		originIndices[5] = 3;
 
-		sweeplineBuf->Load((void*)originPoints.data(), sizeof(Vertex) * originPoints.size(), 0);
-		sweeplineIBuf->Load((void*)originIndices.data(), sizeof(uint16_t) * originIndices.size(), 0);
+		sweeplineBuf->Load(static_cast<void*>(originPoints.data()), sizeof(Vertex) * originPoints.size(), 0);
+		sweeplineIBuf->Load(static_cast<void*>(originIndices.data()), sizeof(uint16_t) * originIndices.size(), 0);
 
-		
+
 		ReCalculate(numPoints);
 	}
 
 	void ReCalculate(int numPoints)
 	{
 		this->numPoints = numPoints;
-		curY = curY + ((float)numPoints / 10000.0f);
-		if(curY >= 1) curY -= 1;
+		curY = curY + (static_cast<float>(numPoints) / 10000.0f);
+		if (curY >= 1) curY -= 1;
 
 		std::vector<Vertex> verts = std::vector<Vertex>(numPoints);
 		std::vector<uint16_t> indexes = std::vector<uint16_t>(numPoints);
 
-		for (int i = 0; i < numPoints-1; i++)
+		for (int i = 0; i < numPoints - 1; i++)
 		{
 			if (fibo)
 			{
@@ -107,7 +105,7 @@ public:
 				float y = cos(p.x) * sin(p.y);
 				float z = sin(p.x);
 
-				verts[i] = { { x, y, z  }, { 0.5f, y, z } };
+				verts[i] = { { x, y, z }, { 0.5f, y, z } };
 
 				indexes[i] = i;
 			}
@@ -124,7 +122,7 @@ public:
 				auto y = cos(theta) * sin(phi);
 				auto z = sin(theta);
 
-				verts[i] = { { x, y, z  }, { 0.5f, y, z } };
+				verts[i] = { { x, y, z }, { 0.5f, y, z } };
 
 				indexes[i] = i;
 			}
@@ -142,29 +140,26 @@ public:
 		// distance between two points (p, q) = acos ( p * q )
 		// acos ( p.x * q.x + p.y * q.y + p.z * q.z )
 
-		if(buf->GetSize() < sizeof(Vertex) * numPoints)
+		if (buf->GetSize() < sizeof(Vertex) * numPoints)
 		{
 			auto usage = buf->GetUsageFlags();
 			auto flags = buf->GetMemoryFlags();
 			delete buf;
 			buf = alloc->AllocateBuffer(sizeof(Vertex) * numPoints, usage, flags);
 		}
-		if(ibuf->GetSize() < sizeof(uint16_t) * numPoints)
+		if (ibuf->GetSize() < sizeof(uint16_t) * numPoints)
 		{
 			auto usage = ibuf->GetUsageFlags();
 			auto flags = ibuf->GetMemoryFlags();
 			delete ibuf;
 			ibuf = alloc->AllocateBuffer(sizeof(uint16_t) * numPoints, usage, flags);
 		}
-		
-		buf->Load((void*)verts.data(), sizeof(Vertex) * numPoints);
-		ibuf->Load((void*)indexes.data(), sizeof(uint16_t) * numPoints);
+
+		buf->Load(static_cast<void*>(verts.data()), sizeof(Vertex) * numPoints);
+		ibuf->Load(static_cast<void*>(indexes.data()), sizeof(uint16_t) * numPoints);
 	}
 
-	void SetFibo(bool value)
-	{
-		fibo = value;	
-	}
+	void SetFibo(bool value) { fibo = value; }
 
 	void Draw(VkCommandBuffer& buffer)
 	{

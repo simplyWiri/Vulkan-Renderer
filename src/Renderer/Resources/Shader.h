@@ -6,11 +6,9 @@
 
 namespace Renderer
 {
-	enum class ShaderType : unsigned
+	enum class ShaderType
 	{
-		Vertex,
-		Fragment,
-		Compute
+		Vertex, Fragment, Compute
 		// todo -- support for RTX / Mesh
 	};
 
@@ -19,8 +17,7 @@ namespace Renderer
 	// this allows us to avoid compiling the same shader twice
 	enum class ShaderStatus
 	{
-		Uninitialised,
-		Compiled
+		Uninitialised, Compiled
 	};
 
 	// If a UBO/SSBO/Push Constant contains a struct, this member will be filled with the details of the contents within the struct
@@ -34,7 +31,10 @@ namespace Renderer
 		const ShaderMember* pNext;
 		const ShaderMember* pMembers;
 
-		bool operator <(const ShaderMember& other) const { return std::tie(offset, size, vecSize, arraySize, columns, pNext, pMembers) < std::tie(other.offset, other.size, other.vecSize, other.columns, other.arraySize, other.pNext, other.pMembers); }
+		bool operator <(const ShaderMember& other) const
+		{
+			return std::tie(offset, size, vecSize, arraySize, columns, pNext, pMembers) < std::tie(other.offset, other.size, other.vecSize, other.columns, other.arraySize, other.pNext, other.pMembers);
+		}
 	};
 
 	// A struct obtained via reflection which contains enough information to create descriptors 
@@ -55,12 +55,17 @@ namespace Renderer
 		uint32_t size;
 		const ShaderMember* pMembers;
 
-		bool operator ==(const ShaderResources& other) const 
+		bool operator ==(const ShaderResources& other) const
 		{
-			return std::tie(name, flags, type, access, set, binding, location, inputAttachmentIndex, vecSize, columns, descriptorCount, offset, size, pMembers) 
-				== std::tie(other.name, other.flags, other.type, other.access, other.set, other.binding, other.location, other.inputAttachmentIndex, other.vecSize, other.columns, other.descriptorCount, other.offset, other.size, other.pMembers); 
+			return std::tie(name, flags, type, access, set, binding, location, inputAttachmentIndex, vecSize, columns, descriptorCount, offset, size, pMembers) == std::tie(other.name, other.flags, other.type, other.access, other.set,
+				       other.binding, other.location, other.inputAttachmentIndex, other.vecSize, other.columns, other.descriptorCount, other.offset, other.size, other.pMembers);
 		}
-		bool operator <(const ShaderResources& other) const { return std::tie(name, flags, type, access, set, binding, location, inputAttachmentIndex, vecSize, columns, descriptorCount, offset, size, pMembers) < std::tie(other.name, other.flags, other.type, other.access, other.set, other.binding, other.location, other.inputAttachmentIndex, other.vecSize, other.columns, other.descriptorCount, other.offset, other.size, other.pMembers); }
+
+		bool operator <(const ShaderResources& other) const
+		{
+			return std::tie(name, flags, type, access, set, binding, location, inputAttachmentIndex, vecSize, columns, descriptorCount, offset, size, pMembers) < std::tie(other.name, other.flags, other.type, other.access, other.set,
+				       other.binding, other.location, other.inputAttachmentIndex, other.vecSize, other.columns, other.descriptorCount, other.offset, other.size, other.pMembers);
+		}
 	};
 
 	/*
@@ -109,7 +114,8 @@ namespace Renderer
 
 namespace std
 {
-	template<> struct hash<Renderer::ShaderResources>
+	template <>
+	struct hash<Renderer::ShaderResources>
 	{
 		size_t operator()(const Renderer::ShaderResources& s) const noexcept
 		{
