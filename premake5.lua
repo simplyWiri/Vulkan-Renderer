@@ -43,7 +43,7 @@ function CreateProject(name)
 		("Projects/" .. name .. "/resources/**"),
 		("Projects/" .. name .. "/src/**.h"),
 		("Projects/" .. name .. "/src/**.cpp"),
-		("Projects/" .. name .. "/**.md")
+		("Projects/" .. name .. "/**.md"),
 	}
 
 	includedirs
@@ -141,7 +141,12 @@ project "Vulkan Renderer"
 		"resources/**",
 		"src/**.h",
 		"src/**.cpp",
-		"externals/stb/stb_image.h"
+		"externals/stb/stb_image.h",
+		"externals/stb/stb_image_write.h",
+		"externals/imgui/examples/imgui_impl_glfw.h",
+		"externals/imgui/examples/imgui_impl_glfw.cpp",
+		"externals/imgui/examples/imgui_impl_vulkan.h",
+		"externals/imgui/examples/imgui_impl_vulkan.cpp",
 	}
 
 	includedirs
@@ -172,6 +177,8 @@ group "Projects"
 CreateProject("Fibonacci Sphere")
 CreateProject("2D Metaballs")
 CreateProject("Quasicrystals")
+CreateProject("Cellular Automata")
+CreateProject("Mandelbrot")
 
 group ""
 

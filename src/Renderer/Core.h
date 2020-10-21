@@ -5,7 +5,7 @@
 #include "VulkanObjects/Renderpass.h"
 #include "VulkanObjects/Framebuffer.h"
 
-#include "RenderGraph/Rendergraph.h"
+#include "RenderGraph/RenderGraph.h"
 #include "Resources/ShaderManager.h"
 #include "VulkanObjects/DescriptorSet.h"
 
@@ -49,7 +49,7 @@ namespace Renderer
 		ShaderManager* shaderManager;
 
 		VkCommandPool commandPool;
-		std::unique_ptr<Rendergraph> rendergraph;
+		std::unique_ptr<RenderGraph> rendergraph;
 
 	private:
 
@@ -60,7 +60,7 @@ namespace Renderer
 
 	public:
 
-		Rendergraph* GetRendergraph() { return rendergraph.get(); }
+		RenderGraph* GetRendergraph() { return rendergraph.get(); }
 
 		Device* GetDevice() { return &device; }
 		Memory::Allocator* GetAllocator() { return allocator; }

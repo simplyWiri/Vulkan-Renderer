@@ -44,7 +44,7 @@ namespace Renderer
 		auto success = vkCreateCommandPool(device, &poolCreateInfo, nullptr, &commandPool);
 		Assert(success == VK_SUCCESS, "Failed to create command pool");
 
-		rendergraph = std::make_unique<Rendergraph>(this);
+		rendergraph = std::make_unique<RenderGraph>(this);
 
 		return true;
 	}

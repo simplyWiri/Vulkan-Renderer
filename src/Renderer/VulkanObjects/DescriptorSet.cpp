@@ -48,29 +48,23 @@ namespace Renderer
 		sets.resize(framesInFlight);
 		success = vkAllocateDescriptorSets(*device, &allocInfo, sets.data());
 		Assert(success == VK_SUCCESS, "Failed to allocator descriptor sets");
-	}
 
-	void DescriptorSetBundle::WriteBuffer(const std::string& resName)
-	{
-		const auto res = GetShaderResource(resName);
-		uint32_t size = res.size;
-
-		size = std::max(256U, size); // 256U is the min alignment req
-
-		switch (res.type)
+		for(auto& item : key.program->getResources())
 		{
-			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: WriteBuffer(resName,
-					allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-				break;
-			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: WriteBuffer(resName, allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-				break;
+			auto size = std::max(256U, item.size);
+			switch(item.type)
+			{
+				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: WriteBuffer(item.name, allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)); break;
+				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: WriteBuffer(item.name, allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)); break;
+					default: LogError("Unsupported buffer type"); break;
+			}
 		}
 	}
 
 	void DescriptorSetBundle::WriteBuffer(const std::string& resName, Memory::Buffer* buffer)
 	{
-		buffers.emplace(resName, buffer);
-
+		buffers[resName] = buffer;
+		
 		const auto res = GetShaderResource(resName);
 
 		if (buffer->GetSize() < res.size * framesInFlight)
@@ -145,7 +139,10 @@ namespace Renderer
 
 	void* DescriptorSetBundle::GetResource(const std::string& name, uint32_t offset) { return buffers[name]->Map(); }
 
-	void DescriptorSetBundle::SetResource(const std::string& name, void* data, const size_t size, const size_t offset) { buffers[name]->Load(data, size, std::max(size * offset, 256 * offset)); }
+	void DescriptorSetBundle::SetResource(const std::string& name, void* data, const size_t size, const size_t offset)
+	{
+		buffers[name]->Load(data, size, std::max(size * offset, 256 * offset));
+	}
 
 
 	void DescriptorSetBundle::Clear() { for (auto& val : samplers) { delete val.second; } }
@@ -155,13 +152,6 @@ namespace Renderer
 		this->device = device;
 		this->allocator = allocator;
 		this->framesInFlight = framesInFlight;
-	}
-
-	void DescriptorSetCache::WriteBuffer(DescriptorSetKey& key, const std::string& resName)
-	{
-		auto descBundle = Get(key);
-
-		descBundle->WriteBuffer(resName);
 	}
 
 	void DescriptorSetCache::WriteBuffer(DescriptorSetKey& key, const std::string& resName, Memory::Buffer* buffer)

@@ -31,7 +31,6 @@ namespace Renderer
 	public:
 		DescriptorSetBundle(VkDevice* device, Memory::Allocator* allocator, DescriptorSetKey key, uint32_t framesInFlight);
 
-		void WriteBuffer(const std::string& resName);
 		void WriteBuffer(const std::string& resName, Memory::Buffer* buffer);
 
 		void WriteSampler(const std::string& resName, Memory::Image* image, Sampler* sampler, VkImageLayout layout);
@@ -79,8 +78,6 @@ namespace Renderer
 	public:
 		void BuildCache(VkDevice* device, Memory::Allocator* allocator, uint32_t framesInFlight);
 
-		// we can actually build the buffer from what is known in the shader, in this case, we allow our descriptor bundle to also manage the buffer
-		void WriteBuffer(DescriptorSetKey& key, const std::string& resName);
 		void WriteBuffer(DescriptorSetKey& key, const std::string& resName, Memory::Buffer* buffer);
 
 		void WriteSampler(DescriptorSetKey& key, const std::string& resName, Memory::Image* image, Sampler* sampler, VkImageLayout layout);

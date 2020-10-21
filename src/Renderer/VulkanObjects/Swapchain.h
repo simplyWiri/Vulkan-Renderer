@@ -4,13 +4,14 @@
 #include <memory>
 #include <chrono>
 
+#include "../Memory/Image.h"
+
 struct GLFWwindow;
 
 namespace Renderer
 {
 	class Core;
-	struct FrameInfo;
-	struct PassDesc;
+	class PassDesc;
 	
 	struct FrameInfo
 	{
@@ -25,7 +26,7 @@ namespace Renderer
 
 	class Swapchain
 	{
-		friend void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<PassDesc>& passes);
+		friend void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<std::unique_ptr<PassDesc>>& passes);
 	public:
 		~Swapchain();
 
@@ -46,8 +47,7 @@ namespace Renderer
 		GLFWwindow* window;
 		VkSurfaceKHR surface;
 		VkSwapchainKHR swapchain = nullptr;
-		std::vector<VkImage> images;
-		std::vector<VkImageView> views;
+		std::vector<Memory::Image*> images;
 		std::vector<FrameResources> frames;
 		VkQueue presentQueue;
 		VkQueue graphicsQueue;
@@ -78,7 +78,7 @@ namespace Renderer
 		VkSurfaceKHR* GetSurface() { return &surface; }
 		VkSwapchainKHR* GetSwapchain() { return &swapchain; }
 		VkQueue* GetPresentQueue() { return &presentQueue; }
-		std::vector<VkImageView>& GetImageViews() { return views; }
+		std::vector<Memory::Image*>& GetImages() { return images; }
 		VkExtent2D GetExtent() { return extent; }
 		uint32_t GetIndex() { return currentIndex; }
 		uint32_t GetFramesInFlight() { return framesInFlight; }

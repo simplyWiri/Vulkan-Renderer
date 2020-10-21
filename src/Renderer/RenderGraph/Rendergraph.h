@@ -1,27 +1,34 @@
 #pragma once
+#include <algorithm>
+
 #include "glm/glm.hpp"
 #include "vulkan.h"
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include "RenderGraphBuilder.h"
 #include "PassDesc.h"
+#include "Resource.h"
 
 
 namespace Renderer
 {
-	namespace Memory {
+	class Core;
+
+	namespace Memory
+	{
 		class Image;
 	}
 
 	/* Naming:
 	 *
-	 * Rendergraph:
-	 * Rendergraph -> an object which stores a collection of renderpasses, on initialisation orders them, and during runtime, executes the pass
-	 * PassDesc -> a description of a 'renderpass' which occurs inside the rendergraph, it holds the initialisation and execution function for the pass
+	 * RenderGraph:
+	 * RenderGraph -> an object which stores a collection of renderpasses, on initialisation orders them, and during runtime, executes the pass
+	 * RenderGraphBuilder -> a description of a 'renderpass' which occurs inside the rendergraph, it holds the initialisation and execution function for the pass
 	 *
 	 * Setup:
-	 * Tether -> a struct which holds information about the resources a 'PassDesc' reads and writes to
-	 * GraphContext -> a struct which holds pointers to the resources stored inside a renderpass, it is passed to the execution function in the PassDesc
+	 * Tether -> a struct which holds information about the resources a 'RenderGraphBuilder' reads and writes to
+	 * GraphContext -> a struct which holds pointers to the resources stored inside a renderpass, it is passed to the execution function in the RenderGraphBuilder
 	 * FrameInfo -> a struct which holds information about the current frame, index, delta, time, etc
 	 *
 	 * Resources:
@@ -29,49 +36,57 @@ namespace Renderer
 	 * ImageResource -> a struct containing information about an 'image'
 	 * BufferResource -> a struct containing information about a 'buffer'
 	 */
-	class Core;
 
-	class Rendergraph
+	
+	enum class ResourceType { Buffer, Image };
+	enum class RenderGraphQueue { Graphics, Compute, AsyncCompute };
+	enum class ImageSizeClass { Swapchain, Fixed }; // Swapchain means the image is going to be the same size as the swapchain; fixed means you specify size
+
+	class RenderGraph
 	{
 	private:
-		bool initialised = false;
-		uint16_t curIndex = 1;
-		std::unordered_map<std::string, uint16_t> strToIndex;
+		const std::string backBuffer = "_backBuffer";
+		
+		std::vector<RenderGraphBuilder> builders;
+		std::vector<std::unique_ptr<PassDesc>> passes;
+		std::vector<std::unique_ptr<Resource>> resources;
 
-		std::vector<PassDesc> passes;
-		std::vector<PassDesc> uniquePasses;
+		std::unordered_map<std::string, uint32_t> passToIndex;
+		std::unordered_map<std::string, uint32_t> resourceToIndex;
 
 
 		Core* core;
 
 		VkCommandPool pool;
-		Memory::Image* depthImage;
 		std::vector<VkCommandBuffer> buffers;
 
 	public:
-		Rendergraph(Core* core);
-		~Rendergraph();
+		RenderGraph(Core* core);
+		~RenderGraph();
+
+
+		ImageResource& GetImage(const std::string& name);
+		BufferResource& GetBuffer(const std::string& name);
 
 		void Initialise();
 		void Execute();
 		void Rebuild();
-		Core* GetCore() { return core; };
 
-		void AddPass(PassDesc passDesc);
+		Core* GetCore() { return core; }
+		std::string GetBackBuffer() const { return backBuffer; }
+		
+		RenderGraphBuilder& AddPass(const std::string& name, RenderGraphQueue type);
 	private:
 
 		// Baking utility (initialisation)
-		void extractGraphInformation();
-		// assigns id's, locates resources required, builds a dependancy graph
-		// builds the required resources
-		void validateGraph(); // debug
+		void ExtractGraphInformation();
+		void ValidateGraph(); // debug
 
-		void mergePasses(); // merges passes which are compatible
-		void buildTransients(); // 'merge' or 'reuse' images which are compatible
-		void buildBarriers(); // build synchronisation barriers between items
+		void MergePasses(); // merges passes which are compatible
+		void BuildTransients(); // 'merge' or 'reuse' images which are compatible
+		void BuildBarriers(); // build synchronisation barriers between items
 
 		void ShowDebugVisualisation();
-	private:
-		uint16_t assignId() { return ++curIndex; }
+
 	};
 }

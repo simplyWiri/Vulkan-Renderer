@@ -1,10 +1,8 @@
 #include "Device.h"
 
+#include "glfw3.h"
 #include <set>
 #include <string>
-
-
-#include "glfw3.h"
 #include "../../Utils/Logging.h"
 
 namespace Renderer

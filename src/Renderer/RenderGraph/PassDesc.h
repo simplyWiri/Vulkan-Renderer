@@ -1,53 +1,50 @@
 #pragma once
+#include <cstdint>
 #include <functional>
-#include <optional>
-
-
-#include "GraphContext.h"
-#include "Tether.h"
-#include "../VulkanObjects/Swapchain.h"
+#include <string>
+#include <vulkan.h>
 
 namespace Renderer
 {
-	struct PassDesc
+	struct Tether;
+	struct RenderGraphBuilder;
+	struct FrameInfo;
+	struct GraphContext;
+	enum class ResourceType;
+
+	struct AccessedResource
 	{
+		VkPipelineStageFlags stages = 0;
+		VkAccessFlags access = 0;
+		VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+		ResourceType type = static_cast<ResourceType>(0);
+		std::string name = "";
+	};
+
+	class PassDesc
+	{
+	private:
+		uint32_t id;
+		std::string name;
+
+		std::vector<std::function<void(VkCommandBuffer, const FrameInfo&, GraphContext&)>> executes;
+
+		std::vector<AccessedResource> readResources;
+		std::vector<AccessedResource> writtenResources;
+
 	public:
-		PassDesc() { }
+		PassDesc(RenderGraphBuilder& builder, Tether& tether, uint32_t id);
 
-		PassDesc& SetName(const char* name)
+		std::string GetName() const { return name; }
+		uint32_t GetId() const { return id; }
+
+		std::vector<AccessedResource> GetReadResources() const { return readResources; }
+		std::vector<AccessedResource> GetWrittenResources() const { return writtenResources; }
+
+		void Execute(VkCommandBuffer& buffer, const FrameInfo& frameInfo, GraphContext& context) const
 		{
-			this->taskName = name;
-			return *this;
-		}
-
-		//PassDesc& SetTarget(RenderpassKey key)
-		//{
-		//	this->target = key;
-		//	return *this;
-		//}
-
-		PassDesc& SetExtent(VkExtent2D extent)
-		{
-			this->extent = extent;
-			return *this;
-		}
-
-		PassDesc& SetInitialisationFunc(std::function<void(Tether&)> func)
-		{
-			this->initialisation = std::move(func);
-			return *this;
-		}
-
-		PassDesc& SetRecordFunc(std::function<void(VkCommandBuffer, const FrameInfo &, GraphContext &)> func)
-		{
-			this->execute = std::move(func);
-			return *this;
-		}
-
-		std::string taskName;
-		std::optional<VkExtent2D> extent;
-		//std::optional<RenderpassKey> target;
-		std::function<void(Tether&)> initialisation;
-		std::function<void(VkCommandBuffer, const FrameInfo &, GraphContext &)> execute;
+			for(const auto& exec : executes)
+				exec(buffer, frameInfo, context);
+		}		
 	};
 }

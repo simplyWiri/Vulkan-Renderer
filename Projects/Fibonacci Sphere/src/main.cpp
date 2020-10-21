@@ -6,7 +6,7 @@
 #include "imgui.h"
 
 #include <glm/gtc/matrix_transform.hpp>
-#include "GUI.h"
+#include "Utils/GUI.h"
 #include "Sphere.h"
 #include "Utils/Camera.h"
 
@@ -49,7 +49,7 @@ int main()
 	bool fibo = false;
 	bool lock = false;
 
-	renderer->GetRendergraph()->AddPass(PassDesc()
+	renderer->GetRendergraph()->AddPass(RenderGraphBuilder()
 		.SetName("GPU Drawing Triangle")
 		.SetInitialisationFunc([&descriptorSetKey](Tether& tether) { tether.GetDescriptorCache()->WriteBuffer(descriptorSetKey, "ubo"); })
 		.SetRecordFunc([&descriptorSetKey, &vert, &sp, &cam, &ubo, &points, &fibo, &lock](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
@@ -70,10 +70,14 @@ int main()
 			}
 
 			{
+				ImGui::Begin("Options");
+				
 				if (!lock && points < 50000) { sp->ReCalculate(points = (points + 1 > 50000) ? 50000 : points + 1); }
 				if (ImGui::SliderInt("Points", &points, 1000, 50000)) sp->ReCalculate(points);
 				if (ImGui::Checkbox("Use Fibonacci", &fibo)) sp->SetFibo(fibo);
 				ImGui::Checkbox("Lock Recalcs", &lock);
+
+				ImGui::End();
 			}
 
 			context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
@@ -103,5 +107,4 @@ int main()
 	sp->Cleanup();
 	delete sp;
 	delete program;
-	delete gui.key.program;
 }

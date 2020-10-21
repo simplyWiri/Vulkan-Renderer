@@ -1,13 +1,19 @@
 #include "Swapchain.h"
 #include "glfw3.h"
 #include "../../Utils/Logging.h"
+#include "../Memory/Image.h"
 
 namespace Renderer
 {
+
 	Swapchain::~Swapchain()
 	{
-		for (auto image : views) vkDestroyImageView(*device, image, nullptr);
-
+		for (auto image : images)
+		{
+			vkDestroyImageView(*device, image->GetView(), nullptr);
+			delete image;
+		}
+		
 		vkDestroySwapchainKHR(*device, swapchain, nullptr);
 		vkDestroySurfaceKHR(*instance, surface, nullptr);
 		glfwDestroyWindow(window);
@@ -143,35 +149,50 @@ namespace Renderer
 
 		if (oldSwapchain != nullptr)
 		{
-			for (auto image : views) vkDestroyImageView(*device, image, nullptr);
+			for (auto image : images)
+			{
+				vkDestroyImageView(*device, image->GetView(), nullptr);
+				delete image;
+			}
 
 			vkDestroySwapchainKHR(*device, oldSwapchain, nullptr);
 		}
 
+		std::vector<VkImage> tempImages;
 		vkGetSwapchainImagesKHR(*device, swapchain, &framesInFlight, nullptr);
-		images.resize(framesInFlight);
-		vkGetSwapchainImagesKHR(*device, swapchain, &framesInFlight, images.data());
+		tempImages.resize(framesInFlight);
+		vkGetSwapchainImagesKHR(*device, swapchain, &framesInFlight, tempImages.data());
 
 		// Get the swap chain buffers containing the image and imageview
-		views.resize(framesInFlight);
+		images.resize(framesInFlight);
+
 		for (uint32_t i = 0; i < framesInFlight; i++)
 		{
+			VkImageView view;
+			
+			auto subResourceRange = VkImageSubresourceRange{};
+			subResourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			subResourceRange.baseMipLevel = 0;
+			subResourceRange.levelCount = 1;
+			subResourceRange.baseArrayLayer = 0;
+			subResourceRange.layerCount = 1;
+
 			VkImageViewCreateInfo colorAttachmentView = {};
 			colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			colorAttachmentView.pNext = nullptr;
 			colorAttachmentView.format = color.format;
 			colorAttachmentView.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-			colorAttachmentView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			colorAttachmentView.subresourceRange.baseMipLevel = 0;
-			colorAttachmentView.subresourceRange.levelCount = 1;
-			colorAttachmentView.subresourceRange.baseArrayLayer = 0;
-			colorAttachmentView.subresourceRange.layerCount = 1;
+			colorAttachmentView.subresourceRange = subResourceRange;
 			colorAttachmentView.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			colorAttachmentView.flags = 0;
-			colorAttachmentView.image = images[i];
+			colorAttachmentView.image = tempImages[i];
 
-			vkCreateImageView(*device, &colorAttachmentView, nullptr, &views[i]);
+			vkCreateImageView(*device, &colorAttachmentView, nullptr, &view);
+			
+			images[i] = new Memory::Image(tempImages[i], view, subResourceRange, VkExtent3D{extent.width, extent.height, 1}, color.format);
 		}
+
+		tempImages.clear();
 	}
 
 	void Swapchain::BuildSyncObjects()
@@ -224,7 +245,7 @@ namespace Renderer
 		info.offset = currentIndex;
 
 		info.imageIndex = imageIndex;
-		info.imageView = views[imageIndex];
+		info.imageView = images[imageIndex]->GetView();
 
 		return info;
 	}

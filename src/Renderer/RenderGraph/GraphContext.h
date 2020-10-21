@@ -4,7 +4,7 @@
 
 namespace Renderer
 {
-	class Rendergraph;
+	class RenderGraph;
 	class RenderpassCache;
 	class GraphicsPipelineCache;
 	class ComputePipelineCache;
@@ -12,7 +12,7 @@ namespace Renderer
 
 	struct GraphContext
 	{
-		Rendergraph* graph;
+		RenderGraph* graph;
 		std::string passId;
 		VkRenderPass defaultPass;
 

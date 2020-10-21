@@ -1,4 +1,4 @@
-#include "Rendergraph.h"
+#include "RenderGraph.h"
 
 #include "../Core.h"
 #include "imgui.h"
@@ -6,10 +6,16 @@
 #include "../Memory/Image.h"
 #include "../Memory/Block.h"
 #include "../../Utils/DebugVisualisations.h"
+#include <examples\imgui_impl_glfw.h>
+#include <examples\imgui_impl_vulkan.h>
+#include "GraphContext.h"
+#include "Tether.h"
+#include "PassDesc.h"
+
 
 namespace Renderer
 {
-	Rendergraph::Rendergraph(Core* core)
+	RenderGraph::RenderGraph(Core* core)
 	{
 		this->core = core;
 
@@ -31,27 +37,60 @@ namespace Renderer
 
 		success = vkAllocateCommandBuffers(*core->GetDevice(), &commandBufferAllocInfo, buffers.data());
 		Assert(success == VK_SUCCESS, "Failed to allocate command buffers");
-
-		depthImage = core->GetAllocator()->AllocateImage(core->GetSwapchain()->GetExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	}
 
-	Rendergraph::~Rendergraph()
+	RenderGraph::~RenderGraph()
 	{
 		vkDestroyCommandPool(*core->GetDevice(), pool, nullptr);
-		delete depthImage;
+
+		for(auto& p : passes) p.reset();
+		for(auto& r : resources) r.reset();
 	}
 
-	void Rendergraph::Initialise()
+	ImageResource& RenderGraph::GetImage(const std::string& name)
+	{		
+		auto val = resourceToIndex.find(name);
+
+		if(val != resourceToIndex.end()) return static_cast<ImageResource&>(*resources[val->second]);
+		
+		const auto index = static_cast<uint32_t>(resources.size());
+		resources.emplace_back(new ImageResource(index));
+		resources.back()->SetName(name);
+		resourceToIndex[name] = index;
+
+		return static_cast<ImageResource&>(*resources.back());
+	}
+
+	BufferResource& RenderGraph::GetBuffer(const std::string& name)
 	{
-		extractGraphInformation();
+		auto val = resourceToIndex.find(name);
 
-		/* Todo at a later date*/
-		//buildTransients();
-		//mergePasses();
-		//buildBarriers();
+		if(val != resourceToIndex.end()) return static_cast<BufferResource&>(*resources[val->second]);
+		
+		const auto index = static_cast<uint32_t>(resources.size());
+		resources.emplace_back(new BufferResource(index));
+		resources.back()->SetName(name);
+		resourceToIndex[name] = index;
+
+		return static_cast<BufferResource&>(*resources.back());
 	}
 
-	void Rendergraph::Execute()
+	void RenderGraph::Initialise()
+	{
+		ExtractGraphInformation();
+
+#if DEBUG
+		ValidateGraph();
+#endif
+
+		
+		/* Todo at a later date*/
+		BuildTransients();
+		MergePasses();
+		BuildBarriers();
+	}
+
+	void RenderGraph::Execute()
 	{
 		core->GetAllocator()->BeginFrame();
 
@@ -63,26 +102,34 @@ namespace Renderer
 
 		core->BeginFrame(buffer, frameInfo);
 
-#if DEBUG
-		DrawDebugVisualisations(core, frameInfo, passes);
-#endif
+		ImGui_ImplGlfw_NewFrame();
+		ImGui_ImplVulkan_NewFrame();
 
+		ImGui::NewFrame();
+		
+		DrawDebugVisualisations(core, frameInfo, passes);
 
 		vkBeginCommandBuffer(buffer, &beginInfo);
 
-		auto renderpass = core->GetRenderpassCache()->Get(RenderpassKey({ { core->GetSwapchain()->GetFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR } }, { depthImage->GetFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR }));
+		auto* renderpass = core->GetRenderpassCache()->Get(RenderpassKey({ { core->GetSwapchain()->GetFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR } }, {  }));
 
-
-		core->GetFramebufferCache()->BeginPass(buffer, frameInfo.offset, { frameInfo.imageView, depthImage->GetView() }, renderpass, core->GetSwapchain()->GetExtent());
+		core->GetFramebufferCache()->BeginPass(buffer, frameInfo.offset, { frameInfo.imageView }, renderpass, core->GetSwapchain()->GetExtent());
 
 		GraphContext context{this, "", renderpass->GetHandle()};
 
+		// foreach pass
+		//	bind relevant renderpass - begin
+		//     execute pass()
+		//  end relevant renderpass;
+		
 		for (auto& pass : passes)
 		{
-			context.passId = pass.taskName;
-			pass.execute(buffer, frameInfo, context);
+			context.passId = pass->GetName();
+			pass->Execute(buffer, frameInfo, context);
 		}
 
+		// if currentPass == finalPass - insert barrier from current_layout -> present_src_khr
+		
 		core->GetFramebufferCache()->EndPass(buffer);
 
 		vkEndCommandBuffer(buffer);
@@ -91,7 +138,7 @@ namespace Renderer
 		core->GetAllocator()->EndFrame();
 	}
 
-	void Rendergraph::Rebuild()
+	void RenderGraph::Rebuild()
 	{
 		buffers.clear();
 		buffers.resize(core->GetSwapchain()->GetFramesInFlight());
@@ -104,38 +151,91 @@ namespace Renderer
 
 		auto success = vkAllocateCommandBuffers(*core->GetDevice(), &commandBufferAllocInfo, buffers.data());
 		Assert(success == VK_SUCCESS, "Failed to allocate command buffers");
-
-		delete depthImage;
-		depthImage = core->GetAllocator()->AllocateImage(core->GetSwapchain()->GetExtent(), VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	}
 
-	void Rendergraph::AddPass(PassDesc passDesc)
+	RenderGraphBuilder& RenderGraph::AddPass(const std::string& name, RenderGraphQueue type)
 	{
-		/*if (passDesc.target.has_value() || passDesc.extent.has_value()) uniquePasses.emplace_back(passDesc);
-		*/
-		passes.emplace_back(passDesc);
+		builders.emplace_back(name, type, this);
+		return builders.back();
 	}
 
-	void Rendergraph::extractGraphInformation()
+	void RenderGraph::ExtractGraphInformation()
 	{
-		auto ProcessPass = [&](PassDesc& pass)
+		// Convert from builder -> pass, and call initialisation function
+		for (auto& pass : builders)
 		{
-			Tether passResources;
-			passResources.descriptorCache = core->GetDescriptorSetCache();
+			auto passId = static_cast<uint32_t>(passes.size());
 
-			if (pass.initialisation != nullptr) pass.initialisation(passResources);
-		};
+			Tether passResources = Tether{ this, passId };
 
-		for (auto& pass : passes) { ProcessPass(pass); }
-		for (auto& pass : uniquePasses) { ProcessPass(pass); }
+			if (pass.initialisation != nullptr)
+			{
+				pass.initialisation(passResources);
+			}
+
+			passes.emplace_back(std::make_unique<PassDesc>(pass, passResources, passId));
+			passToIndex[pass.taskName] = passId;
+		}
+
+		builders.clear();
+
+		// Build adjacency list
+
+		auto adjacencyLists = std::vector<std::vector<uint32_t>>(passes.size());
+
+		for(int i = 0; i < passes.size(); i++)
+		{
+			auto& pass = passes[i];
+			
+			auto& adjList = adjacencyLists[i];
+			
+			for(int j = 0; j < passes.size(); j++)
+			{
+				if(i == j) continue; // Ignore self
+
+				auto& otherPass = passes[j];
+
+				for( auto& readResource : otherPass->GetReadResources())
+				{
+					bool isDependent = false;
+					
+					for (auto& writtenResource : pass->GetWrittenResources())
+					{
+						if(writtenResource.name == readResource.name && writtenResource.type == readResource.type) isDependent = true;
+
+						if(isDependent) break;
+					}
+
+					if(isDependent)
+					{
+						adjList.emplace_back(j);
+					}
+				}
+			}
+		}
+
+		
+		
 	}
 
-	void Rendergraph::validateGraph() { }
+	void RenderGraph::ValidateGraph()
+	{
+		
+	}
 
-	void Rendergraph::mergePasses() { }
+	void RenderGraph::MergePasses()
+	{
+		
+	}
 
-	void Rendergraph::buildTransients() { }
+	void RenderGraph::BuildTransients()
+	{
+		
+	}
 
-	void Rendergraph::buildBarriers() { }
+	void RenderGraph::BuildBarriers()
+	{
+		
+	}
 
 }

@@ -26,7 +26,10 @@ namespace Renderer::Memory
 		Image(VkImage image, VkImageView view, Allocation alloc, VkImageSubresourceRange range, VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, const std::function<void(Image*)>& cleanup) : MemoryResource(alloc, image),
 			view(view), extent(extent), format(format), usage(usage), range(range), cleanup(cleanup) { }
 
-		~Image() { cleanup(this); }
+		Image(VkImage image, VkImageView view, VkImageSubresourceRange range, VkExtent3D extent, VkFormat format) : MemoryResource(Allocation{nullptr, VkDeviceSize(-1), VkDeviceSize(0), false}, image),
+			view(view), extent(extent), format(format), range(range) { }
+
+		~Image() { if(cleanup != nullptr) cleanup(this); }
 
 		VkImageView GetView() { return view; }
 		VkExtent2D GetExtent() const { return { extent.width, extent.height }; }

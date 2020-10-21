@@ -1,21 +1,32 @@
 #pragma once
-
-#include "../VulkanObjects/DescriptorSet.h"
+#include "vulkan.h"
+#include <string>
+#include <vector>
+#include "Resource.h"
 
 namespace Renderer
 {
-	class Rendergraph;
+	class RenderGraph;
+	struct AccessedResource;
 
 	struct Tether
 	{
-	private:
-
-		DescriptorSetCache* descriptorCache;
-
 	public:
+		RenderGraph* graph;
+		uint32_t passId;
 
-		DescriptorSetCache* GetDescriptorCache() { return descriptorCache; }
+		std::vector<AccessedResource> readResources;
+		std::vector<AccessedResource> writtenResources;
+		
+	public:
+		Tether(RenderGraph* graph, uint32_t passId) : graph(graph), passId(passId) { }
 
-		friend class Rendergraph;
+		void AddReadDependencyImage(const std::string& name, VkPipelineStageFlags stageFlags, VkAccessFlags accessFlags, VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED);
+		void AddReadDependencyBuffer(const std::string& name, VkPipelineStageFlags stageFlags, VkAccessFlags accessFlags);
+
+		void AddWriteDependencyImage(const std::string& name, VkPipelineStageFlags stageFlags, VkAccessFlags accessFlags, const ImageInfo& info = ImageInfo{});
+		void AddWriteDependencyBuffer(const std::string& name, VkPipelineStageFlags stageFlags, VkAccessFlags accessFlags, const BufferInfo& info);
+
+		friend class RenderGraph;
 	};
 }

@@ -54,8 +54,6 @@ namespace Renderer
 			}
 
 			int current_frame = ImGui::GetFrameCount();
-
-			ImPlot::SetNextPlotLimits(0,buffer_size ,0,40);
 			
 			if (pvd.LastFrame != current_frame)
 			{
@@ -69,11 +67,8 @@ namespace Renderer
 		}
 	}
 
-	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<PassDesc>& passes)
+	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<std::unique_ptr<PassDesc>>& passes)
 	{
-		ImGui::NewFrame();
-
-		ImGui::SetNextWindowPos({ 5, 5 });
 		ImGui::Begin("Information");
 
 		ImGui::Text("Width: %d, Height: %d, VSync: %s", core->GetSettings()->width, core->GetSettings()->height, core->GetSettings()->vsync ? "True" : "False");
@@ -92,8 +87,7 @@ namespace Renderer
 		if (ImGui::CollapsingHeader("RenderGraph"))
 		{
 			int i = 0;
-			ImGui::BeginChild("RenderPasses");
-
+			
 			ImGui::Columns(2, "Render Passes", true);
 			ImGui::Text("Name");
 			ImGui::NextColumn();
@@ -105,9 +99,8 @@ namespace Renderer
 
 			for (auto& pass : passes)
 			{
-				ImGui::BeginGroup();
 				char label[32];
-				sprintf_s(label, "%s", pass.taskName.c_str());
+				sprintf_s(label, "%s", pass->GetName().c_str());
 				if (ImGui::Selectable(label, selected == i, ImGuiSelectableFlags_SpanAllColumns)) selected = selected == i ? -1 : i;
 
 				if (ImGui::IsItemHovered()) ImGui::SetTooltip("View Statistics");
@@ -116,23 +109,22 @@ namespace Renderer
 				ImGui::Text("%d", i++);
 				ImGui::NextColumn();
 				ImGui::Separator();
-				ImGui::EndGroup();
 			}
-
-			ImGui::EndChild();
+			
+			ImGui::Columns(1);
 		}
 
-		if (ImGui::CollapsingHeader("Allocations")) { core->GetAllocator()->DebugView(); }
+		if (ImGui::CollapsingHeader("Allocations"))
+		{
+			core->GetAllocator()->DebugView();
+		}
 
 		ImGui::End();
 	}
 
-#elif
-	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<PassDesc> passes)
+#else
+	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<RenderGraphBuilder>& passes)
 	{
-		ImGui::NewFrame();
-
-		ImGui::SetNextWindowPos({ 5, 5 });
 		ImGui::Begin("Information");
 
 		ImGui::Text("Width: %d, Height: %d, VSync: %s", core->GetSettings()->width, core->GetSettings()->height, core->GetSettings()->vsync ? "True" : "False");

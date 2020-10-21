@@ -57,17 +57,15 @@ namespace Renderer::Memory
 		success = vkBindBufferMemory(*device, buffer, memory.parent->memory, memory.offset);
 		Assert(success == VK_SUCCESS, "Failed to bind buffer memory");
 
-		auto* buf = new Buffer{
+		allocatedBuffers.emplace(buffer);
+
+		return new Buffer{
 			memory, buffer, usage, flags, size, [=](Buffer* b)
 			{
 				this->allocatedBuffers.erase(buffer);
 				this->DeallocateBuffer(b);
 			}
-		};
-
-		allocatedBuffers.emplace(buf->resourceHandle);
-
-		return buf;
+		};;
 	}
 
 	Image* Allocator::AllocateImage(const VkExtent3D& extent, const VkFormat& format, const VkImageUsageFlags& usage, const VkMemoryPropertyFlags& flags)
@@ -118,17 +116,15 @@ namespace Renderer::Memory
 		success = vkCreateImageView(*device, &viewInfo, nullptr, &view);
 		Assert(success == VK_SUCCESS, "Failed to create image view");
 
-		auto* img = new Image{
+		allocatedImages.emplace(image);
+
+		return new Image{
 			image, view, memory, range, extent, format, usage, [=](Image* i)
 			{
 				this->allocatedImages.erase(image);
 				this->DeallocateImage(i);
 			}
-		};
-
-		allocatedImages.emplace(image);
-
-		return img;
+		};;
 	}
 
 	Image* Allocator::AllocateImage(const VkExtent2D& extent, const VkFormat& format, const VkImageUsageFlags& usage, const VkMemoryPropertyFlags& flags) { return AllocateImage({ extent.width, extent.height, 1 }, format, usage, flags); }
@@ -204,7 +200,6 @@ namespace Renderer::Memory
 			auto& blocks = memoryBlocks[j];
 			for (auto& block : blocks)
 			{
-				ImGui::BeginChild("Block");
 				ImGui::Text("Allocation Memory Heap Index: %d", block->heapIndex);
 
 				ImGui::BeginGroup();
@@ -228,8 +223,8 @@ namespace Renderer::Memory
 
 					ImGui::InvisibleButton(b, canvas_size);
 
-					static ImColor colours[3] = { { 102, 51, 0, 255 }, { 230, 224, 176, 255 }, { 190, 82, 42, 255 } };
-					static ImColor freeColours[3] = { {52 , 66, 227, 255 }, { 48, 196, 244, 255 }, { 24, 117, 255, 255 } };
+					static ImColor colours[3] = { { 0, 51, 102, 255 }, { 176, 224, 230, 255 }, { 42, 82, 190, 255 } };
+					static ImColor freeColours[3] = { {227 , 66, 52, 255 }, { 244, 196, 48, 255 }, { 255, 117, 24, 255 } };
 
 					int colourMult = 0;
 					for (const auto& alloc : block->GetAllocations())
@@ -266,8 +261,9 @@ namespace Renderer::Memory
 						ImGui::NextColumn();
 						ImGui::Separator();
 					}
+
+					ImGui::Columns(1);
 				}
-				ImGui::EndChild();
 			}
 		}
 	}

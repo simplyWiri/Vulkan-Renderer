@@ -41,7 +41,7 @@ int main()
 	Circle circles[] = { { { .3, .3, 0}, .1 },  { { 0.5, 0.5, 0}, .1 }, { { .7, .7, 0}, .1 } };
 
 
-	renderer->GetRendergraph()->AddPass(PassDesc()
+	renderer->GetRendergraph()->AddPass(RenderGraphBuilder()
 		.SetName("GPU Drawing Triangle")
 		.SetInitialisationFunc([&descriptorSetKey](Tether& tether)
 		{
