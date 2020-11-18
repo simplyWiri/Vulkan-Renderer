@@ -30,12 +30,16 @@ namespace Renderer
 		Core(Settings settings);
 
 		bool Initialise();
+		bool InitialiseGui();
+
+		bool AddGuiPass();
 		bool Run();
 
 		~Core();
 	private:
 
 		Settings settings;
+		VkDescriptorPool imguiPool;
 
 		Device device;
 		Swapchain swapchain; // VkSwapchainKHR
@@ -56,11 +60,11 @@ namespace Renderer
 		void initialiseCommandPool();
 		void initialiseDescriptorPool(GraphicsPipelineKey key);
 		void initialiseDescriptorSets(GraphicsPipelineKey key);
-		void windowResize();
+		void WindowResize();
 
 	public:
 
-		RenderGraph* GetRendergraph() { return rendergraph.get(); }
+		RenderGraph* GetRenderGraph() { return rendergraph.get(); }
 
 		Device* GetDevice() { return &device; }
 		Memory::Allocator* GetAllocator() { return allocator; }

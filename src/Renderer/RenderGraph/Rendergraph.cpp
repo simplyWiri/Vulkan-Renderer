@@ -1,239 +1,244 @@
 #include "RenderGraph.h"
-
 #include "../Core.h"
-#include "imgui.h"
-#include "../Memory/Allocator.h"
-#include "../Memory/Image.h"
-#include "../Memory/Block.h"
-#include "../../Utils/DebugVisualisations.h"
-#include <examples\imgui_impl_glfw.h>
-#include <examples\imgui_impl_vulkan.h>
-#include "GraphContext.h"
-#include "Tether.h"
-#include "PassDesc.h"
-
+#include <unordered_set>
 
 namespace Renderer
 {
+
 	RenderGraph::RenderGraph(Core* core)
+		: framesInFlight(core->GetSwapchain()->GetFramesInFlight()), device(*core->GetDevice())
 	{
-		this->core = core;
+		backBuffer.images = core->GetSwapchain()->GetImages();
 
-		buffers.resize(core->GetSwapchain()->GetFramesInFlight());
+		// Initialise our 3 queues
+		
+		VkCommandPoolCreateInfo info = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+		info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-		VkCommandPoolCreateInfo poolCreateInfo = {};
-		poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		poolCreateInfo.queueFamilyIndex = core->GetDevice()->GetIndices()->graphicsFamily;
-		poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-		auto success = vkCreateCommandPool(*core->GetDevice(), &poolCreateInfo, nullptr, &pool);
-		Assert(success == VK_SUCCESS, "Failed to create command pool");
-
-		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
-		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		commandBufferAllocInfo.commandPool = pool;
-		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		commandBufferAllocInfo.commandBufferCount = static_cast<uint32_t>(buffers.size());
-
-		success = vkAllocateCommandBuffers(*core->GetDevice(), &commandBufferAllocInfo, buffers.data());
-		Assert(success == VK_SUCCESS, "Failed to allocate command buffers");
+		auto* dev = core->GetDevice();
+		{
+			queues.graphics = { dev->queues.graphics, dev->GetIndices()->graphicsFamily };
+			info.queueFamilyIndex = queues.graphics.queueFamilyIndex;
+			vkCreateCommandPool(*dev, &info, nullptr, &queues.graphics.commandPool);
+		}
+		{
+			queues.compute = { dev->queues.compute, dev->GetIndices()->computeFamily };
+			info.queueFamilyIndex = queues.compute.queueFamilyIndex;
+			vkCreateCommandPool(*dev, &info, nullptr, &queues.compute.commandPool);
+		}
+		{
+			queues.transfer = { dev->queues.transfer, dev->GetIndices()->transferFamily };
+			info.queueFamilyIndex = queues.transfer.queueFamilyIndex;
+			vkCreateCommandPool(*dev, &info, nullptr, &queues.transfer.commandPool);
+		}
 	}
 
-	RenderGraph::~RenderGraph()
+	PassDesc& RenderGraph::AddPass(const std::string& name, QueueType type)
 	{
-		vkDestroyCommandPool(*core->GetDevice(), pool, nullptr);
+		auto val = nameToPass.find(name);
 
-		for(auto& p : passes) p.reset();
-		for(auto& r : resources) r.reset();
+		if(val != nameToPass.end()) return static_cast<PassDesc&>(*renderPasses[val->second]);
+		
+		const auto index = static_cast<uint32_t>(renderPasses.size());
+		int queueFamily = 0;
+		switch(type)
+		{
+			case QueueType::Graphics: case QueueType::Compute:
+				queueFamily = queues.graphics.queueFamilyIndex; break;
+			case QueueType::Transfer: 
+				queueFamily = queues.transfer.queueFamilyIndex; break;
+			case QueueType::AsyncCompute: 
+				queueFamily = queues.compute.queueFamilyIndex; break;
+		}
+		
+		renderPasses.emplace_back(new PassDesc(name, this, index, queueFamily));
+		nameToPass[name] = index;
+
+		return static_cast<PassDesc&>(*renderPasses.back());
 	}
+	
+	PassDesc& RenderGraph::GetPass(const std::string& name)
+	{
+		auto val = nameToPass.find(name);
 
+		if(val != nameToPass.end()) return static_cast<PassDesc&>(*renderPasses[val->second]);
+		
+		Assert(false, "Failed to find pass");
+		
+		return static_cast<PassDesc&>(*renderPasses.back());
+	}
+	
 	ImageResource& RenderGraph::GetImage(const std::string& name)
-	{		
-		auto val = resourceToIndex.find(name);
+	{
+		if(name == backBuffer.name) return backBuffer;
+		
+		auto val = nameToResource.find(name);
 
-		if(val != resourceToIndex.end()) return static_cast<ImageResource&>(*resources[val->second]);
+		if(val != nameToResource.end()) return static_cast<ImageResource&>(*resources[val->second]);
 		
 		const auto index = static_cast<uint32_t>(resources.size());
-		resources.emplace_back(new ImageResource(index));
-		resources.back()->SetName(name);
-		resourceToIndex[name] = index;
+		resources.emplace_back(new ImageResource(name));
+		nameToResource[name] = index;
 
 		return static_cast<ImageResource&>(*resources.back());
 	}
-
+	
 	BufferResource& RenderGraph::GetBuffer(const std::string& name)
 	{
-		auto val = resourceToIndex.find(name);
+		auto val = nameToResource.find(name);
 
-		if(val != resourceToIndex.end()) return static_cast<BufferResource&>(*resources[val->second]);
+		if(val != nameToResource.end()) return static_cast<BufferResource&>(*resources[val->second]);
 		
 		const auto index = static_cast<uint32_t>(resources.size());
-		resources.emplace_back(new BufferResource(index));
-		resources.back()->SetName(name);
-		resourceToIndex[name] = index;
+		resources.emplace_back(new BufferResource(name));
+		nameToResource[name] = index;
 
 		return static_cast<BufferResource&>(*resources.back());
 	}
-
-	void RenderGraph::Initialise()
+	
+	void RenderGraph::Build()
 	{
-		ExtractGraphInformation();
-
-#if DEBUG
+		CreateGraph();
 		ValidateGraph();
-#endif
-
-		
-		/* Todo at a later date*/
-		BuildTransients();
-		MergePasses();
-		BuildBarriers();
+		CreateResources();
 	}
 
+	void RenderGraph::Clear()
+	{
+		renderPasses.clear();
+		resources.clear();
+
+		nameToPass.clear();
+		nameToResource.clear();
+
+		vkDestroyCommandPool(device, queues.graphics.commandPool, nullptr);
+		vkDestroyCommandPool(device, queues.transfer.commandPool, nullptr);
+		vkDestroyCommandPool(device, queues.compute.commandPool, nullptr);
+	}
+	
 	void RenderGraph::Execute()
 	{
-		core->GetAllocator()->BeginFrame();
+	
+	}
+	
+	void RenderGraph::CreateGraph()
+	{
+		// Create Adjacency list
+		auto adjacencyList = std::vector<std::vector<uint32_t>>(renderPasses.size());
+		CreateAdjacencyList(adjacencyList);
 
-		FrameInfo frameInfo;
-		VkCommandBuffer buffer = buffers[core->GetSwapchain()->GetIndex()];
+		// Sort
+		TopologicalSort(adjacencyList);
+	}
 
-		VkCommandBufferBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-		core->BeginFrame(buffer, frameInfo);
-
-		ImGui_ImplGlfw_NewFrame();
-		ImGui_ImplVulkan_NewFrame();
-
-		ImGui::NewFrame();
-		
-		DrawDebugVisualisations(core, frameInfo, passes);
-
-		vkBeginCommandBuffer(buffer, &beginInfo);
-
-		auto* renderpass = core->GetRenderpassCache()->Get(RenderpassKey({ { core->GetSwapchain()->GetFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR } }, {  }));
-
-		core->GetFramebufferCache()->BeginPass(buffer, frameInfo.offset, { frameInfo.imageView }, renderpass, core->GetSwapchain()->GetExtent());
-
-		GraphContext context{this, "", renderpass->GetHandle()};
-
-		// foreach pass
-		//	bind relevant renderpass - begin
-		//     execute pass()
-		//  end relevant renderpass;
-		
-		for (auto& pass : passes)
+	void RenderGraph::CreateAdjacencyList(std::vector<std::vector<uint32_t>>& adjacencyList)
+	{
+		for(auto i = 0; i < renderPasses.size(); i++)
 		{
-			context.passId = pass->GetName();
-			pass->Execute(buffer, frameInfo, context);
-		}
+			auto& pass = renderPasses[i];
+			auto& adjacentIndices = adjacencyList[i];
 
-		// if currentPass == finalPass - insert barrier from current_layout -> present_src_khr
-		
-		core->GetFramebufferCache()->EndPass(buffer);
-
-		vkEndCommandBuffer(buffer);
-
-		core->EndFrame(frameInfo);
-		core->GetAllocator()->EndFrame();
-	}
-
-	void RenderGraph::Rebuild()
-	{
-		buffers.clear();
-		buffers.resize(core->GetSwapchain()->GetFramesInFlight());
-
-		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
-		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		commandBufferAllocInfo.commandPool = pool;
-		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		commandBufferAllocInfo.commandBufferCount = static_cast<uint32_t>(buffers.size());
-
-		auto success = vkAllocateCommandBuffers(*core->GetDevice(), &commandBufferAllocInfo, buffers.data());
-		Assert(success == VK_SUCCESS, "Failed to allocate command buffers");
-	}
-
-	RenderGraphBuilder& RenderGraph::AddPass(const std::string& name, RenderGraphQueue type)
-	{
-		builders.emplace_back(name, type, this);
-		return builders.back();
-	}
-
-	void RenderGraph::ExtractGraphInformation()
-	{
-		// Convert from builder -> pass, and call initialisation function
-		for (auto& pass : builders)
-		{
-			auto passId = static_cast<uint32_t>(passes.size());
-
-			Tether passResources = Tether{ this, passId };
-
-			if (pass.initialisation != nullptr)
+			for(auto j = 0; j < renderPasses.size(); j++)
 			{
-				pass.initialisation(passResources);
-			}
+				if(i == j) continue;
 
-			passes.emplace_back(std::make_unique<PassDesc>(pass, passResources, passId));
-			passToIndex[pass.taskName] = passId;
-		}
+				auto& otherPass = renderPasses[j];
 
-		builders.clear();
-
-		// Build adjacency list
-
-		auto adjacencyLists = std::vector<std::vector<uint32_t>>(passes.size());
-
-		for(int i = 0; i < passes.size(); i++)
-		{
-			auto& pass = passes[i];
-			
-			auto& adjList = adjacencyLists[i];
-			
-			for(int j = 0; j < passes.size(); j++)
-			{
-				if(i == j) continue; // Ignore self
-
-				auto& otherPass = passes[j];
-
-				for( auto& readResource : otherPass->GetReadResources())
-				{
-					bool isDependent = false;
-					
-					for (auto& writtenResource : pass->GetWrittenResources())
+				for ( auto& res : otherPass->readResources )
+				{					
+					for ( auto& writes : res.writes )
 					{
-						if(writtenResource.name == readResource.name && writtenResource.type == readResource.type) isDependent = true;
-
-						if(isDependent) break;
-					}
-
-					if(isDependent)
-					{
-						adjList.emplace_back(j);
+						if ( writes.passId == pass->passId )
+						{
+							adjacentIndices.emplace_back(otherPass->passId);
+							break;
+						}
 					}
 				}
 			}
 		}
-
-		
-		
 	}
 
-	void RenderGraph::ValidateGraph()
+	void RenderGraph::TopologicalSort(std::vector<std::vector<uint32_t>>& adjacencyList)
 	{
+		auto sortedPassOrder = std::vector<uint32_t>();
 		
+		auto size = adjacencyList.size();
+		auto currentDependencyLevel = 0;
+		
+		auto indexesToCheck = std::vector<uint32_t>();
+		auto enqueuedPasses = std::unordered_set<uint32_t>();
+		
+		for(int i = 0; i < adjacencyList.size(); i++) indexesToCheck.push_back(i);
+	    
+	    while(sortedPassOrder.size() != size)
+	    {
+	    	for ( auto i : indexesToCheck )
+	    	{
+	    		bool canQueue = true;
+	    		
+	    		for (auto val : adjacencyList[i])
+	    		{
+	                if (enqueuedPasses.find(val) == enqueuedPasses.end()) // We have found an idx which hasn't been counted yet, continue loop
+	                {
+		                canQueue = false;
+	                	break;
+	                }
+	    		}
+
+	    		if(canQueue) 
+	    		{
+	    			sortedPassOrder.push_back(i);
+
+	    			renderPasses[i]->dependencyGraphIndex = currentDependencyLevel;
+				}
+	    	}
+
+	        enqueuedPasses.clear();
+	        for ( auto index : sortedPassOrder)
+	        {	        	
+				std::erase(indexesToCheck, index); // Don't re-check this node in subsequent passes
+	            enqueuedPasses.emplace(index); // ignore passes which require this node in subsequent passes
+			}
+
+			++currentDependencyLevel;
+	    }		
+
+		
+		std::reverse(sortedPassOrder.begin(), sortedPassOrder.end()); // Reverse our order to 
+
+		auto copyPasses = std::vector<std::unique_ptr<PassDesc>>();
+		
+		for( auto& pass : sortedPassOrder)
+		{
+			copyPasses.emplace_back( std::move(renderPasses[pass]) );
+			copyPasses.back()->dependencyGraphIndex = currentDependencyLevel - copyPasses.back()->dependencyGraphIndex; 
+		}
+
+		renderPasses = std::move(copyPasses);
 	}
 
-	void RenderGraph::MergePasses()
+	bool RenderGraph::ValidateGraph()
 	{
-		
-	}
+		// Ensure there is a pass which writes to the backbuffer
 
-	void RenderGraph::BuildTransients()
-	{
-		
-	}
+		bool backBufferWritten = false;
+		for ( auto& pass : renderPasses)
+		{
+			if(pass->WritesTo(backBuffer.name))
+			{
+				backBufferWritten = true;
+				break;
+			}
+		}
 
-	void RenderGraph::BuildBarriers()
+		Assert(backBufferWritten, "No pass writes to the backbuffer");
+		if(!backBufferWritten) return false;
+
+		return true;
+	}
+	
+	void RenderGraph::CreateResources()
 	{
 		
 	}

@@ -38,7 +38,7 @@ int main()
 	auto info = Information{};
 	float timeMult = 1;
 
-	renderer->GetRendergraph()->AddPass("Quasi-Crystals", RenderGraphQueue::Graphics)
+	renderer->GetRenderGraph()->AddPass("Quasi-Crystals", RenderGraphQueue::Graphics)
 		.SetInitialisationFunc([](Tether& tether)
 		{			
 			tether.AddWriteDependencyImage(tether.graph->GetBackBuffer(), VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT);
@@ -71,11 +71,11 @@ int main()
 		});
 
 
-	gui.AddToGraph(renderer->GetRendergraph());
+	gui.AddToGraph(renderer->GetRenderGraph());
 
-	renderer->GetRendergraph()->Initialise();
+	renderer->GetRenderGraph()->Initialise();
 
-	while (renderer->Run()) { renderer->GetRendergraph()->Execute(); }
+	while (renderer->Run()) { renderer->GetRenderGraph()->Execute(); }
 
 	vkDeviceWaitIdle(*renderer->GetDevice());
 

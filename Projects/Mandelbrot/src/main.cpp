@@ -29,7 +29,7 @@ int main()
 	DescriptorSetKey descriptorSetKey = { program };
 
 	float timeMult = 1;
-	auto rg = renderer->GetRendergraph();
+	auto rg = renderer->GetRenderGraph();
 	
 	rg->AddPass(RenderGraphBuilder("Mandelbrot-Compute", rg) // Write to an image in Compute
 		.SetInitialisationFunc([&descriptorSetKey](Tether& tether)
@@ -51,11 +51,11 @@ int main()
 			
 		}));
 
-	gui.AddToGraph(renderer->GetRendergraph());
+	gui.AddToGraph(renderer->GetRenderGraph());
 
-	renderer->GetRendergraph()->Initialise();
+	renderer->GetRenderGraph()->Initialise();
 
-	while (renderer->Run()) { renderer->GetRendergraph()->Execute(); }
+	while (renderer->Run()) { renderer->GetRenderGraph()->Execute(); }
 
 	vkDeviceWaitIdle(*renderer->GetDevice());
 

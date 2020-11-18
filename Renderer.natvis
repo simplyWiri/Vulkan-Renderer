@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+    <Type Name="std::unique_ptr&lt;Renderer::PassDesc,*&gt;">
+        <DisplayString>{*_Mypair._Myval2}</DisplayString>
+        <Expand>
+            <Item Name="[Id]" ExcludeView="simple">_Mypair._Myval2->passId</Item>
+            <Item Name="[Read Resources]" ExcludeView="simple">_Mypair._Myval2->readResources</Item>
+            <Item Name="[Written Resources]" ExcludeView="simple">_Mypair._Myval2->writtenResources</Item>
+            <Item Name="[Feedback Resources]" ExcludeView="simple">_Mypair._Myval2->feedbackResources</Item>        
+        </Expand>
+    </Type>
+
+    <Type Name="std::vector&lt;Renderer::Resource,*&gt;">
+        <Intrinsic Name="size" Expression="_Mypair._Myval2._Mylast - _Mypair._Myval2._Myfirst" />
+        <DisplayString>{{ size={size()} }}</DisplayString>
+        <Expand>
+            <ArrayItems>
+                <Size>size()</Size>
+                <ValuePointer>_Mypair._Myval2._Myfirst</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+
+    <Type Name="std::vector&lt;Renderer::Usage,*&gt;">
+        <Intrinsic Name="size" Expression="_Mypair._Myval2._Mylast - _Mypair._Myval2._Myfirst" />
+        <DisplayString>{{ size={size()} }}</DisplayString>
+        <Expand>
+            <ArrayItems>
+                <Size>size()</Size>
+                <ValuePointer>_Mypair._Myval2._Myfirst</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+
+
+    <Type Name="Renderer::PassDesc">
+        <DisplayString>{{ {name} Reads = {readResources.size()} Writes = {writtenResources.size()} }}</DisplayString>
+        <Expand>
+            <Item Name="[Id]" ExcludeView="simple">passId</Item>
+            <Item Name="[Read Resources]" ExcludeView="simple">readResources</Item>
+            <Item Name="[Written Resources]" ExcludeView="simple">writtenResources</Item>
+            <Item Name="[Feedback Resources]" ExcludeView="simple">feedbackResources</Item>
+        </Expand>
+    </Type>
+
+    <Type Name="Renderer::Resource">
+        <DisplayString>{{ {name} Read By = {reads.size()} Written By = {writes.size()} }}</DisplayString>
+        <Expand>
+            <Item Name="[Reads]" ExcludeView="simple">reads</Item>
+            <Item Name="[Writes]" ExcludeView="simple">writes</Item>
+        </Expand>
+    </Type>
+
+</AutoVisualizer>

@@ -41,7 +41,7 @@ int main()
 	Circle circles[] = { { { .3, .3, 0}, .1 },  { { 0.5, 0.5, 0}, .1 }, { { .7, .7, 0}, .1 } };
 
 
-	renderer->GetRendergraph()->AddPass(RenderGraphBuilder()
+	renderer->GetRenderGraph()->AddPass(RenderGraphBuilder()
 		.SetName("GPU Drawing Triangle")
 		.SetInitialisationFunc([&descriptorSetKey](Tether& tether)
 		{
@@ -74,11 +74,11 @@ int main()
 		}));
 
 
-	gui.AddToGraph(renderer->GetRendergraph());
+	gui.AddToGraph(renderer->GetRenderGraph());
 
-	renderer->GetRendergraph()->Initialise();
+	renderer->GetRenderGraph()->Initialise();
 
-	while (renderer->Run()) { renderer->GetRendergraph()->Execute(); }
+	while (renderer->Run()) { renderer->GetRenderGraph()->Execute(); }
 
 	vkDeviceWaitIdle(*renderer->GetDevice());
 

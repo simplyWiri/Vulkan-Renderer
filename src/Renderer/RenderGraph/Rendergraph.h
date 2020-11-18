@@ -1,92 +1,73 @@
 #pragma once
-#include <algorithm>
-
-#include "glm/glm.hpp"
-#include "vulkan.h"
-#include <vector>
-#include <unordered_map>
+#include <memory>
 #include <string>
-#include "RenderGraphBuilder.h"
+#include <unordered_map>
 #include "PassDesc.h"
+#include <vector>
+#include <vulkan.h>
+
 #include "Resource.h"
 
 
 namespace Renderer
 {
 	class Core;
+	enum class QueueType : char { CPU = 1 << 0, Graphics = 1 << 1, Compute = 1 << 2, Transfer = 1 << 3, AsyncCompute = 1 << 4 };
+	enum class ImageSize : char { Swapchain = 1 << 0, Fixed = 1 << 1 };
 
-	namespace Memory
+	struct Queue
 	{
-		class Image;
-	}
-
-	/* Naming:
-	 *
-	 * RenderGraph:
-	 * RenderGraph -> an object which stores a collection of renderpasses, on initialisation orders them, and during runtime, executes the pass
-	 * RenderGraphBuilder -> a description of a 'renderpass' which occurs inside the rendergraph, it holds the initialisation and execution function for the pass
-	 *
-	 * Setup:
-	 * Tether -> a struct which holds information about the resources a 'RenderGraphBuilder' reads and writes to
-	 * GraphContext -> a struct which holds pointers to the resources stored inside a renderpass, it is passed to the execution function in the RenderGraphBuilder
-	 * FrameInfo -> a struct which holds information about the current frame, index, delta, time, etc
-	 *
-	 * Resources:
-	 * Resource -> a struct which is inherited from for specific resources, contains an id
-	 * ImageResource -> a struct containing information about an 'image'
-	 * BufferResource -> a struct containing information about a 'buffer'
-	 */
-
+		VkQueue queue;
+		int queueFamilyIndex;
+		VkCommandPool commandPool;
+	};
 	
-	enum class ResourceType { Buffer, Image };
-	enum class RenderGraphQueue { Graphics, Compute, AsyncCompute };
-	enum class ImageSizeClass { Swapchain, Fixed }; // Swapchain means the image is going to be the same size as the swapchain; fixed means you specify size
-
 	class RenderGraph
 	{
-	private:
-		const std::string backBuffer = "_backBuffer";
+	friend class PassDesc;
+		ImageResource backBuffer{ "_backBuffer" };
+		VkDevice device;
+		uint32_t framesInFlight;
+
+		std::unordered_map<std::string, uint32_t> nameToPass;
+		std::vector<std::unique_ptr<PassDesc>> renderPasses;
 		
-		std::vector<RenderGraphBuilder> builders;
-		std::vector<std::unique_ptr<PassDesc>> passes;
+		std::unordered_map<std::string, uint32_t> nameToResource;
 		std::vector<std::unique_ptr<Resource>> resources;
-
-		std::unordered_map<std::string, uint32_t> passToIndex;
-		std::unordered_map<std::string, uint32_t> resourceToIndex;
-
-
-		Core* core;
-
-		VkCommandPool pool;
-		std::vector<VkCommandBuffer> buffers;
+				
+		struct Queues
+		{
+			Queue graphics, compute, transfer;
+		} queues;
 
 	public:
+		std::string GetBackBuffer() const { return backBuffer.name; }
+		
+	public:
 		RenderGraph(Core* core);
-		~RenderGraph();
-
-
+		
+		PassDesc& AddPass(const std::string& name, QueueType type);
+		PassDesc& GetPass(const std::string& name);
+		
 		ImageResource& GetImage(const std::string& name);
 		BufferResource& GetBuffer(const std::string& name);
 
-		void Initialise();
-		void Execute();
-		void Rebuild();
+		void Build();
+		void Clear();
 
-		Core* GetCore() { return core; }
-		std::string GetBackBuffer() const { return backBuffer; }
-		
-		RenderGraphBuilder& AddPass(const std::string& name, RenderGraphQueue type);
+		void Execute();
+
 	private:
 
-		// Baking utility (initialisation)
-		void ExtractGraphInformation();
-		void ValidateGraph(); // debug
+		void CreateGraph(); // 1.  Create the DAG from a list of passes ( assert if cyclic )
 
-		void MergePasses(); // merges passes which are compatible
-		void BuildTransients(); // 'merge' or 'reuse' images which are compatible
-		void BuildBarriers(); // build synchronisation barriers between items
-
-		void ShowDebugVisualisation();
+		void CreateAdjacencyList(std::vector<std::vector<uint32_t>>& adjacencyList);
+		void TopologicalSort(std::vector<std::vector<uint32_t>>& adjacencyList);
+		
+		bool ValidateGraph(); // 2.  make sure backbuffer is written to, ensure read resources exist etc
+		void CreateResources(); // 3. create the resources, create sync objects.
 
 	};
+
 }
+

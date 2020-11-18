@@ -49,7 +49,7 @@ int main()
 	bool fibo = false;
 	bool lock = false;
 
-	renderer->GetRendergraph()->AddPass(RenderGraphBuilder()
+	renderer->GetRenderGraph()->AddPass(RenderGraphBuilder()
 		.SetName("GPU Drawing Triangle")
 		.SetInitialisationFunc([&descriptorSetKey](Tether& tether) { tether.GetDescriptorCache()->WriteBuffer(descriptorSetKey, "ubo"); })
 		.SetRecordFunc([&descriptorSetKey, &vert, &sp, &cam, &ubo, &points, &fibo, &lock](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
@@ -96,11 +96,11 @@ int main()
 		}));
 
 
-	gui.AddToGraph(renderer->GetRendergraph());
+	gui.AddToGraph(renderer->GetRenderGraph());
 
-	renderer->GetRendergraph()->Initialise();
+	renderer->GetRenderGraph()->Initialise();
 
-	while (renderer->Run()) { renderer->GetRendergraph()->Execute(); }
+	while (renderer->Run()) { renderer->GetRenderGraph()->Execute(); }
 
 	vkDeviceWaitIdle(*renderer->GetDevice());
 
