@@ -75,7 +75,7 @@ namespace Renderer
 
 		core->GetFramebufferCache()->BeginPass(buffer, frameInfo.offset, { frameInfo.imageView, depthImage->GetView() }, renderpass, core->GetSwapchain()->GetExtent());
 
-		GraphContext context{this, "", renderpass->GetHandle()};
+		GraphContext context{this, "", core->GetSwapchain()->GetWindow(), renderpass->GetHandle()};
 
 		for (auto& pass : passes)
 		{

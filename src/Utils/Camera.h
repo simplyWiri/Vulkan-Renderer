@@ -5,10 +5,14 @@
 
 class Camera
 {
+public:
+	const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0);
+
 private:
 	glm::mat4 model;
 	glm::mat4 view;
 	glm::mat4 proj;
+	
 	float rotation;
 	glm::vec3 position;
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "Input.h"
 #include "VulkanObjects/Device.h"
 #include "VulkanObjects/Swapchain.h"
 #include "VulkanObjects/Pipeline.h"
@@ -40,6 +41,8 @@ namespace Renderer
 		Device device;
 		Swapchain swapchain; // VkSwapchainKHR
 		Memory::Allocator* allocator;
+		FrameInfo frameInfo;
+		Input inputHandler;
 
 		// caches
 		RenderpassCache renderpassCache;
@@ -74,6 +77,7 @@ namespace Renderer
 
 		ShaderManager* GetShaderManager() { return shaderManager; }
 		Settings* GetSettings() { return &settings; }
+		Input* GetInputHandler() { return &inputHandler; }
 
 
 		void SetImageLayout(VkCommandBuffer buffer, VkImage image, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask);

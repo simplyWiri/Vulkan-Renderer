@@ -91,7 +91,7 @@ namespace Renderer
 		void BuildSwapchain(bool vsync = false);
 		void BuildSyncObjects();
 
-		FrameInfo BeginFrame(VkCommandBuffer buffer);
+		FrameInfo BeginFrame(VkCommandBuffer buffer, const FrameInfo& prevInfo);
 		VkResult EndFrame(FrameInfo& info, VkQueue graphicsQueue);
 
 	private:

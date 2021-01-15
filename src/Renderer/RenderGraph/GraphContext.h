@@ -2,6 +2,8 @@
 #include <string>
 #include <vulkan.h>
 
+struct GLFWwindow;
+
 namespace Renderer
 {
 	class Rendergraph;
@@ -14,6 +16,7 @@ namespace Renderer
 	{
 		Rendergraph* graph;
 		std::string passId;
+		GLFWwindow* window;
 		VkRenderPass defaultPass;
 
 		VkRenderPass GetDefaultRenderpass() { return defaultPass; }

@@ -58,7 +58,7 @@ namespace Renderer
 			io.DisplaySize = ImVec2(static_cast<float>(core->GetSwapchain()->GetExtent().width), static_cast<float>(core->GetSwapchain()->GetExtent().height));
 
 			initKeymap();
-			initCallbacks(core->GetSwapchain()->GetWindow());
+			initCallbacks(core);
 			setupImGuiColour();
 
 			auto program = core->GetShaderManager()->getProgram({ core->GetShaderManager()->get(ShaderType::Vertex, "../../resources/ImguiVertex.vert"), core->GetShaderManager()->get(ShaderType::Fragment, "../../resources/ImguiFragment.frag") });
@@ -232,37 +232,44 @@ namespace Renderer
 			imguiIO.KeyMap[ImGuiKey_Z] = GLFW_KEY_Z;
 		}
 
-		void initCallbacks(GLFWwindow* window)
+		void initCallbacks(Core* core)
 		{
-			glfwSetMouseButtonCallback(window, mouseButtonCallback);
-			glfwSetScrollCallback(window, scrollCallback);
-			glfwSetKeyCallback(window, keyCallback);
-			glfwSetCharCallback(window, charCallback);
+			core->GetInputHandler()->RegisterKeyCallBack(keyCallback, InputPriority::GUI);
+			core->GetInputHandler()->RegisterMouseClickCallBack(mouseButtonCallback, InputPriority::GUI);
+			core->GetInputHandler()->RegisterMouseScrollCallBack(scrollCallback, InputPriority::GUI);
+			core->GetInputHandler()->RegisterCharCallBack(charCallback, InputPriority::GUI);
 		}
 
-		static void keyCallback(GLFWwindow* window, int key, int, int action, int mods)
+		static bool keyCallback(int key, int action)
 		{
 			ImGuiIO& imguiIO = ImGui::GetIO();
 			imguiIO.KeysDown[key] = (action != GLFW_RELEASE);
+
+			return false;
 		}
 
-		static void charCallback(GLFWwindow* window, unsigned int c)
+		static bool charCallback(unsigned int c)
 		{
 			ImGuiIO& imguiIO = ImGui::GetIO();
 			if (c > 0 && c < 0x10000) imguiIO.AddInputCharacter(static_cast<unsigned short>(c));
+
+			return false;
 		}
 
-		static void mouseButtonCallback(GLFWwindow* window, int button, int action, int /*mods*/)
+		static bool mouseButtonCallback(int button, int action)
 		{
 			ImGuiIO& imguiIO = ImGui::GetIO();
 			if (button < 512) { imguiIO.MouseDown[button] = (action != GLFW_RELEASE); }
+
+			return false;
 		}
 
-		static void scrollCallback(GLFWwindow* window, double xOffset, double yOffset)
+		static bool scrollCallback(float yOffset)
 		{
 			ImGuiIO& imguiIO = ImGui::GetIO();
-			imguiIO.MouseWheel += static_cast<float>(yOffset);
-			imguiIO.MouseWheelH += static_cast<float>(xOffset);
+			imguiIO.MouseWheel += yOffset;
+
+			return false;
 		}
 
 		void setupImGuiColour()

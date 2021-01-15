@@ -5,7 +5,12 @@
 
 namespace Renderer
 {
-	Core::Core(Settings settings) : settings(settings) { TempLogger::Init(); }
+	Core::Core(Settings settings) : settings(settings)
+	{
+		TempLogger::Init();
+		frameInfo = FrameInfo{};
+		frameInfo.time = 0;
+	}
 
 	bool Core::Initialise()
 	{
@@ -15,6 +20,7 @@ namespace Renderer
 		swapchain.Initialise(device.GetDevice(), device.GetInstance(), device.GetPhysicalDevice());
 
 		swapchain.BuildWindow(settings.width, settings.height, settings.name);
+		inputHandler.Setup(swapchain.GetWindow());
 
 #ifdef NDEBUG
 		device.BuildInstance(false);
@@ -164,7 +170,8 @@ namespace Renderer
 
 	void Core::BeginFrame(VkCommandBuffer& buffer, FrameInfo& info)
 	{
-		info = swapchain.BeginFrame(buffer);
+		info = swapchain.BeginFrame(buffer, frameInfo);
+		frameInfo = info;
 
 		descriptorCache.Tick();
 		graphicsPipelineCache.Tick();

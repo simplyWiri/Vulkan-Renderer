@@ -127,7 +127,7 @@ namespace Renderer
 		ImGui::End();
 	}
 
-#elif
+#else
 	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<PassDesc> passes)
 	{
 		ImGui::NewFrame();

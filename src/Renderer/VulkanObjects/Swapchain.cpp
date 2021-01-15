@@ -196,7 +196,7 @@ namespace Renderer
 		}
 	}
 
-	FrameInfo Swapchain::BeginFrame(VkCommandBuffer buffer)
+	FrameInfo Swapchain::BeginFrame(VkCommandBuffer buffer, const FrameInfo& prevInfo)
 	{
 		auto& curFrame = frames[currentIndex];
 		curFrame.buffer = buffer;
@@ -219,6 +219,7 @@ namespace Renderer
 			prevFpsSample = info.time;
 		}
 
+		info.delta = (info.time - prevInfo.time)/1000.0;
 		info.fps = fps;
 		info.frameIndex = frameCount++;
 		info.offset = currentIndex;

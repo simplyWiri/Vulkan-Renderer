@@ -37,9 +37,21 @@ int main()
 	DescriptorSetKey descriptorSetKey = { program };
 	const auto vert = Vertex::defaultVertex();
 
+	float yaw = -90.0f;
+	float pitch = 0.0f;
+
 	auto cam = Camera{ 0, 1200, 0, 800 };
+	auto camPos = glm::vec3(0,0,3);
+	auto camUp = glm::vec3(0,1,0);
+	auto camFront = glm::vec3(0, 0, -1);
+	auto camDir = glm::vec3(1);
+
+	camDir.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	camDir.y = sin(glm::radians(pitch));
+	camDir.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	
 	cam.SetModel(rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
-	cam.SetView(lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+	cam.SetView(lookAt(camPos, camPos + camFront, camUp));
 	cam.SetProj(glm::perspective(glm::radians(45.0f), 1200 / 800.0f, 0.1f, 10.0f));
 
 	auto* sp = new Sphere(renderer->GetAllocator(), 50000);
@@ -49,21 +61,79 @@ int main()
 	bool fibo = false;
 	bool lock = false;
 
+	float lastX = s.width/2, lastY = s.height/2;
+	bool active = false;
+
+	auto mouseMoveCallback = [&](float xpos, float ypos)
+	{
+	    float xoffset = xpos - lastX;
+	    float yoffset = ypos - lastY; 
+	    lastX = xpos;
+	    lastY = ypos;
+
+		if(!active) return false;
+
+	    float sensitivity = 0.1f;
+	    xoffset *= sensitivity;
+	    yoffset *= sensitivity;
+
+	    yaw   += xoffset;
+	    pitch += yoffset;
+
+	    if(pitch > 89.0f)
+	        pitch = 89.0f;
+	    if(pitch < -89.0f)
+	        pitch = -89.0f;
+
+	    glm::vec3 direction;
+	    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	    direction.y = sin(glm::radians(pitch));
+	    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	    camFront = glm::normalize(direction);
+
+		return false;
+	};
+
+	auto mouseClickCallback = [&active](float button, int action)
+	{
+		if(button != 0) return false;
+
+		if(action == GLFW_RELEASE) active = false;
+		else active = true;
+
+		return false;
+	};
+
+	renderer->GetInputHandler()->RegisterMouseClickCallBack(mouseClickCallback, InputPriority::LOW_PRIORITY);
+	renderer->GetInputHandler()->RegisterMouseMoveCallBack(mouseMoveCallback, InputPriority::LOW_PRIORITY);
+
 	renderer->GetRendergraph()->AddPass(PassDesc()
 		.SetName("GPU Drawing Triangle")
 		.SetInitialisationFunc([&descriptorSetKey](Tether& tether) { tether.GetDescriptorCache()->WriteBuffer(descriptorSetKey, "ubo"); })
-		.SetRecordFunc([&descriptorSetKey, &vert, &sp, &cam, &ubo, &points, &fibo, &lock](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
+		.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
 		{
 			{
 				static auto startTime = std::chrono::high_resolution_clock::now();
 
 				auto currentTime = std::chrono::high_resolution_clock::now();
 				float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+				
+				float camSpeed = 2.5f * frameInfo.delta;
 
-				cam.SetModel(rotate(glm::mat4(1.0f), time * glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+				if (glfwGetKey(context.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+					glfwSetWindowShouldClose(context.window, true);
+				
+			    if (glfwGetKey(context.window, GLFW_KEY_W) == GLFW_PRESS)
+			        camPos += camSpeed * camFront;
+			    if (glfwGetKey(context.window, GLFW_KEY_S) == GLFW_PRESS)
+			        camPos -= camSpeed * camFront;
+			    if (glfwGetKey(context.window, GLFW_KEY_A) == GLFW_PRESS)
+			        camPos -= normalize(cross(camFront, camUp)) * camSpeed;
+			    if (glfwGetKey(context.window, GLFW_KEY_D) == GLFW_PRESS)
+			        camPos += normalize(cross(camFront, camUp)) * camSpeed;
 
 				ubo.model = cam.GetModel();
-				ubo.view = cam.GetView();
+				ubo.view = lookAt(camPos, camPos + camFront, camUp);
 				ubo.proj = cam.GetProj();
 
 				context.GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
@@ -105,3 +175,8 @@ int main()
 	delete program;
 	delete gui.key.program;
 }
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+
+}  
