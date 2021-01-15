@@ -15,14 +15,13 @@ private:
 	
 	float rotation;
 	glm::vec3 position;
+	glm::vec3 front;
 
 private:
 
 	void RecalculateMVP()
 	{
-		glm::mat4 transform = translate(glm::mat4(1.0f), position) * rotate(glm::mat4(1.0f), glm::radians(rotation), glm::vec3(0, 0, 1));
-
-		view = inverse(transform);
+		view = lookAt(position, position + front, up);
 	}
 
 	void UpdateProjection(float left, float right, float bottom, float top)
@@ -40,6 +39,7 @@ public:
 	const glm::mat4& GetModel() { return model; }
 	const glm::mat4& GetView() { return view; }
 	const glm::mat4& GetProj() { return proj; }
+	const glm::vec3& GetFront() { return front; }
 
 	void SetModel(glm::mat4 model) { this->model = model; } //RecalculateMVP(); }
 	void SetView(glm::mat4 view) { this->view = view; } //RecalculateMVP(); }
@@ -48,6 +48,18 @@ public:
 	void SetPosition(glm::vec3 pos)
 	{
 		position = pos;
+		RecalculateMVP();
+	}
+
+	void UpdatePosition(glm::vec3 change)
+	{
+		position += change;
+		RecalculateMVP();
+	}
+
+	void SetFront(glm::vec3 front)
+	{
+		this->front = front;
 		RecalculateMVP();
 	}
 

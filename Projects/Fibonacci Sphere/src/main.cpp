@@ -41,17 +41,11 @@ int main()
 	float pitch = 0.0f;
 
 	auto cam = Camera{ 0, 1200, 0, 800 };
-	auto camPos = glm::vec3(0,0,3);
-	auto camUp = glm::vec3(0,1,0);
-	auto camFront = glm::vec3(0, 0, -1);
-	auto camDir = glm::vec3(1);
 
-	camDir.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	camDir.y = sin(glm::radians(pitch));
-	camDir.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	
+	cam.SetPosition( {0, 0, 3});
+	cam.SetFront({0,0,-1});
+
 	cam.SetModel(rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
-	cam.SetView(lookAt(camPos, camPos + camFront, camUp));
 	cam.SetProj(glm::perspective(glm::radians(45.0f), 1200 / 800.0f, 0.1f, 10.0f));
 
 	auto* sp = new Sphere(renderer->GetAllocator(), 50000);
@@ -73,28 +67,27 @@ int main()
 
 		if(!active) return false;
 
-	    float sensitivity = 0.1f;
+	    const float sensitivity = 0.1f;
 	    xoffset *= sensitivity;
 	    yoffset *= sensitivity;
 
-	    yaw   += xoffset;
+	    yaw += xoffset;
 	    pitch += yoffset;
 
-	    if(pitch > 89.0f)
-	        pitch = 89.0f;
-	    if(pitch < -89.0f)
-	        pitch = -89.0f;
+	    if(pitch > 89.0f) pitch = 89.0f;
+	    if(pitch < -89.0f) pitch = -89.0f;
 
 	    glm::vec3 direction;
 	    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
 	    direction.y = sin(glm::radians(pitch));
 	    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	    camFront = glm::normalize(direction);
+
+		cam.SetFront(normalize(direction));
 
 		return false;
 	};
 
-	auto mouseClickCallback = [&active](float button, int action)
+	auto mouseClickCallback = [&active](int button, int action)
 	{
 		if(button != 0) return false;
 
@@ -123,17 +116,17 @@ int main()
 				if (glfwGetKey(context.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 					glfwSetWindowShouldClose(context.window, true);
 				
-			    if (glfwGetKey(context.window, GLFW_KEY_W) == GLFW_PRESS)
-			        camPos += camSpeed * camFront;
+			    if (glfwGetKey(context.window, GLFW_KEY_W) == GLFW_PRESS) 
+			        cam.UpdatePosition(camSpeed * cam.GetFront());
 			    if (glfwGetKey(context.window, GLFW_KEY_S) == GLFW_PRESS)
-			        camPos -= camSpeed * camFront;
+					cam.UpdatePosition(camSpeed * cam.GetFront() * glm::vec3(-1));
 			    if (glfwGetKey(context.window, GLFW_KEY_A) == GLFW_PRESS)
-			        camPos -= normalize(cross(camFront, camUp)) * camSpeed;
+					cam.UpdatePosition(normalize(cross(cam.GetFront(), cam.up)) * camSpeed * glm::vec3(-1));
 			    if (glfwGetKey(context.window, GLFW_KEY_D) == GLFW_PRESS)
-			        camPos += normalize(cross(camFront, camUp)) * camSpeed;
+					cam.UpdatePosition(normalize(cross(cam.GetFront(), cam.up)) * camSpeed);
 
 				ubo.model = cam.GetModel();
-				ubo.view = lookAt(camPos, camPos + camFront, camUp);
+				ubo.view = cam.GetView(); 
 				ubo.proj = cam.GetProj();
 
 				context.GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
