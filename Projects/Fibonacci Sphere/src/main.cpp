@@ -7,8 +7,8 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include "GUI.h"
-#include "Sphere.h"
 #include "Utils/Camera.h"
+#include "World/PlanetGenerator.h"
 
 using namespace Renderer;
 
@@ -48,7 +48,7 @@ int main()
 	cam.SetModel(rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
 	cam.SetProj(glm::perspective(glm::radians(45.0f), 1200 / 800.0f, 0.1f, 10.0f));
 
-	auto* sp = new Sphere(renderer->GetAllocator(), 50000);
+	PlanetGenerator* gen = new PlanetGenerator(renderer->GetAllocator());
 	UniformBufferObject ubo = {};
 
 	int points = 0;
@@ -113,17 +113,11 @@ int main()
 				
 				float camSpeed = 2.5f * frameInfo.delta;
 
-				if (glfwGetKey(context.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-					glfwSetWindowShouldClose(context.window, true);
-				
-			    if (glfwGetKey(context.window, GLFW_KEY_W) == GLFW_PRESS) 
-			        cam.UpdatePosition(camSpeed * cam.GetFront());
-			    if (glfwGetKey(context.window, GLFW_KEY_S) == GLFW_PRESS)
-					cam.UpdatePosition(camSpeed * cam.GetFront() * glm::vec3(-1));
-			    if (glfwGetKey(context.window, GLFW_KEY_A) == GLFW_PRESS)
-					cam.UpdatePosition(normalize(cross(cam.GetFront(), cam.up)) * camSpeed * glm::vec3(-1));
-			    if (glfwGetKey(context.window, GLFW_KEY_D) == GLFW_PRESS)
-					cam.UpdatePosition(normalize(cross(cam.GetFront(), cam.up)) * camSpeed);
+				if (glfwGetKey(context.window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(context.window, true);
+			    if (glfwGetKey(context.window, GLFW_KEY_W) == GLFW_PRESS) cam.UpdatePosition(camSpeed * cam.GetFront());
+			    if (glfwGetKey(context.window, GLFW_KEY_S) == GLFW_PRESS) cam.UpdatePosition(camSpeed * cam.GetFront() * glm::vec3(-1));
+			    if (glfwGetKey(context.window, GLFW_KEY_A) == GLFW_PRESS) cam.UpdatePosition(normalize(cross(cam.GetFront(), cam.up)) * camSpeed * glm::vec3(-1));
+			    if (glfwGetKey(context.window, GLFW_KEY_D) == GLFW_PRESS) cam.UpdatePosition(normalize(cross(cam.GetFront(), cam.up)) * camSpeed);
 
 				ubo.model = cam.GetModel();
 				ubo.view = cam.GetView(); 
@@ -132,26 +126,15 @@ int main()
 				context.GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
 			}
 
-			{
-				if (!lock && points < 50000) { sp->ReCalculate(points = (points + 1 > 50000) ? 50000 : points + 1); }
-				if (ImGui::SliderInt("Points", &points, 1000, 50000)) sp->ReCalculate(points);
-				if (ImGui::Checkbox("Use Fibonacci", &fibo)) sp->SetFibo(fibo);
-				ImGui::Checkbox("Lock Recalcs", &lock);
-			}
-
-			context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
-				descriptorSetKey.program);
+			context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST,descriptorSetKey.program);
 
 			context.GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey);
 
-			sp->Draw(buffer);
 
-			context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-				descriptorSetKey.program);
+			constexpr float PI = 3.14159265359f;
+			gen->Step( PI / 10000);
 
-			context.GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey);
-
-			sp->DrawSweepline(buffer);
+			gen->DrawPlanet(buffer);
 		}));
 
 
@@ -163,13 +146,7 @@ int main()
 
 	vkDeviceWaitIdle(*renderer->GetDevice());
 
-	sp->Cleanup();
-	delete sp;
+	delete gen;
 	delete program;
 	delete gui.key.program;
 }
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-{
-
-}  
