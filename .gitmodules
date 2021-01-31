@@ -23,3 +23,6 @@
 [submodule "externals/implot"]
 	path = externals/implot
 	url = https://github.com/epezent/implot
+[submodule "tracy"]
+	path = tracy
+	url = https://github.com/wolfpld/tracy
