@@ -135,6 +135,8 @@ namespace Renderer
 		{
 			graph->AddPass(PassDesc().SetName("ImGui-CPU").SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& info, GraphContext& context)
 			{
+				ZoneScopedN("IMGUI Updating Buffers")
+
 				ImGuiIO& io = ImGui::GetIO();
 				io.DisplaySize = ImVec2(static_cast<float>(context.GetSwapchainExtent().width), static_cast<float>(context.GetSwapchainExtent().height));
 
@@ -164,6 +166,8 @@ namespace Renderer
 				PassDesc().SetName("ImGui-Render").SetInitialisationFunc([&](Tether& tether) { tether.GetDescriptorCache()->WriteSampler(key, "sTexture", fontImage, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); }).SetRecordFunc(
 					[&](VkCommandBuffer buffer, const FrameInfo& info, GraphContext& context)
 					{
+						ZoneScopedN("IMGUI Draw")
+
 						ImDrawData* imDrawData = ImGui::GetDrawData();
 						if (imDrawData->CmdListsCount == 0) return;
 

@@ -34,6 +34,7 @@ function CreateProject(name)
 	language "C++"
 	cppdialect "C++17"
 	staticruntime "on"
+	editAndContinue "off"
 
 	targetdir "Projects/%{prj.name}/bin/"
 	objdir "Projects/%{prj.name}/bin-int/"
@@ -58,32 +59,33 @@ function CreateProject(name)
 		"externals/SPIRV-Cross",
 		"externals/spdlog/include",
 		"externals/glslang",
+		"externals/tracy",
 		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/")
 	}
 
 	links
 	{
-		"Vulkan Renderer"
+		"Vulkan Renderer",
+		"Tracy"
 	}
 
-	
 	filter "configurations:Verbose"
-		defines { "VERBOSE", "TRACE", "DEBUG" }
+		defines { "VERBOSE", "TRACE", "DEBUG", "TRACY_ENABLE" }
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Trace"
-		defines { "TRACE", "DEBUG" }
+		defines { "TRACE", "DEBUG", "TRACY_ENABLE"}
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Debug"
-		defines "DEBUG"
+		defines { "DEBUG", "TRACY_ENABLE"}
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Release"
-		defines "NDEBUG"
+		defines  {"NDEBUG", "TRACY_ENABLE"}
 		runtime "Release"
 		optimize "on"
 end
@@ -102,22 +104,22 @@ workspace "Renderer"
 	}
 
 	filter "configurations:Verbose"
-		defines { "VERBOSE", "TRACE", "DEBUG" }
+		defines { "VERBOSE", "TRACE", "DEBUG", "TRACY_ENABLE" }
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Trace"
-		defines { "TRACE", "DEBUG" }
+		defines { "TRACE", "DEBUG", "TRACY_ENABLE"}
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Debug"
-		defines "DEBUG"
+		defines { "DEBUG", "TRACY_ENABLE"}
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Release"
-		defines "NDEBUG"
+		defines  {"NDEBUG", "TRACY_ENABLE"}
 		runtime "Release"
 		optimize "on"
 
@@ -131,17 +133,17 @@ project "Vulkan Renderer"
 	language "C++"
 	cppdialect "C++17"
 	staticruntime "on"
+	editAndContinue "off"
 
 	targetdir "bin/"
 	objdir "bin-int/"
-
 
 	files
 	{
 		"resources/**",
 		"src/**.h",
 		"src/**.cpp",
-		"externals/stb/stb_image.h"
+		"externals/stb/stb_image.h",
 	}
 
 	includedirs
@@ -154,6 +156,7 @@ project "Vulkan Renderer"
 		"externals/SPIRV-Cross",
 		"externals/spdlog/include",
 		"externals/glslang",
+		"externals/tracy",
 		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/")
 	}
 
@@ -170,8 +173,6 @@ project "Vulkan Renderer"
 group "Projects"
 
 CreateProject("Fibonacci Sphere")
-CreateProject("2D Metaballs")
-CreateProject("Quasicrystals")
 
 group ""
 

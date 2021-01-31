@@ -2,6 +2,7 @@
 
 #include "glfw3.h"
 #include "Memory/Allocator.h"
+#include "Tracy.hpp"
 
 namespace Renderer
 {
@@ -52,14 +53,19 @@ namespace Renderer
 
 		rendergraph = std::make_unique<Rendergraph>(this);
 
+		tracyContext = TracyVkContext(*device.GetPhysicalDevice(), *device.GetDevice(), device.queues.graphics, GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false));
+
 		return true;
 	}
 
 	bool Core::Run()
 	{
 		if (glfwWindowShouldClose(swapchain.GetWindow())) return false;
+		{
+			ZoneScopedNC("Polling GLFW Events", tracy::Color::White)
 
-		glfwPollEvents();
+			glfwPollEvents();
+		}
 
 		return true;
 	}
@@ -170,6 +176,8 @@ namespace Renderer
 
 	void Core::BeginFrame(VkCommandBuffer& buffer, FrameInfo& info)
 	{
+		ZoneScopedNC("Begin Frame", tracy::Color::Purple);
+
 		info = swapchain.BeginFrame(buffer, frameInfo);
 		frameInfo = info;
 
@@ -177,19 +185,27 @@ namespace Renderer
 		graphicsPipelineCache.Tick();
 		renderpassCache.Tick();
 		framebufferCache.Tick();
+
+		if (info.frameIndex % 5 == 0)
+			TracyVkCollect(tracyContext, buffer);
 	}
 
 	void Core::EndFrame(FrameInfo info)
 	{
+		ZoneScopedNC("End Frame", tracy::Color::Violet);
 		const auto result = swapchain.EndFrame(info, device.queues.graphics);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) windowResize();
+
+		FrameMark;
 	}
 
 	Core::~Core()
 	{
 		rendergraph.reset();
 		delete allocator;
+
+		TracyVkDestroy(tracyContext)
 
 		vkDestroyCommandPool(device, commandPool, nullptr);
 		framebufferCache.ClearCache();

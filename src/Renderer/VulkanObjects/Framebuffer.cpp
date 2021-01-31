@@ -1,4 +1,7 @@
 #include "Framebuffer.h"
+
+#include <Tracy.hpp>
+
 #include "Renderpass.h"
 
 namespace Renderer
@@ -34,6 +37,8 @@ namespace Renderer
 
 	void FramebufferCache::BeginPass(VkCommandBuffer buffer, uint32_t index, const std::vector<VkImageView>& views, Renderpass* renderpass, VkExtent2D extent)
 	{
+		ZoneScopedN("Beginning renderpass")
+
 		FramebufferKey key = FramebufferKey(views, renderpass, extent);
 
 		auto framebuffer = Get(key);

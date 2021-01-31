@@ -1,4 +1,7 @@
 #include "DescriptorSet.h"
+
+#include <Tracy.hpp>
+
 #include "../Resources/ShaderProgram.h"
 #include "../../Utils/Logging.h"
 #include "../Memory/Allocator.h"
@@ -187,6 +190,8 @@ namespace Renderer
 
 	void DescriptorSetCache::BindDescriptorSet(VkCommandBuffer buffer, VkPipelineBindPoint bindPoint, const DescriptorSetKey& key)
 	{
+		ZoneScopedN("Binding Descriptor Set")
+
 		auto descSet = Get(key);
 
 		vkCmdBindDescriptorSets(buffer, bindPoint, key.program->getPipelineLayout(), 0, 1, descSet->Get(currentFrame), static_cast<uint32_t>(key.program->getDynOffsets().size()), key.program->getDynOffsets().data());

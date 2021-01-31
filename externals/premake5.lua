@@ -13,6 +13,30 @@ project "ImGui"
 		"imgui/imgui_widgets.cpp"
 	}
     
+project "Tracy"
+	kind "StaticLib"
+    language "C++"
+    staticruntime "on"
+
+	targetdir ("bin/%{prj.name}")
+	objdir ("bin-int/%{prj.name}")
+
+	files
+	{
+        "tracy/TracyClient.cpp"
+    }
+
+    includedirs
+    {
+        "tracy",
+        (_OPTIONS["vulkanPath"] .. "/Include/Vulkan")
+    }
+
+    defines
+    {
+        "TRACY_ENABLE"
+    }
+    
 project "ImPlot"
     kind "StaticLib"
     staticruntime "on"

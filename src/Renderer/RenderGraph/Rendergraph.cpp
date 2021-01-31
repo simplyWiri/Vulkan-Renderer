@@ -63,24 +63,31 @@ namespace Renderer
 
 		core->BeginFrame(buffer, frameInfo);
 
-#if DEBUG
-		DrawDebugVisualisations(core, frameInfo, passes);
-#endif
+		ImGui::NewFrame();
 
+//		{
+//		ZoneScopedNC("Drawing Debug Visualisations", tracy::Color::Green)
+//#if DEBUG
+//			DrawDebugVisualisations(core, frameInfo, passes);
+//#endif
+//		}
 
 		vkBeginCommandBuffer(buffer, &beginInfo);
 
 		auto renderpass = core->GetRenderpassCache()->Get(RenderpassKey({ { core->GetSwapchain()->GetFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR } }, { depthImage->GetFormat(), VK_ATTACHMENT_LOAD_OP_CLEAR }));
 
-
 		core->GetFramebufferCache()->BeginPass(buffer, frameInfo.offset, { frameInfo.imageView, depthImage->GetView() }, renderpass, core->GetSwapchain()->GetExtent());
 
 		GraphContext context{this, "", core->GetSwapchain()->GetWindow(), renderpass->GetHandle()};
 
-		for (auto& pass : passes)
 		{
-			context.passId = pass.taskName;
-			pass.execute(buffer, frameInfo, context);
+			ZoneScopedNC("Gathering Draw Commands", tracy::Color::Green)
+			
+			for (auto& pass : passes)
+			{
+				context.passId = pass.taskName;
+				pass.execute(buffer, frameInfo, context);
+			}
 		}
 
 		core->GetFramebufferCache()->EndPass(buffer);

@@ -39,6 +39,7 @@ public:
 	{
 		head = new Node(std::numeric_limits<float>::min(), nullptr, levels);
 	}
+	
 	~Skiplist()
 	{
 		delete head;

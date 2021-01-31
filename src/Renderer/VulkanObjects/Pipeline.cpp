@@ -1,4 +1,7 @@
 #include "Pipeline.h"
+
+#include <Tracy.hpp>
+
 #include "../Resources/ShaderProgram.h"
 
 namespace Renderer
@@ -94,6 +97,9 @@ namespace Renderer
 	{
 		Assert(!(device == nullptr || key.renderpass == nullptr || key.extent.width == 0 || key.extent.height == 0), "Failed to obtain required information to create the graphics pipeline");
 
+		ZoneScopedN("Creating Graphics Pipeline")
+
+		
 		this->device = device;
 		key.program->InitialiseResources(device);
 		this->program = key.program;
@@ -275,6 +281,8 @@ namespace Renderer
 
 	void GraphicsPipelineCache::BindGraphicsPipeline(VkCommandBuffer buffer, GraphicsPipelineKey& key)
 	{
+		ZoneScopedN("Binding Graphics Pipeline")
+
 		auto pipeline = Get(key)->GetPipeline();
 
 		vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);

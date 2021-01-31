@@ -1,4 +1,7 @@
 #include "Swapchain.h"
+
+#include <Tracy.hpp>
+
 #include "glfw3.h"
 #include "../../Utils/Logging.h"
 
@@ -248,8 +251,13 @@ namespace Renderer
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
-		auto success = vkQueueSubmit(graphicsQueue, 1, &submitInfo, frame.inFlightFence);
-		Assert(success == VK_SUCCESS, "Failed to submit queue");
+		VkResult success;
+		
+		{
+			ZoneScopedNC("Queue Submit", tracy::Color::Red)
+			success = vkQueueSubmit(graphicsQueue, 1, &submitInfo, frame.inFlightFence);
+			Assert(success == VK_SUCCESS, "Failed to submit queue");
+		}
 
 		VkPresentInfoKHR presentInfo = {};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -259,7 +267,10 @@ namespace Renderer
 		presentInfo.pSwapchains = &swapchain;
 		presentInfo.pImageIndices = &info.imageIndex;
 
-		success = vkQueuePresentKHR(presentQueue, &presentInfo);
+		{
+			ZoneScopedNC("Queue Present", tracy::Color::Red)
+			success = vkQueuePresentKHR(presentQueue, &presentInfo);
+		}
 
 		++currentIndex %= framesInFlight;
 

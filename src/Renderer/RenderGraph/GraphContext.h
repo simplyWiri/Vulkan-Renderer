@@ -19,7 +19,7 @@ namespace Renderer
 		GLFWwindow* window;
 		VkRenderPass defaultPass;
 
-		VkRenderPass GetDefaultRenderpass() { return defaultPass; }
+		VkRenderPass& GetDefaultRenderpass() { return defaultPass; }
 		
 		VkExtent2D GetSwapchainExtent();
 		RenderpassCache* GetRenderpassCache();

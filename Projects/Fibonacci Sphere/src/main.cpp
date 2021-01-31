@@ -1,16 +1,31 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_RADIANS
 
-
 #include "Renderer/Core.h"
 #include "imgui.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include "GUI.h"
 #include "Utils/Camera.h"
-#include "World/PlanetGenerator.h"
+#include "World/Generation/PlanetGenerator.h"
+#include "World/PlanetRenderer.h"
+#include "Tracy.hpp"
+#include <Utils\AnchoredCamera.h>
 
 using namespace Renderer;
+using namespace World::Generation;
+
+void* operator new(std :: size_t count)
+{
+	auto ptr = malloc(count);
+	TracyAlloc (ptr , count);
+	return ptr;
+}
+void operator delete(void* ptr) noexcept
+{
+	TracyFree(ptr);
+	free(ptr);
+}
 
 struct UniformBufferObject
 {
@@ -27,8 +42,12 @@ int main()
 
 	auto renderer = std::make_unique<Core>(s);
 	GUI gui;
-
-	renderer->Initialise();
+	
+	{
+		ZoneScopedNC("Initialise Renderer", tracy::Color::Red)
+		renderer->Initialise();
+	}
+	
 	gui.initialise(renderer.get());
 
 	auto program = renderer->GetShaderManager()->getProgram({ renderer->GetShaderManager()->defaultVertex(), renderer->GetShaderManager()->defaultFragment() });
@@ -40,49 +59,33 @@ int main()
 	float yaw = -90.0f;
 	float pitch = 0.0f;
 
-	auto cam = Camera{ 0, 1200, 0, 800 };
+	auto anchoredCam = AnchoredCamera( {0, 0, 0}, {0, 1, 0}, { 0, 0, 3});
 
-	cam.SetPosition( {0, 0, 3});
-	cam.SetFront({0,0,-1});
+	anchoredCam.SetModel(rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+	anchoredCam.SetProj(glm::perspective(glm::radians(45.0f), 1200 / 800.0f, 0.1f, 10.0f));
 
-	cam.SetModel(rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
-	cam.SetProj(glm::perspective(glm::radians(45.0f), 1200 / 800.0f, 0.1f, 10.0f));
-
-	PlanetGenerator* gen = new PlanetGenerator(renderer->GetAllocator());
+	PlanetGenerator* gen = new PlanetGenerator();
+	World::PlanetRenderer planetRenderer(gen->RetrievePlanet(), renderer->GetAllocator());
 	UniformBufferObject ubo = {};
 
-	int points = 0;
-	bool fibo = false;
-	bool lock = false;
 
 	float lastX = s.width/2, lastY = s.height/2;
 	bool active = false;
+	float camSpeed = 2.5f;
 
 	auto mouseMoveCallback = [&](float xpos, float ypos)
 	{
-	    float xoffset = xpos - lastX;
-	    float yoffset = ypos - lastY; 
+	    float xoffset = lastX - xpos;
+	    float yoffset = ypos - lastY; // y flipped in vulkan 
 	    lastX = xpos;
 	    lastY = ypos;
 
 		if(!active) return false;
 
-	    const float sensitivity = 0.1f;
-	    xoffset *= sensitivity;
-	    yoffset *= sensitivity;
+	    xoffset *= camSpeed;
+	    yoffset *= camSpeed;
 
-	    yaw += xoffset;
-	    pitch += yoffset;
-
-	    if(pitch > 89.0f) pitch = 89.0f;
-	    if(pitch < -89.0f) pitch = -89.0f;
-
-	    glm::vec3 direction;
-	    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	    direction.y = sin(glm::radians(pitch));
-	    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-
-		cam.SetFront(normalize(direction));
+		anchoredCam.Rotate({ xoffset, yoffset });
 
 		return false;
 	};
@@ -106,22 +109,19 @@ int main()
 		.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
 		{
 			{
+				ZoneScopedN("Update Camera and Set Descriptor Cache")
 				static auto startTime = std::chrono::high_resolution_clock::now();
 
 				auto currentTime = std::chrono::high_resolution_clock::now();
 				float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 				
-				float camSpeed = 2.5f * frameInfo.delta;
+				camSpeed = 2.5f * frameInfo.delta;
 
-				if (glfwGetKey(context.window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(context.window, true);
-			    if (glfwGetKey(context.window, GLFW_KEY_W) == GLFW_PRESS) cam.UpdatePosition(camSpeed * cam.GetFront());
-			    if (glfwGetKey(context.window, GLFW_KEY_S) == GLFW_PRESS) cam.UpdatePosition(camSpeed * cam.GetFront() * glm::vec3(-1));
-			    if (glfwGetKey(context.window, GLFW_KEY_A) == GLFW_PRESS) cam.UpdatePosition(normalize(cross(cam.GetFront(), cam.up)) * camSpeed * glm::vec3(-1));
-			    if (glfwGetKey(context.window, GLFW_KEY_D) == GLFW_PRESS) cam.UpdatePosition(normalize(cross(cam.GetFront(), cam.up)) * camSpeed);
+			    if (glfwGetKey(context.window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(context.window, true);
 
-				ubo.model = cam.GetModel();
-				ubo.view = cam.GetView(); 
-				ubo.proj = cam.GetProj();
+				ubo.model = anchoredCam.GetModel();
+				ubo.view = anchoredCam.GetView(); 
+				ubo.proj = anchoredCam.GetProj();
 
 				context.GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
 			}
@@ -130,11 +130,7 @@ int main()
 
 			context.GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey);
 
-
-			constexpr float PI = 3.14159265359f;
-			gen->Step( PI / 10000);
-
-			gen->DrawPlanet(buffer);
+			planetRenderer.DrawCells(buffer);
 		}));
 
 

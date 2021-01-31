@@ -9,6 +9,11 @@
 #include "RenderGraph/Rendergraph.h"
 #include "Resources/ShaderManager.h"
 #include "VulkanObjects/DescriptorSet.h"
+#include "TracyVulkan.hpp"
+
+namespace tracy {
+	class VkCtx;
+}
 
 namespace Renderer
 {
@@ -53,6 +58,7 @@ namespace Renderer
 
 		VkCommandPool commandPool;
 		std::unique_ptr<Rendergraph> rendergraph;
+		tracy::VkCtx* tracyContext;
 
 	private:
 
