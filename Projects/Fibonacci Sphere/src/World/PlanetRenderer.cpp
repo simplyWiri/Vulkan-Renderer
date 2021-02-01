@@ -16,7 +16,7 @@ namespace World
 		std::vector<Renderer::Vertex> vertices(planet->cells.size());
 
 		for(int i = 0; i < planet->cells.size(); i++)
-			vertices[i] = ( Renderer::Vertex{ planet->cells[i].point, glm::vec3{ 1, 0.5f, 0.5f }});
+			vertices[i] = ( Renderer::Vertex{ planet->cells[i].point, glm::vec3{ planet->cells[i].point.x * 0.8f, planet->cells[i].point.y, planet->cells[i].point.z }});
 
 		vertexBuffer->Load(static_cast<void*>(vertices.data()), sizeof(Renderer::Vertex) * 5000);
 	}

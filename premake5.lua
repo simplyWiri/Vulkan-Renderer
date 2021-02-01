@@ -170,6 +170,26 @@ project "Vulkan Renderer"
 		"SPIRV-Cross"
 	}
 
+project "Common"
+	location ""
+	kind "StaticLib"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+	editAndContinue "off"
+
+	targetdir "bin/"
+	objdir "bin-int/"
+
+	files
+	{
+		"resources/**",
+		"src/**.h",
+		"src/**.cpp",
+		"externals/stb/stb_image.h",
+	}
+
+
 group "Projects"
 
 CreateProject("Fibonacci Sphere")

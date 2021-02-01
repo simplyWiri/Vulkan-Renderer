@@ -33,6 +33,5 @@ namespace World
 		
 		std::vector<glm::vec3> edgeVertices;
 		std::vector<HalfEdge> halfEdges;
-
 	};
 }

@@ -64,7 +64,7 @@ int main()
 	anchoredCam.SetModel(rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
 	anchoredCam.SetProj(glm::perspective(glm::radians(45.0f), 1200 / 800.0f, 0.1f, 10.0f));
 
-	PlanetGenerator* gen = new PlanetGenerator();
+	auto* gen = new PlanetGenerator();
 	World::PlanetRenderer planetRenderer(gen->RetrievePlanet(), renderer->GetAllocator());
 	UniformBufferObject ubo = {};
 
@@ -75,19 +75,19 @@ int main()
 
 	auto mouseMoveCallback = [&](float xpos, float ypos)
 	{
-	    float xoffset = lastX - xpos;
-	    float yoffset = ypos - lastY; // y flipped in vulkan 
+	    float xOffset = lastX - xpos;
+	    float yOffset = ypos - lastY; // y flipped in vulkan 
 	    lastX = xpos;
 	    lastY = ypos;
 
 		if(!active) return false;
 
-	    xoffset *= camSpeed;
-	    yoffset *= camSpeed;
+	    xOffset *= camSpeed;
+	    yOffset *= camSpeed;
 
-		anchoredCam.Rotate({ xoffset, yoffset });
+		anchoredCam.Rotate({ xOffset, yOffset });
 
-		return false;
+		return false;	
 	};
 
 	auto mouseClickCallback = [&active](int button, int action)

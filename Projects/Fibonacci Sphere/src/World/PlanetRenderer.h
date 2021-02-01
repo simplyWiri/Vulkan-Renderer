@@ -21,8 +21,6 @@ public:
 
 	void DrawCells(VkCommandBuffer buffer);
 
-	void DrawGreatCircle();
-
 private:
 	Planet* planet;
 	Renderer::Memory::Buffer* vertexBuffer;

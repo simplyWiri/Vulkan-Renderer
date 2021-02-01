@@ -63,14 +63,15 @@ namespace Renderer
 
 		core->BeginFrame(buffer, frameInfo);
 
-		ImGui::NewFrame();
+		{
+#if DEBUG
+			ZoneScopedNC("Drawing Debug Visualisations", tracy::Color::Green)
+			DrawDebugVisualisations(core, frameInfo, passes);
+#else
+			ImGui::NewFrame();
+#endif
 
-//		{
-//		ZoneScopedNC("Drawing Debug Visualisations", tracy::Color::Green)
-//#if DEBUG
-//			DrawDebugVisualisations(core, frameInfo, passes);
-//#endif
-//		}
+		}
 
 		vkBeginCommandBuffer(buffer, &beginInfo);
 

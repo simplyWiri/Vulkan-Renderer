@@ -21,7 +21,7 @@ struct Callback
 	bool operator<(const Callback<T> other) const { return priority < other.priority; }
 };
 
-class Input
+class InputHandler
 {
 public:
 
