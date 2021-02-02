@@ -67,5 +67,7 @@ namespace Renderer
 
 		VkDevice* device;
 		uint32_t framesInFlight;
+
+		const std::vector<VkClearValue> clearColors = { { 0.2f, 0.2f, 0.2f, 1.0f }, { 1.0f, 0 } };
 	};
 }

@@ -21,10 +21,12 @@ namespace Renderer
 					shader->compileGLSL();
 					shader->reflectSPIRV();
 				}
-				auto res = shader->getResources();
-				shaderResources.insert(shaderResources.end(), res.begin(), res.end());
 
-				ids.push_back(shader->getId());
+				auto res = shader->getResources();
+				for(auto& r : res)
+					shaderResources.emplace_back(r);
+				
+				ids.emplace_back(shader->getId());
 			}
 		}
 
@@ -101,8 +103,8 @@ namespace Renderer
 		VkPipelineLayout getPipelineLayout() const { return pLayout; }
 		VkDescriptorSetLayout getDescriptorLayout() const { return dLayout; }
 
-		std::vector<uint32_t> getDynOffsets() { return dynOffsets; }
-		std::vector<uint32_t> getIds() const { return ids; }
+		const std::vector<uint32_t>& getDynOffsets() { return dynOffsets; }
+		const std::vector<uint32_t>& getIds() const { return ids; }
 
 	private:
 		bool initialised = false;

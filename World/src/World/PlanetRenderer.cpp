@@ -21,6 +21,11 @@ namespace World
 		vertexBuffer->Load(static_cast<void*>(vertices.data()), sizeof(Renderer::Vertex) * 5000);
 	}
 
+	PlanetRenderer::~PlanetRenderer()
+	{
+		delete vertexBuffer;
+	}
+
 	void PlanetRenderer::DrawCells(VkCommandBuffer buffer)
 	{
 		VkDeviceSize offsets[] = { 0 };

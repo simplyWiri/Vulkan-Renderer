@@ -27,69 +27,6 @@ premake.override(premake.vstudio.sln2005, "projects", function(base, wks)
   base(wks)
 end)
 
-function CreateProject(name)
-	project ("" .. name) -- Concatonate name to an empty string
-	location ("Projects/" .. name)
-	kind "ConsoleApp"
-	language "C++"
-	cppdialect "C++17"
-	staticruntime "on"
-	editAndContinue "off"
-
-	targetdir "Projects/%{prj.name}/bin/"
-	objdir "Projects/%{prj.name}/bin-int/"
-
-	files
-	{
-		("Projects/" .. name .. "/resources/**"),
-		("Projects/" .. name .. "/src/**.h"),
-		("Projects/" .. name .. "/src/**.cpp"),
-		("Projects/" .. name .. "/**.md")
-	}
-
-	includedirs
-	{
-		"src/",
-		"external/",
-		"externals/glfw/include/GLFW",
-		"externals/imgui",
-		"externals/implot",
-		"externals/glm",
-		"externals/stb",
-		"externals/SPIRV-Cross",
-		"externals/spdlog/include",
-		"externals/glslang",
-		"externals/tracy",
-		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/")
-	}
-
-	links
-	{
-		"Vulkan Renderer",
-		"Tracy"
-	}
-
-	filter "configurations:Verbose"
-		defines { "VERBOSE", "TRACE", "DEBUG", "TRACY_ENABLE" }
-		runtime "Debug"
-		symbols "on"
-
-	filter "configurations:Trace"
-		defines { "TRACE", "DEBUG", "TRACY_ENABLE"}
-		runtime "Debug"
-		symbols "on"
-
-	filter "configurations:Debug"
-		defines { "DEBUG", "TRACY_ENABLE"}
-		runtime "Debug"
-		symbols "on"
-
-	filter "configurations:Release"
-		defines  {"NDEBUG", "TRACY_ENABLE"}
-		runtime "Release"
-		optimize "on"
-end
-
 workspace "Renderer"
 	architecture "x64"
 
@@ -127,23 +64,23 @@ group "Third Party"
 	include "externals/"
 group ""
 
-project "Vulkan Renderer"
-	location ""
+project "Renderer"
+	location "Core/Renderer"
 	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
 	staticruntime "on"
 	editAndContinue "off"
 
-	targetdir "bin/"
-	objdir "bin-int/"
+	targetdir "Core/Renderer/bin/"
+	objdir "Core/Renderer/bin-int/"
 
 	files
 	{
-		"resources/**",
-		"src/**.h",
-		"src/**.cpp",
-		"externals/stb/stb_image.h",
+		"Core/Renderer/resources/**",
+		"Core/Renderer/src/**.h",
+		"Core/Renderer/src/**.cpp",
+		"Core/Renderer/externals/stb/stb_image.h",
 	}
 
 	includedirs
@@ -167,34 +104,90 @@ project "Vulkan Renderer"
 		"ImGui",
 		"ImPlot",
 		"Glslang",
-		"SPIRV-Cross"
+		"SPIRV-Cross",
+		-- "Common"
 	}
 
 project "Common"
-	location ""
+	location "Core/Common"
 	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
 	staticruntime "on"
 	editAndContinue "off"
 
-	targetdir "bin/"
-	objdir "bin-int/"
+	targetdir "Core/Common/bin/"
+	objdir "Core/Common/bin-int/"
 
 	files
 	{
-		"resources/**",
 		"src/**.h",
-		"src/**.cpp",
-		"externals/stb/stb_image.h",
+		"src/**.cpp"
 	}
 
 
-group "Projects"
+project ("World Generator") 
+	location ("World/")
+	kind "ConsoleApp"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+	editAndContinue "off"
 
-CreateProject("Fibonacci Sphere")
+	targetdir "World/bin/"
+	objdir "World/bin-int/"
 
-group ""
+	files
+	{
+		("World/resources/**"),
+		("World/src/**.h"),
+		("World/src/**.cpp"),
+		("World/**.md")
+	}
+
+	includedirs
+	{
+		"Core/Renderer/src/",
+		"external/",
+		"externals/glfw/include/GLFW",
+		"externals/imgui",
+		"externals/implot",
+		"externals/glm",
+		"externals/stb",
+		"externals/SPIRV-Cross",
+		"externals/spdlog/include",
+		"externals/glslang",
+		"externals/tracy",
+		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/")
+	}
+
+	links
+	{
+		-- "Common",
+		"Renderer",
+		"Tracy"
+	}
+
+	filter "configurations:Verbose"
+		defines { "VERBOSE", "TRACE", "DEBUG", "TRACY_ENABLE" }
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Trace"
+		defines { "TRACE", "DEBUG", "TRACY_ENABLE"}
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Debug"
+		defines { "DEBUG", "TRACY_ENABLE"}
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Release"
+		defines  {"NDEBUG", "TRACY_ENABLE"}
+		runtime "Release"
+		optimize "on"
+
 
 
 

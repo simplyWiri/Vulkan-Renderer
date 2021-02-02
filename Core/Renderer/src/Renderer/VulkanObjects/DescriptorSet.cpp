@@ -151,7 +151,11 @@ namespace Renderer
 	void DescriptorSetBundle::SetResource(const std::string& name, void* data, const size_t size, const size_t offset) { buffers[name]->Load(data, size, std::max(size * offset, 256 * offset)); }
 
 
-	void DescriptorSetBundle::Clear() { for (auto& val : samplers) { delete val.second; } }
+	void DescriptorSetBundle::Clear()
+	{
+		for (auto& val : buffers) { delete val.second; }
+		for (auto& val : samplers) { delete val.second; }
+	}
 
 	void DescriptorSetCache::BuildCache(VkDevice* device, Memory::Allocator* allocator, uint32_t framesInFlight)
 	{

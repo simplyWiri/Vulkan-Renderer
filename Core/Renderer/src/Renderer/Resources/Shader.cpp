@@ -184,6 +184,22 @@ namespace Renderer
 		return pFirstMemberInfo;
 	}
 
+	Shader::~Shader()
+	{
+		for(const auto& res : resources)
+		{
+			auto* member = res.pMembers;
+			
+			while(member != nullptr)
+			{
+				auto* toDelete = member;
+				member = member->pNext;
+				delete toDelete;
+			}
+		}
+		
+	}
+
 	bool Shader::loadFromPath(ShaderType t, std::string path)
 	{
 		auto charVec = loadFromFile(std::move(path));
@@ -193,12 +209,6 @@ namespace Renderer
 
 	bool Shader::compileGLSL()
 	{
-		if (!glInitialised)
-		{
-			glslang::InitializeProcess();
-			glInitialised = true;
-		}
-
 		glslang::TProgram program;
 		EShLanguage lang = getEshLangType(this->type);
 		glslang::TShader shader(lang);
@@ -280,7 +290,7 @@ namespace Renderer
 			resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
 			resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
 			resource.pMembers = getMembers(compiler, spirType);
-			resources.push_back(resource);
+			resources.emplace_back(resource);
 		}
 
 		// Reflect through all storage buffers (SSBO's)
@@ -307,7 +317,7 @@ namespace Renderer
 			resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
 			resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
 			resource.pMembers = getMembers(compiler, spirType);
-			resources.push_back(resource);
+			resources.emplace_back(resource);
 		}
 
 		// Reflect through all samplers
@@ -324,7 +334,7 @@ namespace Renderer
 			resource.access = VK_ACCESS_SHADER_READ_BIT;
 			resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
 			resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
-			resources.push_back(resource);
+			resources.emplace_back(resource);
 		}
 
 		// Reflect through all combined image samplers
@@ -340,7 +350,8 @@ namespace Renderer
 			resource.flags = stage;
 			resource.access = VK_ACCESS_SHADER_READ_BIT;
 			resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
-			resources.push_back(resource);
+			resource.pMembers;
+			resources.emplace_back(resource);
 		}
 
 		// Reflect through all image samplers
@@ -357,7 +368,7 @@ namespace Renderer
 			resource.access = VK_ACCESS_SHADER_READ_BIT;
 			resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
 			resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
-			resources.push_back(resource);
+			resources.emplace_back(resource);
 		}
 
 		// Reflect through all storage images
@@ -381,7 +392,7 @@ namespace Renderer
 			resource.set = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
 			//resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
 			resource.pMembers = getMembers(compiler, spirType);
-			resources.push_back(resource);
+			resources.emplace_back(resource);
 		}
 
 		// Reflect through all subpass inputs (fragment stage only) * Hardcoded value
@@ -400,7 +411,7 @@ namespace Renderer
 			resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
 			resource.inputAttachmentIndex = compiler.get_decoration(res.id, spv::DecorationInputAttachmentIndex);
 
-			resources.push_back(resource);
+			resources.emplace_back(resource);
 		}
 
 		// Reflect through all push constants, this is a special type. I.e. Does not create a VkDescriptorLayoutBinding. Thus, its 'type' is MAX_ENUM, which flags to the vulkan pipeline that it is a push constant
@@ -427,7 +438,7 @@ namespace Renderer
 			resource.size = static_cast<uint32_t>(compiler.get_declared_struct_size(spirType));
 			resource.pMembers = getMembers(compiler, spirType);
 
-			resources.push_back(resource);
+			resources.emplace_back(resource);
 		}
 
 		status = ShaderStatus::Compiled;

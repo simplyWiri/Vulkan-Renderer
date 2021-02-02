@@ -3,7 +3,6 @@
 
 #include "Renderer/Core.h"
 #include "imgui.h"
-
 #include <glm/gtc/matrix_transform.hpp>
 #include "GUI.h"
 #include "Utils/Camera.h"
@@ -65,7 +64,7 @@ int main()
 	anchoredCam.SetProj(glm::perspective(glm::radians(45.0f), 1200 / 800.0f, 0.1f, 10.0f));
 
 	auto* gen = new PlanetGenerator();
-	World::PlanetRenderer planetRenderer(gen->RetrievePlanet(), renderer->GetAllocator());
+	auto planetRenderer = new World::PlanetRenderer(gen->RetrievePlanet(), renderer->GetAllocator());
 	UniformBufferObject ubo = {};
 
 
@@ -130,7 +129,7 @@ int main()
 
 			context.GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey);
 
-			planetRenderer.DrawCells(buffer);
+			planetRenderer->DrawCells(buffer);
 		}));
 
 
@@ -143,6 +142,7 @@ int main()
 	vkDeviceWaitIdle(*renderer->GetDevice());
 
 	delete gen;
+	delete planetRenderer;
 	delete program;
 	delete gui.key.program;
 }

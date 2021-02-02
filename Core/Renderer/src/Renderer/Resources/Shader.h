@@ -28,8 +28,8 @@ namespace Renderer
 		uint32_t vecSize;
 		uint32_t columns;
 		uint32_t arraySize;
-		const ShaderMember* pNext;
-		const ShaderMember* pMembers;
+		ShaderMember* pNext;
+		ShaderMember* pMembers;
 
 		bool operator <(const ShaderMember& other) const
 		{
@@ -53,7 +53,7 @@ namespace Renderer
 		uint32_t descriptorCount;
 		uint32_t offset = 0;
 		uint32_t size;
-		const ShaderMember* pMembers;
+		ShaderMember* pMembers = nullptr;
 
 		bool operator ==(const ShaderResources& other) const
 		{
@@ -66,6 +66,7 @@ namespace Renderer
 			return std::tie(name, flags, type, access, set, binding, location, inputAttachmentIndex, vecSize, columns, descriptorCount, offset, size, pMembers) < std::tie(other.name, other.flags, other.type, other.access, other.set,
 				       other.binding, other.location, other.inputAttachmentIndex, other.vecSize, other.columns, other.descriptorCount, other.offset, other.size, other.pMembers);
 		}
+
 	};
 
 	/*
@@ -87,10 +88,9 @@ namespace Renderer
 		std::vector<uint32_t> spv;
 		uint32_t id;
 
-		bool glInitialised = false;
-
 	public:
 		Shader(ShaderType t, std::string path, uint32_t id) : type(t), id(id) { loadFromPath(t, path); }
+		~Shader();
 
 		bool loadFromPath(ShaderType t, std::string path);
 		const char* getText() const { return shaderText.c_str(); }
@@ -100,7 +100,7 @@ namespace Renderer
 
 		// For checking if a shader has already been compiled
 		uint32_t getSize() const { return static_cast<uint32_t>(spv.size() * 4); }
-		std::vector<ShaderResources> getResources() { return resources; }
+		const std::vector<ShaderResources>& getResources() { return resources; }
 		std::vector<uint32_t>& getSPV() { return spv; }
 		const uint32_t getId() const { return id; }
 

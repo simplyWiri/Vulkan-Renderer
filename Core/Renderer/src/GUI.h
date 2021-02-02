@@ -61,7 +61,11 @@ namespace Renderer
 			initCallbacks(core);
 			setupImGuiColour();
 
-			auto program = core->GetShaderManager()->getProgram({ core->GetShaderManager()->get(ShaderType::Vertex, "../../resources/ImguiVertex.vert"), core->GetShaderManager()->get(ShaderType::Fragment, "../../resources/ImguiFragment.frag") });
+			auto program = core->GetShaderManager()->getProgram(
+			{
+				core->GetShaderManager()->get(ShaderType::Vertex, "../Core/Renderer/resources/ImguiVertex.vert"),
+				core->GetShaderManager()->get(ShaderType::Fragment, "../Core/Renderer/resources/ImguiFragment.frag")
+			});
 			program->InitialiseResources(core->GetDevice()->GetDevice());
 
 			key = { program };

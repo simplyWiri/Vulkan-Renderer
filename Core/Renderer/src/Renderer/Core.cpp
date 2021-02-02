@@ -3,6 +3,7 @@
 #include "glfw3.h"
 #include "Memory/Allocator.h"
 #include "Tracy.hpp"
+#include "glslang/Public/ShaderLang.h"
 
 namespace Renderer
 {
@@ -201,9 +202,8 @@ namespace Renderer
 	}
 
 	Core::~Core()
-	{
+	{		
 		rendergraph.reset();
-		delete allocator;
 
 		TracyVkDestroy(tracyContext)
 
@@ -213,6 +213,7 @@ namespace Renderer
 		renderpassCache.ClearCache();
 		descriptorCache.ClearCache();
 
+		delete allocator;
 		delete shaderManager;
 	}
 }

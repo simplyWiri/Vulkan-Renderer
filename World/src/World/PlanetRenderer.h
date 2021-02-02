@@ -18,6 +18,7 @@ class PlanetRenderer
 public:
 	
 	explicit PlanetRenderer(World::Planet* planet, Renderer::Memory::Allocator* alloc);
+	~PlanetRenderer();
 
 	void DrawCells(VkCommandBuffer buffer);
 

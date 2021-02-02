@@ -5,7 +5,6 @@
 #include <Renderer\Resources\Vertex.h>
 
 
-
 #include "../Planet.h"
 #include "Renderer/RenderGraph/GraphContext.h"
 #include "Renderer/VulkanObjects/DescriptorSet.h"
@@ -19,6 +18,13 @@ namespace World::Generation
 
 		GeneratePoints(5000);
 		InitialiseEvents();
+	}
+
+	PlanetGenerator::~PlanetGenerator()
+	{
+		for (auto cell : cells) delete cell;
+
+		delete planet;
 	}
 
 	void PlanetGenerator::Step(float maxDeltaX)
@@ -54,7 +60,6 @@ namespace World::Generation
 			}
 			else { sweepline = nextX; }
 		}
-		
 	}
 
 	// http://extremelearning.com.au/evenly-distributing-points-on-a-sphere/ # Lattice 3
@@ -62,7 +67,7 @@ namespace World::Generation
 	{
 		planet->cells.reserve(numPoints);
 		cells.reserve(numPoints);
-		
+
 		for (auto i = 0; i < numPoints; i++)
 		{
 			auto p = GeneratePoint(i, numPoints); // returns coordinates as x, y
@@ -75,10 +80,9 @@ namespace World::Generation
 			auto z = sin(theta);
 
 
-			cells.emplace_back(new Point( {x, y, z}));
-			planet->cells.emplace_back( Planet::VoronoiCell{ {x, y, z }, {} });
+			cells.emplace_back(new Point({ x, y, z }));
+			planet->cells.emplace_back(Planet::VoronoiCell{ { x, y, z }, {} });
 		}
-		
 	}
 
 	Point PlanetGenerator::GeneratePoint(int index, int numPoints)
@@ -127,13 +131,13 @@ namespace World::Generation
 				auto prevArc = arc->left[0];
 				auto nextArc = arc->right[0];
 
-				Point previousArcIntersectPoint(0,0);
+				Point previousArcIntersectPoint(0, 0);
 				float phiStart = arc->value->cell->phi - PI;
 
 				if (prevArc != NULL && arc->value->Intersect(*prevArc->value, sweepline, previousArcIntersectPoint)) { phiStart = previousArcIntersectPoint.phi; }
 
 
-				Point nextArcIntersectPoint(0,0);
+				Point nextArcIntersectPoint(0, 0);
 				float phiEnd = arc->value->cell->phi + PI;
 
 				if (nextArc != NULL && arc->value->Intersect(*nextArc->value, sweepline, nextArcIntersectPoint)) { phiEnd = nextArcIntersectPoint.phi; }

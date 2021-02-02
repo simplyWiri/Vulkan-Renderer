@@ -55,7 +55,7 @@ namespace Renderer::Memory
 		void Push(T entry) { Add(entry); }
 
 
-		int BinarySearchClosestIndex(T value, std::function<bool(T&, T&)> comparer = nullptr)
+		int BinarySearchClosestIndex(T value, std::function<bool(const T&, const T&)> comparer = nullptr)
 		{
 			if (comparer == nullptr) comparer = std::less<T>();
 

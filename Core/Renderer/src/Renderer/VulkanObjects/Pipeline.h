@@ -31,9 +31,7 @@ namespace Renderer
 		static VkPipelineColorBlendAttachmentState createColorAttachmentState(VkColorComponentFlags f, VkBool32 b);
 		static BlendSettings Opaque();
 		static BlendSettings Add();
-
 		static BlendSettings Mixed();
-
 		static BlendSettings AlphaBlend();
 
 		bool operator ==(const BlendSettings& other) const;

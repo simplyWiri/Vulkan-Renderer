@@ -46,11 +46,10 @@ namespace Renderer
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = renderpass->GetHandle();
-		renderPassInfo.framebuffer = framebuffer->GetHandle().at(index);
+		renderPassInfo.framebuffer = framebuffer->GetHandle()[index];
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = extent;
 
-		std::vector<VkClearValue> clearColors = { { 0.2f, 0.2f, 0.2f, 1.0f }, { 1.0f, 0 } };
 		renderPassInfo.clearValueCount = 2;
 		renderPassInfo.pClearValues = clearColors.data();
 

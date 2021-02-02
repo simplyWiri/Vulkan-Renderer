@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "ShaderProgram.h"
+#include "glslang/Public/ShaderLang.h"
 
 namespace std
 {
@@ -18,15 +19,17 @@ namespace Renderer
 	class ShaderManager
 	{
 	private:
-		const std::pair<ShaderType, std::string> defVert = { ShaderType::Vertex, "../../resources/VertexShader.vert" };
-		const std::pair<ShaderType, std::string> defFrag = { ShaderType::Fragment, "../../resources/FragmentShader.frag" };
-		const std::pair<ShaderType, std::string> fsTri = { ShaderType::Vertex, "../../resources/FullScreenTri.vert" };
+		const std::pair<ShaderType, std::string> defVert = { ShaderType::Vertex, "../Core/Renderer/resources/VertexShader.vert" };
+		const std::pair<ShaderType, std::string> defFrag = { ShaderType::Fragment, "../Core/Renderer/resources/FragmentShader.frag" };
+		const std::pair<ShaderType, std::string> fsTri = { ShaderType::Vertex, "../Core/Renderer/resources/FullScreenTri.vert" };
 
 	public:
 		ShaderManager() {}
 
 		ShaderManager(VkDevice* device) : device(device)
 		{
+			glslang::InitializeProcess();
+			
 			shaders.emplace(defVert, new Shader(defVert.first, defVert.second, getId()));
 			shaders.emplace(defFrag, new Shader(defFrag.first, defFrag.second, getId()));
 			shaders.emplace(fsTri, new Shader(fsTri.first, fsTri.second, getId()));
@@ -34,6 +37,8 @@ namespace Renderer
 
 		~ShaderManager()
 		{
+			glslang::FinalizeProcess();
+
 			auto it = shaders.begin();
 
 			while (it != shaders.end())

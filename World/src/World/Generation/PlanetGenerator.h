@@ -162,6 +162,7 @@ namespace World::Generation
 	public:
 
 		explicit PlanetGenerator();
+		~PlanetGenerator();
 
 		std::vector<glm::vec3> vertices;
 		float sweepline = 0;
