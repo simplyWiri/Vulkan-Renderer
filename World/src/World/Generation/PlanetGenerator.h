@@ -4,8 +4,8 @@
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
 #include <glm/vec3.hpp>
+#include "Skiplist.h"
 
-#include "../Skiplist.h"
 
 namespace World {
 	class Planet;
@@ -172,7 +172,7 @@ namespace World::Generation
 
 		std::vector<Point*> siteEventQueue; // We are reaching a new point we haven't encountered yet
 		std::vector<CircleEvent*> circleEventQueue; // One of the parabolas we have drawn for an existing (processed) point has disappeared
-		Skiplist<BeachArc> beach;
+		Common::Skiplist<float, BeachArc> beach;
 
 		void Step(float maxDeltaX);
 

@@ -121,8 +121,8 @@ project "Common"
 
 	files
 	{
-		"src/**.h",
-		"src/**.cpp"
+		"Core/Common/src/**.h",
+		"Core/Common/src/**.cpp"
 	}
 
 
@@ -158,12 +158,13 @@ project ("World Generator")
 		"externals/spdlog/include",
 		"externals/glslang",
 		"externals/tracy",
-		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/")
+		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/"),
+		"Core/Common/src"
 	}
 
 	links
 	{
-		-- "Common",
+		"Common",
 		"Renderer",
 		"Tracy"
 	}

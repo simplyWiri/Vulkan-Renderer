@@ -114,33 +114,32 @@ namespace World::Generation
 		if (beach.Empty())
 		{
 			// Insert p into the skiplist, set the previous and next pointers to point to itself
-			beach.Insert(event->phi, new BeachArc(event));
+			beach.Add(event->phi, BeachArc(event));
 		}
 		else if (beach.Size() == 1)
 		{
 			// Append p to the skiplist, and reset pointers correspondingly
-			beach.Insert(event->phi, new BeachArc(event));
+			beach.Add(event->phi, BeachArc(event));
 		}
 		else
 		{
 			// Search the skiplist from the reference position for the arc which will intersect with the great circle
 			// which goes through `event` and the north pole
-			auto arc = beach.GetHead()->right[0];
-			while (arc != NULL)
+			for(auto arc : beach)
 			{
-				auto prevArc = arc->left[0];
-				auto nextArc = arc->right[0];
+				auto prevArc = arc->prev[0];
+				auto nextArc = arc->next[0];
 
 				Point previousArcIntersectPoint(0, 0);
-				float phiStart = arc->value->cell->phi - PI;
+				float phiStart = arc->value.cell->phi - PI;
 
-				if (prevArc != NULL && arc->value->Intersect(*prevArc->value, sweepline, previousArcIntersectPoint)) { phiStart = previousArcIntersectPoint.phi; }
+				if (prevArc != NULL && arc->value.Intersect(prevArc->value, sweepline, previousArcIntersectPoint)) { phiStart = previousArcIntersectPoint.phi; }
 
 
 				Point nextArcIntersectPoint(0, 0);
-				float phiEnd = arc->value->cell->phi + PI;
+				float phiEnd = arc->value.cell->phi + PI;
 
-				if (nextArc != NULL && arc->value->Intersect(*nextArc->value, sweepline, nextArcIntersectPoint)) { phiEnd = nextArcIntersectPoint.phi; }
+				if (nextArc != NULL && arc->value.Intersect(nextArc->value, sweepline, nextArcIntersectPoint)) { phiEnd = nextArcIntersectPoint.phi; }
 
 				if (!(phiStart <= phiEnd && phiStart <= event->phi && event->phi <= phiEnd) || (event->phi < phiEnd || event->phi > phiStart)) break;
 
@@ -150,8 +149,6 @@ namespace World::Generation
 				//     event.phi >= arc.phi_start && event.phi <= arc.phi_end
 				// else if (arc.phi_start > arc.phi_end
 				//     event.phi <= min(arc.phi_start, arc.phi_end) || event.phi >= max(arc.phi_start, arc.phi_end)
-
-				arc = arc->right[0];
 			}
 
 			// If either of those conditions are true, we have found the correct arc.
@@ -167,7 +164,7 @@ namespace World::Generation
 	void PlanetGenerator::HandleCircleEvent(CircleEvent* event)
 	{
 		// Remove the site `j` which represents the disappearing arc from the skiplist and remove the circle event from the circleQueue
-		beach.Erase(event->j->cell->phi);
+		beach.Remove(event->j->cell->phi);
 		std::remove(circleEventQueue.begin(), circleEventQueue.end(), event);
 
 		// Add thing to vertex list `event->center`
