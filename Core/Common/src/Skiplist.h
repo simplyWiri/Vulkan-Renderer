@@ -7,6 +7,7 @@ namespace Common
 	template <class K, class V, int level = 20>
 	class Skiplist 
 	{
+	public:
 		class Node
 		{
 		public:
@@ -15,7 +16,6 @@ namespace Common
 				memset(next, 0, level * sizeof(Node*));
 				memset(prev, 0, level * sizeof(Node*));
 			}
-			
 			
 			K key;
 			V value;
@@ -62,7 +62,7 @@ namespace Common
 
 		~Skiplist()
 		{
-			 while (head)
+			while (head)
 	        {
 	            Node* old = head;
 	            head = head->next[0];

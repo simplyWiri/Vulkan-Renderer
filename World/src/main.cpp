@@ -55,13 +55,12 @@ int main()
 	DescriptorSetKey descriptorSetKey = { program };
 	const auto vert = Vertex::defaultVertex();
 
-	float yaw = -90.0f;
-	float pitch = 0.0f;
-
+	float fov = 45.0f;
+	
 	auto anchoredCam = AnchoredCamera( {0, 0, 0}, {0, 1, 0}, { 0, 0, 3});
 
 	anchoredCam.SetModel(rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
-	anchoredCam.SetProj(glm::perspective(glm::radians(45.0f), 1200 / 800.0f, 0.1f, 10.0f));
+	anchoredCam.SetProj(glm::perspective(glm::radians(fov), s.width / static_cast<float>(s.height), 0.1f, 10.0f));
 
 	auto* gen = new PlanetGenerator();
 	auto planetRenderer = new World::PlanetRenderer(gen->RetrievePlanet(), renderer->GetAllocator());
@@ -84,7 +83,9 @@ int main()
 	    xOffset *= camSpeed;
 	    yOffset *= camSpeed;
 
-		anchoredCam.Rotate({ xOffset, yOffset });
+		float zoomMultiplier = glm::clamp(fov / 45.0f, 0.25f, 1.0f);
+		
+		anchoredCam.Rotate({ xOffset * zoomMultiplier, yOffset * zoomMultiplier});
 
 		return false;	
 	};
@@ -99,9 +100,21 @@ int main()
 		return false;
 	};
 
+	auto scrollCallback = [&](float yOffset)
+	{
+		fov -= yOffset;
+
+		fov = glm::clamp(fov, 1.0f, 45.0f);
+
+		anchoredCam.SetProj(glm::perspective(glm::radians(fov), static_cast<float>(s.width) / static_cast<float>(s.height), 0.1f, 10.0f));
+
+		return false;
+	};
+
 	renderer->GetInputHandler()->RegisterMouseClickCallBack(mouseClickCallback, InputPriority::LOW_PRIORITY);
 	renderer->GetInputHandler()->RegisterMouseMoveCallBack(mouseMoveCallback, InputPriority::LOW_PRIORITY);
-
+	renderer->GetInputHandler()->RegisterMouseScrollCallBack(scrollCallback, InputPriority::LOW_PRIORITY);
+	
 	renderer->GetRendergraph()->AddPass(PassDesc()
 		.SetName("GPU Drawing Triangle")
 		.SetInitialisationFunc([&descriptorSetKey](Tether& tether) { tether.GetDescriptorCache()->WriteBuffer(descriptorSetKey, "ubo"); })
@@ -130,6 +143,9 @@ int main()
 			context.GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey);
 
 			planetRenderer->DrawCells(buffer);
+			planetRenderer->DrawVertices(buffer);
+
+			gen->Step(5);
 		}));
 
 

@@ -52,11 +52,12 @@ private:
 
 	void RegisterGLFWCallbacks(GLFWwindow* window);
 
-	static void keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/);
-	static void charCallback(GLFWwindow* window, unsigned int codepoint);
-	static void mouseButtonCallback(GLFWwindow* window, int button, int action, int /*mods*/);
-	static void mouseMoveCallback(GLFWwindow* window, double xpos, double ypos);
-	static void mouseScrollCallback(GLFWwindow* window, double xoffset, double /*yoffset*/);
+	
+	static void KeyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/);
+	static void CharCallback(GLFWwindow* window, unsigned int codepoint);
+	static void MouseButtonCallback(GLFWwindow* window, int button, int action, int /*mods*/);
+	static void MouseMoveCallback(GLFWwindow* window, double xpos, double ypos);
+	static void MouseScrollCallback(GLFWwindow* window, double /*xoffset*/, double yoffset);
 };
 
 }

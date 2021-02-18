@@ -164,7 +164,7 @@ project ("World Generator")
 
 	links
 	{
-		"Common",
+		-- "Common",
 		"Renderer",
 		"Tracy"
 	}

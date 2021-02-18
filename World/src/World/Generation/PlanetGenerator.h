@@ -1,10 +1,12 @@
-#pragma once
+﻿#pragma once
+#include <ostream>
 #include <vector>
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
-#include "Skiplist.h"
+#include "RBtree.h"
 
 
 namespace World {
@@ -12,7 +14,8 @@ namespace World {
 }
 
 namespace World::Generation
-{	
+{
+
 	struct Point
 	{
 		Point(float theta, float phi) : phi(phi), theta(theta) { UpdatePosition(); }
@@ -33,7 +36,7 @@ namespace World::Generation
 		}
 
 		bool operator <(const Point& other) const { return (theta < other.theta) || (theta == other.theta && phi < other.phi); }
-
+		bool operator ==(const Point& other) const { return position == other.position; }
 		void UpdatePosition() { position = glm::vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta)); }
 
 
@@ -61,93 +64,89 @@ namespace World::Generation
 
 	struct BeachArc
 	{
-		BeachArc(Point* cell) : cell(cell) { }
+		BeachArc(Point* cell) : cell(cell), circleEvent(nullptr) { }
 
 		Point* cell;
 		CircleEvent* circleEvent;
 
-		bool operator <(const BeachArc& other) const { return cell->phi < other.cell->phi; }
+		bool operator <(const BeachArc& other) const { return *cell < *other.cell; }
 
-		// returns true if the two arcs intersect, location will be a ref to the location at which the intersection occurs
-		bool Intersect(const BeachArc& other, float sweeplineX, Point& location)
+		friend std::ostream& operator<<(std::ostream& os, const BeachArc& a)
 		{
+		    os << a.cell->phi;
+		    return os;
+		}
+		
+		// returns true if the two arcs intersect, location will be a ref to the location at which the intersection occurs
+		bool Intersect(const BeachArc& other, float sweepline, float& oPhi)
+		{
+			static const float PI = 3.14159265359f;
+
+			oPhi = 0;
 			float theta = cell->theta;
 			float phi = cell->phi;
 
-			float otherTheta = cell->theta;
-			float otherPhi = cell->phi;
+			float otherTheta = other.cell->theta;
+			float otherPhi = other.cell->phi;
 
-			if (theta >= sweeplineX) // If we are further 'across' the sphere than the sweepline
+			if (theta >= sweepline) // If we are further 'across' the sphere than the sweepline
 			{
-				if (otherTheta >= sweeplineX) return false;
+				if (otherTheta >= sweepline) 
+					return false;
 
-				location = Point::PhiToPoint(phi, sweeplineX, otherTheta, otherPhi);
+				oPhi = phi;
 				return true;
 			}
 
-			if (otherTheta >= sweeplineX)
+			if (otherTheta >= sweepline)
 			{
-				location = Point::PhiToPoint(otherPhi, sweeplineX, theta, phi);
+				oPhi = otherPhi;
 				return true;
 			}
 
+			const auto adjustedPhi = otherPhi - phi;
+			
+			const auto sinSweeplineX = glm::sin(sweepline);
+			const auto cosSweeplineX = glm::cos(sweepline);
 
-			auto sinSweeplineX = glm::sin(sweeplineX);
-			auto cosSweeplineX = glm::cos(sweeplineX);
+			const auto cosTheta = glm::cos(theta);
+			const auto sinTheta = glm::sin(theta);
+			const auto cosOtherTheta = glm::cos(otherTheta);
+			const auto sinOtherTheta = glm::sin(otherTheta);
 
-			auto cosTheta = glm::cos(theta);
-			auto sinTheta = glm::sin(theta);
-			auto cosOtherTheta = glm::cos(otherTheta);
-			auto sinotherTheta = glm::sin(otherTheta);
-			auto cosPhi = glm::cos(phi);
-			auto sinPhi = glm::sin(phi);
-			auto cosOtherPhi = glm::cos(otherPhi);
-			auto sinOtherPhi = glm::sin(otherPhi);
+			const auto a = ((cosSweeplineX - cosOtherTheta) * sinTheta) - ((cosSweeplineX - cosTheta) * sinOtherTheta * std::cos(adjustedPhi));
+			const auto b = -((cosSweeplineX - cosTheta) * sinOtherTheta * std::sin(adjustedPhi));
+			const auto e = (cosTheta - cosOtherTheta) * sinSweeplineX;
+			const auto y = std::atan2(a, b);
 
-			auto a = ((cosSweeplineX - cosOtherTheta) * sinTheta * cosPhi) - ((cosSweeplineX - cosTheta) * sinotherTheta * cosOtherPhi);
-			auto b = ((cosSweeplineX - cosOtherTheta) * sinTheta * sinPhi) - ((cosSweeplineX - cosTheta) * sinotherTheta * sinOtherPhi);
-			auto e = (cosTheta - cosOtherTheta) * sinSweeplineX;
-
-			auto length = glm::sqrt(a * a + b * b);
-
-			if (abs(a) > length || abs(b) > length) return false;
-
-			// Todo... figure out how this section works
-
-			auto gamma = glm::atan(a, b);
-			auto sin_phi_int_plus_gamma_1 = e / length;
-			auto phi_int_plus_gamma_1 = glm::asin(sin_phi_int_plus_gamma_1);
-			auto pA = phi_int_plus_gamma_1 - gamma;
-			location = Point::PhiToPoint(pA, sweeplineX, theta, phi);
-
-			const float PI = 3.14159265359f;
-
-
-			if (location.phi > PI) location.phi -= PI * 2;
-			if (location.phi < -PI) location.phi += PI * 2;
-
-			return true;
+			oPhi = glm::asin(glm::min(glm::max(e / length( glm::vec2{ a, b }), -1.0f), 1.0f)) - y + phi;
+ 
+	        return true;
 		}
 	};
 
 	struct CircleEvent
 	{
-		CircleEvent(BeachArc* i, BeachArc* j, BeachArc* k) : i(i), j(j), k(k)
+		CircleEvent(BeachArc* leftArc, Common::LooseOrderedRbTree<BeachArc*>::Node* middleArc, BeachArc* rightArc) : leftArc(leftArc), middleArc(middleArc),  rightArc(rightArc)
 		{
-			auto p_ij = i->cell->position - j->cell->position;
-			auto p_kj = k->cell->position - j->cell->position;
+			auto leftPos = leftArc->cell->position;
+			auto middlePos = middleArc->element->cell->position;
+			auto rightPos = rightArc->cell->position;
 
-			auto dir = cross(p_ij, p_kj);
+			auto dir = glm::normalize(cross(leftPos - middlePos, rightPos - middlePos));
 
 			center = Point(dir);
-			theta = acos(center.position.z) + acos(glm::dot(center.position, i->cell->position));
+			theta = acos(center.position.z) + acos(dot(center.position, middlePos));
 		}
 
-		CircleEvent(BeachArc* i, BeachArc* j, BeachArc* k, Point center, float theta) : i(i), j(j), k(k), center(center), theta(theta) { }
+		CircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, Point center, float theta) : leftArc(i), middleArc(j), rightArc(k) , center(center), theta(theta)
+		{
+		}
 
-		BeachArc* i;
-		BeachArc* j;
-		BeachArc* k;
+		BeachArc* leftArc;
+		Common::LooseOrderedRbTree<BeachArc*>::Node* middleArc;
+		BeachArc* rightArc;
+		bool valid;
 
 		Point center = {0,0}; // Circumcenter
 		float theta; // Lowest point on circle
@@ -172,13 +171,13 @@ namespace World::Generation
 
 		std::vector<Point*> siteEventQueue; // We are reaching a new point we haven't encountered yet
 		std::vector<CircleEvent*> circleEventQueue; // One of the parabolas we have drawn for an existing (processed) point has disappeared
-		Common::Skiplist<float, BeachArc> beach;
+		Common::LooseOrderedRbTree<BeachArc*> beach{nullptr};
 
 		void Step(float maxDeltaX);
 
-		bool Finished() { return siteEventQueue.empty(); }
+		bool Finished() { return siteEventQueue.empty() && circleEventQueue.empty(); }
 
-		Planet* RetrievePlanet() const { return planet; };
+		Planet* RetrievePlanet() const { return planet; }
 
 	private:
 		const float PI = 3.14159265359f;
@@ -190,10 +189,11 @@ namespace World::Generation
 		void HandleSiteEvent(Point* event);
 		void HandleCircleEvent(CircleEvent* event);
 
-		void CheckForValidCircleEvent(Point* i, Point* j, Point* k, float sweeplineX);
+		void CheckForValidCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, float sweeplineX);
 
 
-		void AddCircleEvent(Point* i, Point* j, Point* k, Point center, float theta);
+		void AddCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, Point center, float theta);
 		void RemoveCircleEvent(CircleEvent* event);
+		Common::LooseOrderedRbTree<BeachArc*>::Node* FindArcOnBeach(Point* site);
 	};
 }

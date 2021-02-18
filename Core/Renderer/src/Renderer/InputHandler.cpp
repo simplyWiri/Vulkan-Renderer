@@ -3,8 +3,6 @@
 
 namespace Renderer
 {
-	
-
 	void InputHandler::Setup(GLFWwindow* window)
 	{
 		RegisterGLFWCallbacks(window);
@@ -38,12 +36,12 @@ namespace Renderer
 	{
 		glfwSetWindowUserPointer(window, this);
 		
-		glfwSetMouseButtonCallback(window, mouseButtonCallback);
-		glfwSetCursorPosCallback(window, mouseMoveCallback);
-		glfwSetScrollCallback(window, mouseScrollCallback);
-		glfwSetKeyCallback(window, keyCallback);
+		glfwSetMouseButtonCallback(window, MouseButtonCallback);
+		glfwSetCursorPosCallback(window, MouseMoveCallback);
+		glfwSetScrollCallback(window, MouseScrollCallback);
+		glfwSetKeyCallback(window, KeyCallback);
 	}
-	void InputHandler::keyCallback(GLFWwindow* window, int key, int, int action, int)
+	void InputHandler::KeyCallback(GLFWwindow* window, int key, int, int action, int)
 	{
 		auto* input = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
 
@@ -53,7 +51,7 @@ namespace Renderer
 		}
 	}
 
-	void InputHandler::charCallback(struct GLFWwindow* window, unsigned codepoint)
+	void InputHandler::CharCallback(struct GLFWwindow* window, unsigned codepoint)
 	{
 		auto* input = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
 
@@ -63,7 +61,7 @@ namespace Renderer
 		}
 	}
 
-	void InputHandler::mouseButtonCallback(GLFWwindow* window, int button, int action, int)
+	void InputHandler::MouseButtonCallback(GLFWwindow* window, int button, int action, int)
 	{
 		auto* input = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
 
@@ -72,7 +70,7 @@ namespace Renderer
 			if(mouseClickCallback.callback(button, action)) return;
 		}
 	}
-	void InputHandler::mouseMoveCallback(GLFWwindow* window, double xpos, double ypos)
+	void InputHandler::MouseMoveCallback(GLFWwindow* window, double xpos, double ypos)
 	{
 		auto* input = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
 
@@ -81,13 +79,13 @@ namespace Renderer
 			if(mouseMoveCallback.callback(static_cast<float>(xpos), static_cast<float>(ypos))) return;
 		}
 	}
-	void InputHandler::mouseScrollCallback(GLFWwindow* window, double xoffset, double)
+	void InputHandler::MouseScrollCallback(GLFWwindow* window, double, double yoffset)
 	{
 		auto* input = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
 
 		for (const auto& mouseScrollCallback : input->mouseScrollCallbacks)
 		{
-			if(mouseScrollCallback.callback(static_cast<float>(xoffset))) return;
+			if(mouseScrollCallback.callback(static_cast<float>(yoffset))) return;
 		}
 	}
 }

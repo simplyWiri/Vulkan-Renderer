@@ -118,16 +118,14 @@ namespace Renderer
 			createInfo.pNext = nullptr;
 		}
 
-		bool success = vkCreateInstance(&createInfo, nullptr, &instance) == VK_SUCCESS;
-		Assert(success, "Failed to create instance");
+		auto success = vkCreateInstance(&createInfo, nullptr, &instance);
+		Assert(success == VK_SUCCESS, "Failed to create instance");
 
 		if (debug)
 		{
 			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 			if (func != nullptr) { func(instance, &messengerInfo, nullptr, &debugMessenger); }
 			else { LogError("Failed to initialise debug layers"); }
-
-			Assert(success, "Failed to create debug messenger");
 		}
 	}
 
