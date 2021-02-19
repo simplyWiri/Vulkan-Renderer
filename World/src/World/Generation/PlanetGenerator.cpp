@@ -95,13 +95,13 @@ namespace World::Generation
 	{
 		const float GOLDEN_RATIO = 1.61803398875f;
 
-		if (index == 0) return { 0.0f, 0.0f };
-		if (index == numPoints - 1) return { 1.0f, 0.0f };
+		if (index == 0) return { 0.00001f, 0.0f };
+		if (index == numPoints - 1) return { 0.99999f, 0.0f };
 
 		auto x = (index + 3.5f) / (numPoints + 6);
 		auto y = index / GOLDEN_RATIO;
 
-		return { x, y };
+		return { x, y};
 	}
 
 	// Sort the points P, and insert into the site event queue
@@ -123,26 +123,25 @@ namespace World::Generation
 		{
 			// Search the skiplist from the reference position for the arc which will intersect with the great circle
 			// which goes through `event` and the north pole
-
 			auto* curr = FindArcOnBeach(event);
 			if(curr == nullptr) return;
 			
 			auto* pred = curr->Predecessor() ? curr->Predecessor() : beach.Last();
 			auto* succ = curr->Successor() ? curr->Successor() : beach.First();
 			
-			// if ( arc.circleEvent != null ) // false alarm, remove the event from the circleEventQueue
+			// false alarm, remove the event from the circleEventQueue
 			if (curr->element->circleEvent) RemoveCircleEvent(curr->element->circleEvent);
 
 			// Duplicate arc a and insert the new arc for `event` between them in the skiplist
-			auto* duplicatedArc = new BeachArc(curr->element->cell);
+			auto* duplicatedArc = new BeachArc(curr->element->site);
 			auto* newArc = new BeachArc(event);
 
 			auto* newArcLoc = beach.Insert(newArc, curr);
 			auto* duplicatedArcLoc = beach.Insert(duplicatedArc, newArcLoc);
 
-			// check (p2, pj, pi) and (pi, pj, p3) for valid circle events
-			CheckForValidCircleEvent(pred->element, newArcLoc, curr->element, sweepline);
-			CheckForValidCircleEvent(curr->element, duplicatedArcLoc, succ->element, sweepline);
+			// check (p2, pj', pi) and (pi, pj'', p3) for valid circle events
+			CheckForValidCircleEvent(pred->element, curr, newArcLoc->element, sweepline, true);
+			CheckForValidCircleEvent(newArcLoc->element, duplicatedArcLoc, succ->element, sweepline, true);
 		}
 	}
 
@@ -155,7 +154,7 @@ namespace World::Generation
 		auto arc1 = i->Predecessor() ? i->Predecessor()->element : beach.Last()->element;
 		auto arc2 = k->Successor()  ? k->Successor()->element : beach.First()->element;
 
-		auto eventCenter = event->center.position;
+		auto eventCenter = event->center;
 		
 		// Remove the fading arc from the beach
 		j->element->circleEvent = nullptr;
@@ -176,27 +175,25 @@ namespace World::Generation
 		CheckForValidCircleEvent(i->element, k, arc2, sweepline);
 	}
 
-	void PlanetGenerator::CheckForValidCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, float sweeplineX)
+	void PlanetGenerator::CheckForValidCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, float sweeplineX, bool siteEvent)
 	{
-		if (i->cell == j->element->cell || i->cell == k->cell || k->cell == j->element->cell) return;
+		if (!siteEvent && (i->site == j->element->site || j->element->site == k->site || i->site == k->site)) 
+			return;
 
-		auto pij = i->cell->position - j->element->cell->position;
-		auto pkj = k->cell->position - j->element->cell->position;
+		auto pij = i->site->position - j->element->site->position;
+		auto pkj = k->site->position - j->element->site->position;
 
 		auto dir = glm::cross(pij, pkj);
 
-		auto circumcenter = Point(glm::normalize(dir));
+		auto circumcenter = glm::normalize(dir);
 
-		auto theta = acos(circumcenter.position.z) + acos(glm::dot(circumcenter.position, j->element->cell->position));
+		auto theta = acos(circumcenter.z) + acos(glm::dot(circumcenter, j->element->site->position));
 
-		// Do not evaluate points when the lowest point is above the sweepline.
-		//if (theta > sweeplineX)
-		//{
-			AddCircleEvent(i, j, k, circumcenter, theta);
-		//} 
+
+		AddCircleEvent(i, j, k, circumcenter, theta);
 	}
 
-	void PlanetGenerator::AddCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, Point center, float theta)
+	void PlanetGenerator::AddCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, glm::vec3 center, float theta)
 	{
 		auto* event = new CircleEvent(i, j, k, center, theta);
 		j->element->circleEvent = event;
@@ -206,14 +203,16 @@ namespace World::Generation
 
 	void PlanetGenerator::RemoveCircleEvent(CircleEvent* event)
 	{
-		if (event == nullptr || !event->valid) return;
+		if (event == nullptr) return;
 
 		auto it = std::find(circleEventQueue.begin(), circleEventQueue.end(), event);
 		circleEventQueue.erase(it);
 
-		event->valid = false;
+		delete event;
 	}
 
+	// Based on: https://github.com/kelvin13/voronoi/blob/master/sources/game/lib/voronoi.swift#L1061-L1185
+	
 	Common::LooseOrderedRbTree<BeachArc*>::Node* PlanetGenerator::FindArcOnBeach(Point* site)
 	{
 		auto* first = beach.First();
@@ -233,7 +232,7 @@ namespace World::Generation
 			static const float divisor = PI * 2;
 			auto v = phi + shift + (6 * PI);
 
-			return fmod(v, divisor);
+			return fmodf(v, divisor);
 		};
 
 		locationPhi = adjust(locationPhi);
@@ -247,27 +246,21 @@ namespace World::Generation
 			pred = curr->Predecessor();
 			succ = curr->Successor();
 
-			if (pred != nullptr && pred->element->Intersect(*curr->element, sweepline, phiStart) && locationPhi < adjust(phiStart))
+			if (pred != nullptr && curr->left != nullptr && pred->element->Intersect(*curr->element, sweepline, phiStart) && locationPhi < adjust(phiStart))
 			{
-				curr = pred;
+				curr = curr->left;
 				continue;
 			}
-			else if (succ != nullptr && curr->element->Intersect(*succ->element, sweepline, phiEnd) && locationPhi > adjust(phiEnd))
+
+			if (succ != nullptr && curr->right != nullptr && curr->element->Intersect(*succ->element, sweepline, phiEnd) && locationPhi > adjust(phiEnd))
 			{
-				curr = succ;
+				curr = curr->right;
 				continue;
 			}
 
 			break;
 		}
 
-		//pred = curr->Predecessor() == nullptr ? last : curr->Predecessor();
-		//succ = curr->Successor() == nullptr ? first : curr->Successor();
-
-		//bool valid = pred->element->Intersect(*curr->element, sweepline, phiStart) && curr->element->Intersect(*succ->element, sweepline, phiEnd);
-
-		//if(valid && phiStart < phiEnd && phiStart <= site->phi && site->phi <= phiEnd || phiStart > phiEnd && (phiStart <=site->phi || site->phi <= phiEnd)) 
-			return curr;
-		/*return nullptr;*/
+		return curr;
 	}
 }

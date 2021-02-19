@@ -39,22 +39,6 @@ namespace World::Generation
 		bool operator ==(const Point& other) const { return position == other.position; }
 		void UpdatePosition() { position = glm::vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta)); }
 
-
-		static Point PhiToPoint(float phi, float x, float theta, float otherPhi)
-		{
-			if (theta >= x)
-			{
-				return Point(x, phi); // could be any point on the line segment
-			}
-			else
-			{
-				auto a = - (glm::sin(theta) * glm::cos(phi - otherPhi) - glm::sin(x));
-				auto b = - (glm::cos(x) - glm::cos(theta));
-				auto theta = glm::atan(b, a);
-				return Point(theta, phi);
-			}
-		}
-
 		float phi;
 		float theta;
 		glm::vec3 position;
@@ -64,30 +48,30 @@ namespace World::Generation
 
 	struct BeachArc
 	{
-		BeachArc(Point* cell) : cell(cell), circleEvent(nullptr) { }
+		BeachArc(Point* cell) : site(cell), circleEvent(nullptr) { }
 
-		Point* cell;
+		Point* site;
 		CircleEvent* circleEvent;
 
-		bool operator <(const BeachArc& other) const { return *cell < *other.cell; }
+		bool operator <(const BeachArc& other) const { return *site < *other.site; }
 
 		friend std::ostream& operator<<(std::ostream& os, const BeachArc& a)
 		{
-		    os << a.cell->phi;
+		    os << a.site->phi;
 		    return os;
 		}
 		
-		// returns true if the two arcs intersect, location will be a ref to the location at which the intersection occurs
+		// returns true if the two arcs intersect, oPhi will be the phi at which the intersection occurs
 		bool Intersect(const BeachArc& other, float sweepline, float& oPhi)
 		{
 			static const float PI = 3.14159265359f;
 
 			oPhi = 0;
-			float theta = cell->theta;
-			float phi = cell->phi;
+			float theta = site->theta;
+			float phi = site->phi;
 
-			float otherTheta = other.cell->theta;
-			float otherPhi = other.cell->phi;
+			float otherTheta = other.site->theta;
+			float otherPhi = other.site->phi;
 
 			if (theta >= sweepline) // If we are further 'across' the sphere than the sweepline
 			{
@@ -114,8 +98,8 @@ namespace World::Generation
 			const auto cosOtherTheta = glm::cos(otherTheta);
 			const auto sinOtherTheta = glm::sin(otherTheta);
 
-			const auto a = ((cosSweeplineX - cosOtherTheta) * sinTheta) - ((cosSweeplineX - cosTheta) * sinOtherTheta * std::cos(adjustedPhi));
-			const auto b = -((cosSweeplineX - cosTheta) * sinOtherTheta * std::sin(adjustedPhi));
+			const auto a = ((cosSweeplineX - cosOtherTheta) * sinTheta) - ((cosSweeplineX - cosTheta) * sinOtherTheta * glm::cos(adjustedPhi));
+			const auto b = -((cosSweeplineX - cosTheta) * sinOtherTheta * glm::sin(adjustedPhi));
 			const auto e = (cosTheta - cosOtherTheta) * sinSweeplineX;
 			const auto y = std::atan2(a, b);
 
@@ -129,17 +113,17 @@ namespace World::Generation
 	{
 		CircleEvent(BeachArc* leftArc, Common::LooseOrderedRbTree<BeachArc*>::Node* middleArc, BeachArc* rightArc) : leftArc(leftArc), middleArc(middleArc),  rightArc(rightArc)
 		{
-			auto leftPos = leftArc->cell->position;
-			auto middlePos = middleArc->element->cell->position;
-			auto rightPos = rightArc->cell->position;
+			auto leftPos = leftArc->site->position;
+			auto middlePos = middleArc->element->site->position;
+			auto rightPos = rightArc->site->position;
 
 			auto dir = glm::normalize(cross(leftPos - middlePos, rightPos - middlePos));
 
-			center = Point(dir);
-			theta = acos(center.position.z) + acos(dot(center.position, middlePos));
+			center = dir;
+			theta = acos(center.z) + acos(dot(center, middlePos));
 		}
 
-		CircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, Point center, float theta) : leftArc(i), middleArc(j), rightArc(k) , center(center), theta(theta)
+		CircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, glm::vec3 center, float theta) : leftArc(i), middleArc(j), rightArc(k) , center(center), theta(theta)
 		{
 		}
 
@@ -148,7 +132,7 @@ namespace World::Generation
 		BeachArc* rightArc;
 		bool valid;
 
-		Point center = {0,0}; // Circumcenter
+		glm::vec3 center; // Circumcenter
 		float theta; // Lowest point on circle
 
 		bool operator <(const CircleEvent& other) const { return theta < other.theta; }
@@ -189,10 +173,10 @@ namespace World::Generation
 		void HandleSiteEvent(Point* event);
 		void HandleCircleEvent(CircleEvent* event);
 
-		void CheckForValidCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, float sweeplineX);
+		void CheckForValidCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, float sweeplineX, bool siteEvent = false);
 
 
-		void AddCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, Point center, float theta);
+		void AddCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, glm::vec3 center, float theta);
 		void RemoveCircleEvent(CircleEvent* event);
 		Common::LooseOrderedRbTree<BeachArc*>::Node* FindArcOnBeach(Point* site);
 	};

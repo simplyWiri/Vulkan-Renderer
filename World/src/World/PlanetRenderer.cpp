@@ -12,7 +12,7 @@ namespace World
 		: planet(planet)
 	{
 		this->vertexBuffer = alloc->AllocateBuffer(sizeof(Renderer::Vertex) * 500, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		this->planetVertexBuffer = alloc->AllocateBuffer(sizeof(Renderer::Vertex) * 500, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		this->planetVertexBuffer = alloc->AllocateBuffer(sizeof(Renderer::Vertex) * 2500, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		std::vector<Renderer::Vertex> vertices(planet->cells.size());
 

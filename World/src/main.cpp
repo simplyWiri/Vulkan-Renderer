@@ -145,7 +145,7 @@ int main()
 			planetRenderer->DrawCells(buffer);
 			planetRenderer->DrawVertices(buffer);
 
-			gen->Step(5);
+			gen->Step(0.005);
 		}));
 
 
