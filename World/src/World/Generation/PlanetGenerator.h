@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include <ostream>
+#include <Tracy.hpp>
 #include <vector>
+#include <common/TracyColor.hpp>
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
@@ -48,10 +50,14 @@ namespace World::Generation
 
 	struct BeachArc
 	{
-		BeachArc(Point* cell) : site(cell), circleEvent(nullptr) { }
+		BeachArc(Point* cell, uint32_t cellIdx) : site(cell), circleEvent(nullptr), leftEdgeIdx(~0u), rightEdgeIdx(~0u), cellIdx(cellIdx) { }
 
 		Point* site;
 		CircleEvent* circleEvent;
+
+		uint32_t leftEdgeIdx;
+		uint32_t rightEdgeIdx;
+		uint32_t cellIdx;
 
 		bool operator <(const BeachArc& other) const { return *site < *other.site; }
 
@@ -130,7 +136,6 @@ namespace World::Generation
 		BeachArc* leftArc;
 		Common::LooseOrderedRbTree<BeachArc*>::Node* middleArc;
 		BeachArc* rightArc;
-		bool valid;
 
 		glm::vec3 center; // Circumcenter
 		float theta; // Lowest point on circle
@@ -172,6 +177,8 @@ namespace World::Generation
 
 		void HandleSiteEvent(Point* event);
 		void HandleCircleEvent(CircleEvent* event);
+		void PopulateEdges(BeachArc* prev, BeachArc* succ, glm::vec3 eventCenter);
+		void FinishEdges(BeachArc* arc, uint32_t vertexId);
 
 		void CheckForValidCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, float sweeplineX, bool siteEvent = false);
 

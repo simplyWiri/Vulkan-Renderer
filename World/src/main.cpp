@@ -63,7 +63,7 @@ int main()
 	anchoredCam.SetProj(glm::perspective(glm::radians(fov), s.width / static_cast<float>(s.height), 0.1f, 10.0f));
 
 	auto* gen = new PlanetGenerator();
-	auto planetRenderer = new World::PlanetRenderer(gen->RetrievePlanet(), renderer->GetAllocator());
+	auto planetRenderer = new World::PlanetRenderer(gen, renderer->GetAllocator());
 	UniformBufferObject ubo = {};
 
 
@@ -114,11 +114,18 @@ int main()
 	renderer->GetInputHandler()->RegisterMouseClickCallBack(mouseClickCallback, InputPriority::LOW_PRIORITY);
 	renderer->GetInputHandler()->RegisterMouseMoveCallBack(mouseMoveCallback, InputPriority::LOW_PRIORITY);
 	renderer->GetInputHandler()->RegisterMouseScrollCallBack(scrollCallback, InputPriority::LOW_PRIORITY);
+
+	bool pause = false;
+	bool showBeachline = true;
+	bool showSweepline = true;
+	bool showSites = true;
+	bool showVoronoiEdges = true;
+	bool showDelanuayEdges = true;
 	
 	renderer->GetRendergraph()->AddPass(PassDesc()
 		.SetName("GPU Drawing Triangle")
 		.SetInitialisationFunc([&descriptorSetKey](Tether& tether) { tether.GetDescriptorCache()->WriteBuffer(descriptorSetKey, "ubo"); })
-		.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
+		.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext&context)
 		{
 			{
 				ZoneScopedN("Update Camera and Set Descriptor Cache")
@@ -135,17 +142,46 @@ int main()
 				ubo.view = anchoredCam.GetView(); 
 				ubo.proj = anchoredCam.GetProj();
 
+				ImGui::Checkbox("Pause", &pause);
+
+				ImGui::Checkbox("Draw Beachline", &showBeachline);
+				ImGui::Checkbox("Draw Sweepline", &showSweepline);
+				ImGui::Checkbox("Draw Sites", &showSites);
+				ImGui::Checkbox("Draw Voronoi Edges", &showVoronoiEdges);
+				ImGui::Checkbox("Draw Delanauy", &showDelanuayEdges);
+
 				context.GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
 			}
 
-			context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST,descriptorSetKey.program);
+			context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST, descriptorSetKey.program);
 
 			context.GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey);
 
-			planetRenderer->DrawCells(buffer);
-			planetRenderer->DrawVertices(buffer);
-
-			gen->Step(0.005);
+			if(showBeachline)
+			{
+				planetRenderer->DrawBeachline(buffer, context, vert, descriptorSetKey);
+			}
+			if(showSweepline)
+			{
+				planetRenderer->DrawSweepline(buffer, context, vert, descriptorSetKey);
+			}
+			if(showSites)
+			{
+				planetRenderer->DrawSites(buffer, context, vert, descriptorSetKey);
+			}
+			if(showVoronoiEdges)
+			{
+				planetRenderer->DrawVoronoiEdges(buffer, context, vert, descriptorSetKey);
+			}
+			if(showDelanuayEdges)
+			{
+				planetRenderer->DrawDelanuayEdges(buffer, context, vert, descriptorSetKey);
+			}
+			
+			if(!pause && !gen->Finished())
+				gen->Step(0.0005);
+			else
+				ImGui::Text("Finished");
 		}));
 
 

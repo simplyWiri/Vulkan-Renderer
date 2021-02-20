@@ -32,6 +32,8 @@ namespace Renderer::Memory
 		void Load(const void* data, const size_t& size, const size_t& offset = 0);
 
 		bool operator==(const Buffer& other) const { return std::tie(resourceHandle, allocation, usage, flags) == std::tie(other.resourceHandle, other.allocation, other.usage, other.flags); }
+
+		static Buffer* Resize(Allocator* allocator, Buffer* buffer, const VkDeviceSize& size);
 	};
 }
 

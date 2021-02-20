@@ -17,4 +17,17 @@ namespace Renderer::Memory
 		memcpy(dest, data, size);
 		Unmap();
 	}
+
+	Buffer* Buffer::Resize(Allocator* allocator, Buffer* buffer, const VkDeviceSize& size)
+	{
+		if (buffer->GetSize() < size)
+		{
+			auto usage = buffer->GetUsageFlags();
+			auto flags = buffer->GetMemoryFlags();
+			delete buffer;
+			buffer = allocator->AllocateBuffer(size, usage, flags);
+		}
+
+		return buffer;
+	}
 }
