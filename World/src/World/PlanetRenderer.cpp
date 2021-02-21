@@ -24,6 +24,7 @@ namespace World
 		sitesBuffer = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
 		voronoiEdges = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
 		delauneyEdges = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
+		voronoiFaces = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
 	}
 
 	PlanetRenderer::~PlanetRenderer()
@@ -33,6 +34,7 @@ namespace World
 		delete sitesBuffer;
 		delete voronoiEdges;
 		delete delauneyEdges;
+		delete voronoiFaces;
 	}
 
 	void PlanetRenderer::DrawBeachline(VkCommandBuffer buffer, GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
@@ -102,7 +104,7 @@ namespace World
 			std::vector<Vertex> vertices;
 
 			for(int i = 0; i < planet->cells.size(); i++)
-				vertices.emplace_back(Vertex{ planet->cells[i].point, glm::vec3{ 0.75, 0, 0 }});
+				vertices.emplace_back(Vertex{ planet->cells[i].point, glm::vec3{ 1 }});
 
 
 			if(sitesBuffer->GetSize() < sizeof(Vertex) * vertices.size() ) sitesBuffer = Memory::Buffer::Resize(alloc, sitesBuffer, sizeof(Vertex) * vertices.size() * 2);
@@ -110,7 +112,7 @@ namespace World
 
 			sitesCache = vertices.size();
 		}
-		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST, descriptorKey.program);
+		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST, descriptorKey.program);
 		
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(buffer, 0, 1, &sitesBuffer->GetResourceHandle(), offsets);
@@ -132,8 +134,8 @@ namespace World
 				auto& edge = planet->halfEdges[j];		
 				if(edge.endIndex != ~0u)
 				{
-					vertices.emplace_back(Vertex{ planet->edgeVertices[edge.beginIndex], glm::vec3{ 0, 1,0 }});
-					vertices.emplace_back(Vertex{ planet->edgeVertices[edge.endIndex], glm::vec3{ 0, 1,0 }});
+					vertices.emplace_back(Vertex{ planet->edgeVertices[edge.beginIndex], glm::vec3{ .1 }});
+					vertices.emplace_back(Vertex{ planet->edgeVertices[edge.endIndex], glm::vec3{ .1 }});
 				}
 			}
 
@@ -146,7 +148,7 @@ namespace World
 
 		if(voronoiEdgeVertices == 0) return;
 
-		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey.program);
+		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey.program);
 
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(buffer, 0, 1, &voronoiEdges->GetResourceHandle(), offsets);
@@ -168,8 +170,9 @@ namespace World
 				auto& edge = planet->delanuayEdges[j];		
 				if(edge.endIndex != ~0u)
 				{
-					vertices.emplace_back(Vertex{ planet->delanuayCells[edge.beginIndex], glm::vec3{0.25 } + planet->delanuayCells[edge.beginIndex] * 0.5f } );
-					vertices.emplace_back(Vertex{ planet->delanuayCells[edge.endIndex], glm::vec3{0.25 } + planet->delanuayCells[edge.beginIndex] * 0.5f });
+					// extrude these a little bit to draw them ontop of the faces.
+					vertices.emplace_back(Vertex{ planet->delanuayCells[edge.beginIndex] * 1.005f, glm::vec3{0.25 } + planet->delanuayCells[edge.beginIndex] * 0.5f } );
+					vertices.emplace_back(Vertex{ planet->delanuayCells[edge.endIndex] * 1.005f, glm::vec3{0.25 } + planet->delanuayCells[edge.beginIndex] * 0.5f });
 				}
 			}
 
@@ -182,10 +185,56 @@ namespace World
 		
 		if(delanuayEdgeVertices == 0) return;
 		
-		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey.program);
+		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey.program);
 
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(buffer, 0, 1, &delauneyEdges->GetResourceHandle(), offsets);
 		vkCmdDraw(buffer, delanuayEdgeVertices, 1, 0, 0);
+	}
+
+	void PlanetRenderer::DrawVoronoiFaces(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
+	{
+		if(planet->Finished() == false) return;
+
+		if(facesCache == - 1)
+		{
+			std::vector<Vertex> vertices;
+			auto& voronoiCells = planet->planet->cells;
+			auto& voronoiVertices = planet->planet->edgeVertices;
+
+			for(int i = 0; i < voronoiCells.size(); i++)
+			{
+				auto cell = voronoiCells[i];
+				auto& edges = cell.edges;
+
+				auto color = glm::vec3{0.25 } + cell.point * 0.5f;
+				
+				for(int j = 0; j < edges.size(); j++)
+				{
+					auto& halfEdge = planet->planet->halfEdges[edges[j]];
+
+					// the .9995f is a cheap hack to get around floating point precision & drawing straight lines over the surface of a sphere
+					// if it is not shrunk slightly, there is z fighting between the edges / sites and the face
+					
+					vertices.emplace_back(Vertex{ voronoiVertices[halfEdge.beginIndex] * .9995f, color } );
+					vertices.emplace_back(Vertex{ cell.point * .9995f, color } );
+					vertices.emplace_back(Vertex{ voronoiVertices[halfEdge.endIndex] * .9995f, color } );
+				}
+				
+			}
+
+			facesCache = vertices.size();
+
+			if(voronoiFaces->GetSize() < sizeof(Vertex) * vertices.size() ) voronoiFaces = Memory::Buffer::Resize(alloc, voronoiFaces, sizeof(Vertex) * vertices.size());
+			voronoiFaces->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
+		}
+		
+		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(
+			buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), 
+			vert, DepthSettings::DepthTest(), { BlendSettings::Opaque() }, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, descriptorKey.program);
+
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(buffer, 0, 1, &voronoiFaces->GetResourceHandle(), offsets);
+		vkCmdDraw(buffer, facesCache, 1, 0, 0);
 	}
 }

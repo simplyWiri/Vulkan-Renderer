@@ -33,6 +33,7 @@ public:
 	void DrawSites(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
 	void DrawVoronoiEdges(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
 	void DrawDelanuayEdges(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
+	void DrawVoronoiFaces(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
 
 private:
 	Generation::PlanetGenerator* planet;
@@ -47,12 +48,14 @@ private:
 	int voronoiEdgeVertices = -1;
 	int delanuayEdgeCache = -1;
 	int delanuayEdgeVertices = -1;
+	int facesCache = -1;
 	
 	Renderer::Memory::Buffer* beachlineBuffer = nullptr;
 	Renderer::Memory::Buffer* sweeplineBuffer = nullptr;
 	Renderer::Memory::Buffer* sitesBuffer = nullptr;
 	Renderer::Memory::Buffer* voronoiEdges = nullptr;
 	Renderer::Memory::Buffer* delauneyEdges = nullptr;
+	Renderer::Memory::Buffer* voronoiFaces = nullptr;
 
 };
 

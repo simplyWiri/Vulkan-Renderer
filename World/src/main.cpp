@@ -121,6 +121,7 @@ int main()
 	bool showSites = true;
 	bool showVoronoiEdges = true;
 	bool showDelanuayEdges = false;
+	bool showFaces = false;
 	
 	renderer->GetRendergraph()->AddPass(PassDesc()
 		.SetName("GPU Drawing Triangle")
@@ -149,14 +150,17 @@ int main()
 				ImGui::Checkbox("Draw Sites", &showSites);
 				ImGui::Checkbox("Draw Voronoi Edges", &showVoronoiEdges);
 				ImGui::Checkbox("Draw Delanauy", &showDelanuayEdges);
+				ImGui::Checkbox("Draw Voronoi Faces", &showFaces);
 
 				context.GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
 			}
 
-			context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST, descriptorSetKey.program);
-
 			context.GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey);
 
+			if(showFaces)
+			{
+				planetRenderer->DrawVoronoiFaces(buffer, context, vert, descriptorSetKey);
+			}
 			if(showBeachline)
 			{
 				planetRenderer->DrawBeachline(buffer, context, vert, descriptorSetKey);
@@ -173,10 +177,12 @@ int main()
 			{
 				planetRenderer->DrawVoronoiEdges(buffer, context, vert, descriptorSetKey);
 			}
+
 			if(showDelanuayEdges)
 			{
 				planetRenderer->DrawDelanuayEdges(buffer, context, vert, descriptorSetKey);
 			}
+
 			
 			if(!pause && !gen->Finished())
 				gen->Step(0.0005);

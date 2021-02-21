@@ -81,7 +81,7 @@ namespace World::Generation
 
 
 						otherEdge.endIndex = edge.beginIndex;
-						edge.endIndex = edge.beginIndex;
+						edge.endIndex = otherEdge.beginIndex;
 
 						otherEdge.finished = true;
 						edge.finished = true;
