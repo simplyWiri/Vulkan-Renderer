@@ -36,8 +36,9 @@ struct UniformBufferObject
 int main()
 {
 	Settings s = {};
-	s.width = 2560;
-	s.height = 1377;
+	s.width = 1280;
+	s.height = 720;
+	s.vsync = true;
 
 	auto renderer = std::make_unique<Core>(s);
 	GUI gui;
@@ -62,7 +63,7 @@ int main()
 	anchoredCam.SetModel(rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
 	anchoredCam.SetProj(glm::perspective(glm::radians(fov), s.width / static_cast<float>(s.height), 0.1f, 10.0f));
 
-	auto* gen = new PlanetGenerator();
+	auto* gen = new PlanetGenerator(500, false);
 	auto planetRenderer = new World::PlanetRenderer(gen, renderer->GetAllocator());
 	UniformBufferObject ubo = {};
 
@@ -122,6 +123,8 @@ int main()
 	bool showVoronoiEdges = true;
 	bool showDelanuayEdges = false;
 	bool showFaces = false;
+	int points = 500;
+	bool random = false;
 	
 	renderer->GetRendergraph()->AddPass(PassDesc()
 		.SetName("GPU Drawing Triangle")
@@ -143,15 +146,46 @@ int main()
 				ubo.view = anchoredCam.GetView(); 
 				ubo.proj = anchoredCam.GetProj();
 
-				ImGui::Checkbox("Pause", &pause);
+				ImGui::Text("Generation Options");
+				{
+					ImGui::SliderInt("Points", &points, 100, 8000);
+					ImGui::Checkbox("Random Point Distribution", &random);
+					
+					if(ImGui::Button("New"))
+					{
+						delete gen;
+						gen = new PlanetGenerator(points, random);
 
-				ImGui::Checkbox("Draw Beachline", &showBeachline);
-				ImGui::Checkbox("Draw Sweepline", &showSweepline);
-				ImGui::Checkbox("Draw Sites", &showSites);
-				ImGui::Checkbox("Draw Voronoi Edges", &showVoronoiEdges);
-				ImGui::Checkbox("Draw Delanauy", &showDelanuayEdges);
-				ImGui::Checkbox("Draw Voronoi Faces", &showFaces);
+						planetRenderer->Reset(gen);
+					}
 
+					ImGui::SameLine();
+
+					if(ImGui::Button(pause ? "Unpause" : "Pause")) pause = !pause;
+
+					ImGui::SameLine();
+
+					if(ImGui::Button("Finish")) gen->Step(2 * 3.14159265359f);
+					
+					if(!gen->Finished()) ImGui::Text("Site Event Left %d\nCircle Events Left %d\nSweepline Coverage %.2f", gen->siteEventQueue.size(), gen->circleEventQueue.size(), gen->sweepline / (2.0f * 3.14159265359f));
+				}
+
+				ImGui::NewLine();
+
+				ImGui::Text("Rendering Options");
+				{
+					if(!gen->Finished())
+					{
+						ImGui::Checkbox("Draw Beachline", &showBeachline);
+						ImGui::Checkbox("Draw Sweepline", &showSweepline);
+					}
+					ImGui::Checkbox("Draw Sites", &showSites);
+					ImGui::Checkbox("Draw Voronoi Edges", &showVoronoiEdges);
+					ImGui::Checkbox("Draw Delanauy", &showDelanuayEdges);
+					
+					if(gen->Finished()) ImGui::Checkbox("Draw Voronoi Faces", &showFaces);
+				}
+				
 				context.GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
 			}
 
@@ -161,14 +195,19 @@ int main()
 			{
 				planetRenderer->DrawVoronoiFaces(buffer, context, vert, descriptorSetKey);
 			}
-			if(showBeachline)
+			
+			if(!gen->Finished())
 			{
-				planetRenderer->DrawBeachline(buffer, context, vert, descriptorSetKey);
+				if(showBeachline)
+				{
+					planetRenderer->DrawBeachline(buffer, context, vert, descriptorSetKey);
+				}
+				if(showSweepline)
+				{
+					planetRenderer->DrawSweepline(buffer, context, vert, descriptorSetKey);
+				}
 			}
-			if(showSweepline)
-			{
-				planetRenderer->DrawSweepline(buffer, context, vert, descriptorSetKey);
-			}
+			
 			if(showSites)
 			{
 				planetRenderer->DrawSites(buffer, context, vert, descriptorSetKey);
@@ -185,9 +224,7 @@ int main()
 
 			
 			if(!pause && !gen->Finished())
-				gen->Step(0.0005);
-			else
-				ImGui::Text("Finished");
+				gen->Step(0.4 * frameInfo.delta);
 		}));
 
 

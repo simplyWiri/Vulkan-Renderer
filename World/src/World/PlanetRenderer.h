@@ -35,11 +35,22 @@ public:
 	void DrawDelanuayEdges(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
 	void DrawVoronoiFaces(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
 
+	void Reset(Generation::PlanetGenerator* newGenerator)
+	{
+		this->generator = newGenerator;
+
+		sitesCache = -1;
+		voronoiEdgeCache = -1;
+		voronoiEdgeVertices = -1;
+		delanuayEdgeCache = -1;
+		delanuayEdgeVertices = -1;
+		facesCache = -1;
+	}
+
 private:
-	Generation::PlanetGenerator* planet;
+	Generation::PlanetGenerator* generator;
 	Renderer::Memory::Allocator* alloc;
 
-	int edges = 0;
 
 	// Not necessarily correct, because vertices may not change but their completion status may.
 	// If I wanted to do this properly I would look into using index buffers etc.

@@ -10,18 +10,19 @@
 
 namespace World::Generation
 {
-	PlanetGenerator::PlanetGenerator()
+	PlanetGenerator::PlanetGenerator(int points, bool random)
 	{
 		planet = new Planet();
-		planet->cells.reserve(8000);
+		planet->cells.reserve(points);
 
-		GeneratePoints(8000, true);
+		GeneratePoints(points, random);
 		InitialiseEvents();
 	}
 
 	PlanetGenerator::~PlanetGenerator()
 	{
-		for (auto cell : cells) delete cell;
+		for (auto cell : cells) 
+			delete cell;
 
 		delete planet;
 	}
@@ -89,6 +90,8 @@ namespace World::Generation
 						return;
 					}
 				}
+
+				sweepline = 2 * PI;
 			}
 		}
 	}

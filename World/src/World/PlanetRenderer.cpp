@@ -14,7 +14,7 @@ namespace World
 	using namespace Renderer;
 	
 	PlanetRenderer::PlanetRenderer(Generation::PlanetGenerator* planet, Renderer::Memory::Allocator* alloc)
-		: planet(planet), alloc(alloc)
+		: generator(planet), alloc(alloc)
 	{
 		auto usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		auto memoryType = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -39,11 +39,11 @@ namespace World
 
 	void PlanetRenderer::DrawBeachline(VkCommandBuffer buffer, GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
 	{
-		if(planet->beach.Count() < 3) return;
+		if(generator->beach.Count() < 3) return;
 
 		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_STRIP, descriptorKey.program);
 
-		auto* current = planet->beach.First();
+		auto* current = generator->beach.First();
 
 		std::vector<Vertex> vertices;
 		do
@@ -67,7 +67,7 @@ namespace World
 		const float PI = 3.14159265359f;
 		static const int detail = 30;
 
-		float sweepline = planet->sweepline;
+		float sweepline = generator->sweepline;
 
 		std::vector<Vertex> vertices;
 		vertices.resize(detail + 1);
@@ -95,9 +95,9 @@ namespace World
 
 	void PlanetRenderer::DrawSites(VkCommandBuffer buffer, GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
 	{
-		if(planet->planet->cells.empty()) return;
+		if(generator->planet->cells.empty()) return;
 
-		auto planet = this->planet->planet;
+		auto planet = this->generator->planet;
 
 		if(sitesCache != planet->cells.size())
 		{
@@ -121,7 +121,7 @@ namespace World
 
 	void PlanetRenderer::DrawVoronoiEdges(VkCommandBuffer buffer, GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
 	{
-		auto planet = this->planet->planet;
+		auto planet = this->generator->planet;
 
 		if(planet->halfEdges.empty()) return;
 
@@ -157,7 +157,7 @@ namespace World
 
 	void PlanetRenderer::DrawDelanuayEdges(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
 	{
-		auto planet = this->planet->planet;
+		auto planet = this->generator->planet;
 
 		if(planet->delanuayEdges.empty()) return;
 
@@ -194,13 +194,13 @@ namespace World
 
 	void PlanetRenderer::DrawVoronoiFaces(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
 	{
-		if(planet->Finished() == false) return;
+		if(generator->Finished() == false) return;
 
 		if(facesCache == - 1)
 		{
 			std::vector<Vertex> vertices;
-			auto& voronoiCells = planet->planet->cells;
-			auto& voronoiVertices = planet->planet->edgeVertices;
+			auto& voronoiCells = generator->planet->cells;
+			auto& voronoiVertices = generator->planet->edgeVertices;
 
 			for(int i = 0; i < voronoiCells.size(); i++)
 			{
@@ -211,7 +211,7 @@ namespace World
 				
 				for(int j = 0; j < edges.size(); j++)
 				{
-					auto& halfEdge = planet->planet->halfEdges[edges[j]];
+					auto& halfEdge = generator->planet->halfEdges[edges[j]];
 
 					// the .9995f is a cheap hack to get around floating point precision & drawing straight lines over the surface of a sphere
 					// if it is not shrunk slightly, there is z fighting between the edges / sites and the face

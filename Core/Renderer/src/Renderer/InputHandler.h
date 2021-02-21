@@ -18,7 +18,7 @@ struct Callback
 	int priority;
 	T callback;
 
-	bool operator<(const Callback<T> other) const { return priority < other.priority; }
+	bool operator<(const Callback<T> other) const { return priority > other.priority; }
 };
 
 class InputHandler

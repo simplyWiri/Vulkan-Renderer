@@ -149,7 +149,7 @@ namespace World::Generation
 
 	public:
 
-		explicit PlanetGenerator();
+		explicit PlanetGenerator(int points, bool random);
 		~PlanetGenerator();
 
 		std::vector<glm::vec3> vertices;

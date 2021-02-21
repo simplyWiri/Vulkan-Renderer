@@ -269,7 +269,7 @@ namespace Renderer
 			ImGuiIO& imguiIO = ImGui::GetIO();
 			if (button < 512) { imguiIO.MouseDown[button] = (action != GLFW_RELEASE); }
 
-			return false;
+			return imguiIO.WantCaptureMouse;
 		}
 
 		static bool scrollCallback(float yOffset)
@@ -277,7 +277,7 @@ namespace Renderer
 			ImGuiIO& imguiIO = ImGui::GetIO();
 			imguiIO.MouseWheel += yOffset;
 
-			return false;
+			return imguiIO.WantCaptureMouse;
 		}
 
 		void setupImGuiColour()
