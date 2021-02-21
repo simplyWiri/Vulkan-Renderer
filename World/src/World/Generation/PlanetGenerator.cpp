@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <Tracy.hpp>
 #include <Renderer\Resources\Vertex.h>
+#include <random>
 
 
 #include "../Planet.h"
@@ -12,9 +13,9 @@ namespace World::Generation
 	PlanetGenerator::PlanetGenerator()
 	{
 		planet = new Planet();
-		planet->cells.reserve(15'000);
+		planet->cells.reserve(8000);
 
-		GeneratePoints(15'000);
+		GeneratePoints(8000, true);
 		InitialiseEvents();
 	}
 
@@ -65,27 +66,64 @@ namespace World::Generation
 				nextX = sweepline;
 			}
 
+			// Find the remaining two half edges which are not completed, and connect them.
+			if (Finished())
+			{
+				for (int i = 0; i < planet->halfEdges.size(); i++)
+				{
+					auto& edge = planet->halfEdges[i];
+					if (edge.finished) continue;
+
+					for (int j = i + 1; j < planet->halfEdges.size(); j++)
+					{
+						auto& otherEdge = planet->halfEdges[j];
+						if (otherEdge.finished) continue;
+
+
+						otherEdge.endIndex = edge.beginIndex;
+						edge.endIndex = edge.beginIndex;
+
+						otherEdge.finished = true;
+						edge.finished = true;
+
+						return;
+					}
+				}
+			}
 		}
 	}
 
 	// http://extremelearning.com.au/evenly-distributing-points-on-a-sphere/ # Lattice 3
-	void PlanetGenerator::GeneratePoints(int numPoints)
+	void PlanetGenerator::GeneratePoints(int numPoints, bool random)
 	{
 		planet->cells.reserve(numPoints);
 		cells.reserve(numPoints);
 
-		for (auto i = 0; i < numPoints; i++)
+		if (random)
 		{
-			auto p = GeneratePoint(i, numPoints); // returns coordinates as x, y
+			for (auto i = 0; i < numPoints; i++)
+			{
+				auto u = rand() / (float)RAND_MAX;
+				auto v = rand() / (float)RAND_MAX;
 
-			auto theta = acos(2 * p.theta - 1) - PI / 2;
-			auto phi = 2 * PI * p.phi;
+				cells.emplace_back(new Point{ acos(2 * v - 1), 2 * PI * u });
+			}
+		}
+		else
+		{
+			for (auto i = 0; i < numPoints; i++)
+			{
+				auto p = GeneratePoint(i, numPoints); // returns coordinates as x, y
 
-			auto x = cos(theta) * cos(phi);
-			auto y = cos(theta) * sin(phi);
-			auto z = sin(theta);
+				auto theta = acos(2 * p.theta - 1) - PI / 2;
+				auto phi = 2 * PI * p.phi;
 
-			cells.emplace_back(new Point({ x, y, z }));
+				auto x = cos(theta) * cos(phi);
+				auto y = cos(theta) * sin(phi);
+				auto z = sin(theta);
+
+				cells.emplace_back(new Point({ x, y, z }));
+			}
 		}
 	}
 
@@ -125,13 +163,14 @@ namespace World::Generation
 			auto* iter = beach.Append(new BeachArc(event, planet->cells.size()));
 			planet->cells.emplace_back(VoronoiCell{ event->position });
 
-			if (beach.Count() == 1)
+			if (beach.Count() == 2) // We need to stitch the first & second beach entries with a little more care.
 			{
 				auto root = beach.GetRoot();
+
 				iter->element->leftEdgeIdx = root->element->rightEdgeIdx;
 				iter->element->rightEdgeIdx = root->element->leftEdgeIdx;
 
-				auto vertex = PhiToPoint(*iter->element->site, event->phi, sweepline);
+				auto vertex = PhiToPoint(*root->element->site, event->phi, sweepline);
 
 				PopulateEdges(root->element, iter->element, vertex.position);
 				PopulateEdges(iter->element, root->element, vertex.position);
@@ -148,7 +187,7 @@ namespace World::Generation
 			auto* succ = curr->Successor() ? curr->Successor() : beach.First();
 
 			// false alarm, remove the event from the circleEventQueue
-			if (curr->element->circleEvent) 
+			if (curr->element->circleEvent)
 			{
 				RemoveCircleEvent(curr->element->circleEvent);
 				curr->element->circleEvent = nullptr;
@@ -178,7 +217,7 @@ namespace World::Generation
 
 	void PlanetGenerator::HandleCircleEvent(CircleEvent* event)
 	{
-		if(beach.Count() == 2) return;
+		if (beach.Count() == 2) return;
 		// Remove the site `j` which represents the disappearing arc from the skiplist and remove the circle event from the circleQueue
 		auto j = event->middleArc;
 		auto i = j->Predecessor() ? j->Predecessor() : beach.Last();
@@ -186,7 +225,10 @@ namespace World::Generation
 		auto arc1 = i->Predecessor() ? i->Predecessor()->element : beach.Last()->element;
 		auto arc2 = k->Successor() ? k->Successor()->element : beach.First()->element;
 
+		// Add our event center as an edge
+		// Populate the half edges extending from the center
 		PopulateEdges(i->element, k->element, event->center);
+		// Finish the edges extending to the center
 		FinishEdges(j->element, static_cast<uint32_t>(planet->edgeVertices.size() - 1));
 
 		// Remove the fading arc from the beach
@@ -194,12 +236,12 @@ namespace World::Generation
 		beach.Remove(j);
 
 		// Remove all circle events associated with the triples (1, i, j) and (j, k, 2)
-		if (i->element->circleEvent) 
+		if (i->element->circleEvent)
 		{
 			RemoveCircleEvent(i->element->circleEvent);
 			i->element->circleEvent = nullptr;
 		}
-		if (k->element->circleEvent) 
+		if (k->element->circleEvent)
 		{
 			RemoveCircleEvent(k->element->circleEvent);
 			k->element->circleEvent = nullptr;
@@ -211,15 +253,17 @@ namespace World::Generation
 	}
 
 	void PlanetGenerator::PopulateEdges(BeachArc* prev, BeachArc* succ, glm::vec3 eventCenter)
-	{		
-		// Add thing to vertex list `event->centers`
+	{
+		// Add event center to vertex list `event->centers`
 		auto edgeVertexId = static_cast<uint32_t>(planet->edgeVertices.size());
 		planet->edgeVertices.emplace_back(eventCenter);
 
+		// voronoi
 		auto halfEdgeID = static_cast<uint32_t>(planet->halfEdges.size());
 		auto halfEdge = HalfEdge{ false, edgeVertexId, ~0u, halfEdgeID, };
 		planet->halfEdges.emplace_back(halfEdge);
 
+		// delanuay
 		auto size = static_cast<uint32_t>(planet->delanuayCells.size());
 		planet->delanuayCells.emplace_back(prev->site->position);
 		planet->delanuayCells.emplace_back(succ->site->position);
@@ -232,7 +276,7 @@ namespace World::Generation
 	}
 
 	void PlanetGenerator::FinishEdges(BeachArc* arc, uint32_t vertexId)
-	{		
+	{
 		if (arc->leftEdgeIdx != ~0u) // We have other issues if ~0u is an actual index.
 		{
 			auto& edge = planet->halfEdges[arc->leftEdgeIdx];
@@ -256,7 +300,7 @@ namespace World::Generation
 
 
 	void PlanetGenerator::CheckForValidCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, float sweeplineX, bool siteEvent)
-	{		
+	{
 		if (!siteEvent && (i->site == j->element->site || j->element->site == k->site || i->site == k->site)) return;
 
 		auto pij = i->site->position - j->element->site->position;
@@ -287,7 +331,7 @@ namespace World::Generation
 		else
 		{
 			auto it = lower_bound(circleEventQueue.begin(), circleEventQueue.end(), event, [](const CircleEvent* l, const CircleEvent* r) { return *l < *r; });
-			if(*it != event)
+			if (*it != event)
 			{
 				//delete event;
 				return;

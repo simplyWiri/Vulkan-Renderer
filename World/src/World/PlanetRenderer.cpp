@@ -16,9 +16,6 @@ namespace World
 	PlanetRenderer::PlanetRenderer(Generation::PlanetGenerator* planet, Renderer::Memory::Allocator* alloc)
 		: planet(planet), alloc(alloc)
 	{
-		//this->vertexBuffer = alloc->AllocateBuffer(sizeof(Renderer::Vertex) * 500, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		//this->planetVertexBuffer = alloc->AllocateBuffer(sizeof(Renderer::Vertex) * 2500, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		//this->edgesBuffer = alloc->AllocateBuffer(sizeof(Renderer::Vertex) * 25000, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		auto usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		auto memoryType = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
@@ -100,20 +97,24 @@ namespace World
 
 		auto planet = this->planet->planet;
 
-		std::vector<Vertex> vertices;
+		if(sitesCache != planet->cells.size())
+		{
+			std::vector<Vertex> vertices;
 
-		for(int i = 0; i < planet->cells.size(); i++)
-			vertices.emplace_back(Vertex{ planet->cells[i].point, glm::vec3{ 0.75, 0, 0 }});
+			for(int i = 0; i < planet->cells.size(); i++)
+				vertices.emplace_back(Vertex{ planet->cells[i].point, glm::vec3{ 0.75, 0, 0 }});
 
 
-		if(sitesBuffer->GetSize() < sizeof(Vertex) * vertices.size() ) sitesBuffer = Memory::Buffer::Resize(alloc, sitesBuffer, sizeof(Vertex) * vertices.size() * 2);
-		sitesBuffer->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
+			if(sitesBuffer->GetSize() < sizeof(Vertex) * vertices.size() ) sitesBuffer = Memory::Buffer::Resize(alloc, sitesBuffer, sizeof(Vertex) * vertices.size() * 2);
+			sitesBuffer->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
 
+			sitesCache = vertices.size();
+		}
 		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST, descriptorKey.program);
 		
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(buffer, 0, 1, &sitesBuffer->GetResourceHandle(), offsets);
-		vkCmdDraw(buffer, vertices.size(), 1, 0, 0);
+		vkCmdDraw(buffer, sitesCache, 1, 0, 0);
 	}
 
 	void PlanetRenderer::DrawVoronoiEdges(VkCommandBuffer buffer, GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
@@ -140,15 +141,16 @@ namespace World
 			voronoiEdges->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
 
 			voronoiEdgeCache = planet->halfEdges.size();
+			voronoiEdgeVertices = vertices.size();
 		}
 
-		if(voronoiEdgeCache == 0) return;
+		if(voronoiEdgeVertices == 0) return;
 
 		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey.program);
 
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(buffer, 0, 1, &voronoiEdges->GetResourceHandle(), offsets);
-		vkCmdDraw(buffer, voronoiEdgeCache * 2, 1, 0, 0);
+		vkCmdDraw(buffer, voronoiEdgeVertices, 1, 0, 0);
 	}
 
 	void PlanetRenderer::DrawDelanuayEdges(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
@@ -166,8 +168,8 @@ namespace World
 				auto& edge = planet->delanuayEdges[j];		
 				if(edge.endIndex != ~0u)
 				{
-					vertices.emplace_back(Vertex{ planet->delanuayCells[edge.beginIndex], planet->delanuayCells[edge.beginIndex]});
-					vertices.emplace_back(Vertex{ planet->delanuayCells[edge.endIndex], planet->delanuayCells[edge.beginIndex]});
+					vertices.emplace_back(Vertex{ planet->delanuayCells[edge.beginIndex], glm::vec3{0.25 } + planet->delanuayCells[edge.beginIndex] * 0.5f } );
+					vertices.emplace_back(Vertex{ planet->delanuayCells[edge.endIndex], glm::vec3{0.25 } + planet->delanuayCells[edge.beginIndex] * 0.5f });
 				}
 			}
 
@@ -175,14 +177,15 @@ namespace World
 			delauneyEdges->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
 
 			delanuayEdgeCache = planet->delanuayEdges.size();
+			delanuayEdgeVertices = vertices.size();
 		}
 		
-		if(delanuayEdgeCache == 0) return;
+		if(delanuayEdgeVertices == 0) return;
 		
 		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey.program);
 
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(buffer, 0, 1, &delauneyEdges->GetResourceHandle(), offsets);
-		vkCmdDraw(buffer, delanuayEdgeCache * 2, 1, 0, 0);
+		vkCmdDraw(buffer, delanuayEdgeVertices, 1, 0, 0);
 	}
 }

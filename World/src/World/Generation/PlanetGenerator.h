@@ -171,7 +171,7 @@ namespace World::Generation
 	private:
 		const float PI = 3.14159265359f;
 
-		void GeneratePoints(int numPoints);
+		void GeneratePoints(int numPoints, bool random = false);
 		Point GeneratePoint(int index, int numPoints);
 		void InitialiseEvents();
 

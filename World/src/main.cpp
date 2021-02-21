@@ -36,8 +36,8 @@ struct UniformBufferObject
 int main()
 {
 	Settings s = {};
-	s.width = 1200;
-	s.height = 840;
+	s.width = 2560;
+	s.height = 1377;
 
 	auto renderer = std::make_unique<Core>(s);
 	GUI gui;
@@ -120,7 +120,7 @@ int main()
 	bool showSweepline = true;
 	bool showSites = true;
 	bool showVoronoiEdges = true;
-	bool showDelanuayEdges = true;
+	bool showDelanuayEdges = false;
 	
 	renderer->GetRendergraph()->AddPass(PassDesc()
 		.SetName("GPU Drawing Triangle")

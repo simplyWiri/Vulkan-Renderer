@@ -40,8 +40,13 @@ private:
 
 	int edges = 0;
 
+	// Not necessarily correct, because vertices may not change but their completion status may.
+	// If I wanted to do this properly I would look into using index buffers etc.
+	int sitesCache = -1;
 	int voronoiEdgeCache = -1;
+	int voronoiEdgeVertices = -1;
 	int delanuayEdgeCache = -1;
+	int delanuayEdgeVertices = -1;
 	
 	Renderer::Memory::Buffer* beachlineBuffer = nullptr;
 	Renderer::Memory::Buffer* sweeplineBuffer = nullptr;
