@@ -20,9 +20,9 @@ namespace World::Generation
 
 	struct Point
 	{
-		Point(float theta, float phi) : phi(phi), theta(theta) { UpdatePosition(); }
+		Point(float theta, float phi, uint32_t index = 0) : phi(phi), theta(theta), index(index) { UpdatePosition(); }
 
-		Point(glm::vec3 dir)
+		Point(glm::vec3 dir, uint32_t index = 0) : index(index)
 		{
 			float radius = glm::length(dir);
 
@@ -43,6 +43,7 @@ namespace World::Generation
 
 		float phi;
 		float theta;
+		uint32_t index;
 		glm::vec3 position;
 	};
 
@@ -156,7 +157,6 @@ namespace World::Generation
 		float sweepline = 0;
 
 		Planet* planet;
-		std::vector<Point*> cells;
 
 		std::vector<Point*> siteEventQueue; // We are reaching a new point we haven't encountered yet
 		std::vector<CircleEvent*> circleEventQueue; // One of the parabolas we have drawn for an existing (processed) point has disappeared

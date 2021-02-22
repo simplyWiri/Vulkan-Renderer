@@ -74,8 +74,9 @@ int main()
 
 	auto mouseMoveCallback = [&](float xpos, float ypos)
 	{
-	    float xOffset = lastX - xpos;
-	    float yOffset = ypos - lastY; // y flipped in vulkan 
+	    auto xOffset = lastX - xpos;
+	    auto yOffset = ypos - lastY; // y flipped in vulkan
+		
 	    lastX = xpos;
 	    lastY = ypos;
 
@@ -84,7 +85,7 @@ int main()
 	    xOffset *= camSpeed;
 	    yOffset *= camSpeed;
 
-		float zoomMultiplier = glm::clamp(fov / 45.0f, 0.25f, 1.0f);
+		auto zoomMultiplier = glm::clamp(fov / 45.0f, 0.25f, 1.0f);
 		
 		anchoredCam.Rotate({ xOffset * zoomMultiplier, yOffset * zoomMultiplier});
 
@@ -124,6 +125,8 @@ int main()
 	bool showDelanuayEdges = false;
 	bool showFaces = false;
 	int points = 500;
+	auto twoPi = 2 * 3.14159265359f;
+	float step = twoPi / 16; // 16s to finish
 	bool random = false;
 	
 	renderer->GetRendergraph()->AddPass(PassDesc()
@@ -138,7 +141,7 @@ int main()
 				auto currentTime = std::chrono::high_resolution_clock::now();
 				float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 				
-				camSpeed = 2.5f * frameInfo.delta;
+				camSpeed = 1.25f * frameInfo.delta;
 
 			    if (glfwGetKey(context.window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(context.window, true);
 
@@ -167,7 +170,11 @@ int main()
 
 					if(ImGui::Button("Finish")) gen->Step(2 * 3.14159265359f);
 					
-					if(!gen->Finished()) ImGui::Text("Site Event Left %d\nCircle Events Left %d\nSweepline Coverage %.2f", gen->siteEventQueue.size(), gen->circleEventQueue.size(), gen->sweepline / (2.0f * 3.14159265359f));
+					if(!gen->Finished()) 
+					{
+						ImGui::Text("Site Event Left %d\nCircle Events Left %d\nSweepline Coverage %.2f", gen->siteEventQueue.size(), gen->circleEventQueue.size(), gen->sweepline / (2.0f * 3.14159265359f));
+						ImGui::SliderFloat("Step", &step, twoPi / 40.0f, twoPi / 4.0f);
+					}
 				}
 
 				ImGui::NewLine();
@@ -224,7 +231,7 @@ int main()
 
 			
 			if(!pause && !gen->Finished())
-				gen->Step(0.4 * frameInfo.delta);
+				gen->Step(( gen->sweepline > 3.14159265359f ? step * 4 : step ) * frameInfo.delta);
 		}));
 
 

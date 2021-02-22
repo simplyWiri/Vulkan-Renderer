@@ -34,7 +34,7 @@ public:
 	void DrawVoronoiEdges(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
 	void DrawDelanuayEdges(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
 	void DrawVoronoiFaces(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
-
+	
 	void Reset(Generation::PlanetGenerator* newGenerator)
 	{
 		this->generator = newGenerator;
@@ -67,6 +67,7 @@ private:
 	Renderer::Memory::Buffer* voronoiEdges = nullptr;
 	Renderer::Memory::Buffer* delauneyEdges = nullptr;
 	Renderer::Memory::Buffer* voronoiFaces = nullptr;
+	
 
 };
 

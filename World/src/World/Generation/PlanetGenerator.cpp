@@ -21,9 +21,6 @@ namespace World::Generation
 
 	PlanetGenerator::~PlanetGenerator()
 	{
-		for (auto cell : cells) 
-			delete cell;
-
 		delete planet;
 	}
 
@@ -100,7 +97,7 @@ namespace World::Generation
 	void PlanetGenerator::GeneratePoints(int numPoints, bool random)
 	{
 		planet->cells.reserve(numPoints);
-		cells.reserve(numPoints);
+		siteEventQueue.reserve(numPoints);
 
 		if (random)
 		{
@@ -109,7 +106,7 @@ namespace World::Generation
 				auto u = rand() / (float)RAND_MAX;
 				auto v = rand() / (float)RAND_MAX;
 
-				cells.emplace_back(new Point{ acos(2 * v - 1), 2 * PI * u });
+				siteEventQueue.emplace_back(new Point{ acos(2 * v - 1), 2 * PI * u });
 			}
 		}
 		else
@@ -125,7 +122,7 @@ namespace World::Generation
 				auto y = cos(theta) * sin(phi);
 				auto z = sin(theta);
 
-				cells.emplace_back(new Point({ x, y, z }));
+				siteEventQueue.emplace_back(new Point(glm::vec3{ x, y, z }));
 			}
 		}
 	}
@@ -146,10 +143,12 @@ namespace World::Generation
 	// Sort the points P, and insert into the site event queue
 	void PlanetGenerator::InitialiseEvents()
 	{
-		std::sort(cells.begin(), cells.end(), [](Point* a, Point* b) { return *a < *b; });
+		std::sort(siteEventQueue.begin(), siteEventQueue.end(), [](Point* a, Point* b) { return *a < *b; });
 
-		siteEventQueue = std::vector<Point*>(cells.size());
-		std::copy(cells.begin(), cells.end(), siteEventQueue.begin());
+		for(int i = 0; i < siteEventQueue.size(); i++)
+		{
+			siteEventQueue[i]->index = i;
+		}
 	}
 
 	Point PhiToPoint(Point arc, float phi, float sweepline)
@@ -200,8 +199,7 @@ namespace World::Generation
 			auto* duplicatedArc = new BeachArc(curr->element->site, curr->element->cellIdx);
 			auto* newArc = new BeachArc(event, static_cast<uint32_t>(planet->cells.size()));
 			duplicatedArc->rightEdgeIdx = curr->element->rightEdgeIdx;
-
-
+			
 			planet->cells.emplace_back(VoronoiCell{ event->position });
 
 			auto* newArcLoc = beach.Insert(newArc, curr);
@@ -263,17 +261,14 @@ namespace World::Generation
 
 		// voronoi
 		auto halfEdgeID = static_cast<uint32_t>(planet->halfEdges.size());
-		auto halfEdge = HalfEdge{ false, edgeVertexId, ~0u, halfEdgeID, };
+		auto halfEdge = HalfEdge{ false, edgeVertexId, ~0u, halfEdgeID };
 		planet->halfEdges.emplace_back(halfEdge);
 
 		// delanuay
-		auto size = static_cast<uint32_t>(planet->delanuayCells.size());
-		planet->delanuayCells.emplace_back(prev->site->position);
-		planet->delanuayCells.emplace_back(succ->site->position);
-		planet->delanuayEdges.emplace_back(HalfEdge{ true, size, size + 1 });
+		planet->delanuayEdges.emplace_back(HalfEdge{ true, prev->site->index, succ->site->index });
 
-		planet->cells[prev->cellIdx].edges.emplace_back(halfEdgeID);
-		planet->cells[succ->cellIdx].edges.emplace_back(halfEdgeID);
+		planet->cells[prev->cellIdx].AddEdge(halfEdgeID);
+		planet->cells[succ->cellIdx].AddEdge(halfEdgeID);
 
 		prev->rightEdgeIdx = succ->leftEdgeIdx = halfEdgeID;
 	}

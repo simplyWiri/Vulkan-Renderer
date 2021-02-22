@@ -104,7 +104,7 @@ namespace World
 			std::vector<Vertex> vertices;
 
 			for(int i = 0; i < planet->cells.size(); i++)
-				vertices.emplace_back(Vertex{ planet->cells[i].point, glm::vec3{ 1 }});
+				vertices.emplace_back(Vertex{ planet->cells[i].GetCenter(), glm::vec3{ 1 }});
 
 
 			if(sitesBuffer->GetSize() < sizeof(Vertex) * vertices.size() ) sitesBuffer = Memory::Buffer::Resize(alloc, sitesBuffer, sizeof(Vertex) * vertices.size() * 2);
@@ -171,8 +171,8 @@ namespace World
 				if(edge.endIndex != ~0u)
 				{
 					// extrude these a little bit to draw them ontop of the faces.
-					vertices.emplace_back(Vertex{ planet->delanuayCells[edge.beginIndex] * 1.005f, glm::vec3{0.25 } + planet->delanuayCells[edge.beginIndex] * 0.5f } );
-					vertices.emplace_back(Vertex{ planet->delanuayCells[edge.endIndex] * 1.005f, glm::vec3{0.25 } + planet->delanuayCells[edge.beginIndex] * 0.5f });
+					vertices.emplace_back(Vertex{ planet->cells[edge.beginIndex].GetCenter() * 1.005f, glm::vec3{0.25 } + planet->cells[edge.beginIndex].GetCenter() * 0.5f } );
+					vertices.emplace_back(Vertex{ planet->cells[edge.endIndex].GetCenter() * 1.005f, glm::vec3{0.25 } + planet->cells[edge.endIndex].GetCenter() * 0.5f });
 				}
 			}
 
@@ -200,27 +200,19 @@ namespace World
 		{
 			std::vector<Vertex> vertices;
 			auto& voronoiCells = generator->planet->cells;
-			auto& voronoiVertices = generator->planet->edgeVertices;
+			const auto& halfEdges = generator->planet->halfEdges;
+			const auto& edgeVertices = generator->planet->edgeVertices;
 
 			for(int i = 0; i < voronoiCells.size(); i++)
 			{
 				auto cell = voronoiCells[i];
-				auto& edges = cell.edges;
 
-				auto color = glm::vec3{0.25 } + cell.point * 0.5f;
-				
-				for(int j = 0; j < edges.size(); j++)
-				{
-					auto& halfEdge = generator->planet->halfEdges[edges[j]];
+				auto color = glm::vec3{0.25 } + cell.GetCenter() * 0.5f;
 
-					// the .9995f is a cheap hack to get around floating point precision & drawing straight lines over the surface of a sphere
-					// if it is not shrunk slightly, there is z fighting between the edges / sites and the face
-					
-					vertices.emplace_back(Vertex{ voronoiVertices[halfEdge.beginIndex] * .9995f, color } );
-					vertices.emplace_back(Vertex{ cell.point * .9995f, color } );
-					vertices.emplace_back(Vertex{ voronoiVertices[halfEdge.endIndex] * .9995f, color } );
-				}
+				auto verts = cell.GetFaceVertices(halfEdges, edgeVertices);
 				
+				for(auto& pos : verts)
+					vertices.emplace_back( Vertex{ pos, color });
 			}
 
 			facesCache = vertices.size();
