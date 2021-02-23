@@ -45,19 +45,13 @@ namespace World
 		std::vector<glm::vec3> GetFaceVertices(const std::vector<HalfEdge>& halfEdges, const std::vector<glm::vec3>& edgeVertices) const 
 		{
 			std::vector<glm::vec3> vertices;
-
-			bool yes = true;
 			
 			for (auto edge : edges)
 			{
-				yes = !yes;
-				if(yes) continue;
-
 				const auto& halfEdge = halfEdges[edge];
 
 				// the .9995f is a cheap hack to get around floating point precision & drawing straight lines over the surface of a sphere
 				// if it is not shrunk slightly, there is z fighting between the edges / sites and the face
-				
 				vertices.emplace_back(edgeVertices[halfEdge.beginIndex] * .9995f);
 				vertices.emplace_back(cartesian * .9995f );
 				vertices.emplace_back(edgeVertices[halfEdge.endIndex] * .9995f);

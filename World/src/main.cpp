@@ -231,7 +231,7 @@ int main()
 
 			
 			if(!pause && !gen->Finished())
-				gen->Step(( gen->sweepline > 3.14159265359f ? step * 4 : step ) * frameInfo.delta);
+				gen->Step(( gen->sweepline > 3.14159265359f ? step * 4 : step ) * static_cast<float>(frameInfo.delta));
 		}));
 
 
