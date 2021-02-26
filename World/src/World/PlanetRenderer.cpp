@@ -13,7 +13,7 @@ namespace World
 {
 	using namespace Renderer;
 	
-	PlanetRenderer::PlanetRenderer(Generation::PlanetGenerator* planet, Renderer::Memory::Allocator* alloc)
+	PlanetRenderer::PlanetRenderer(Generation::PlanetGenerator* planet, Memory::Allocator* alloc)
 		: generator(planet), alloc(alloc)
 	{
 		auto usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -37,7 +37,7 @@ namespace World
 		delete voronoiFaces;
 	}
 
-	void PlanetRenderer::DrawBeachline(VkCommandBuffer buffer, GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::DrawBeachline(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
 	{
 		if(generator->beach.Count() < 3) return;
 
@@ -62,7 +62,7 @@ namespace World
 		vkCmdDraw(buffer, vertices.size(), 1, 0, 0);
 	}
 
-	void PlanetRenderer::DrawSweepline(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::DrawSweepline(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
 	{
 		const float PI = 3.14159265359f;
 		static const int detail = 30;
@@ -93,7 +93,7 @@ namespace World
 		vkCmdDraw(buffer, vertices.size(), 1, 0, 0);
 	}
 
-	void PlanetRenderer::DrawSites(VkCommandBuffer buffer, GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::DrawSites(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
 	{
 		if(generator->planet->cells.empty()) return;
 
@@ -119,7 +119,7 @@ namespace World
 		vkCmdDraw(buffer, sitesCache, 1, 0, 0);
 	}
 
-	void PlanetRenderer::DrawVoronoiEdges(VkCommandBuffer buffer, GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::DrawVoronoiEdges(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
 	{
 		auto planet = this->generator->planet;
 
@@ -155,7 +155,7 @@ namespace World
 		vkCmdDraw(buffer, voronoiEdgeVertices, 1, 0, 0);
 	}
 
-	void PlanetRenderer::DrawDelanuayEdges(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::DrawDelanuayEdges(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
 	{
 		auto planet = this->generator->planet;
 
@@ -192,7 +192,7 @@ namespace World
 		vkCmdDraw(buffer, delanuayEdgeVertices, 1, 0, 0);
 	}
 
-	void PlanetRenderer::DrawVoronoiFaces(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::DrawVoronoiFaces(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
 	{
 		if(generator->Finished() == false) return;
 

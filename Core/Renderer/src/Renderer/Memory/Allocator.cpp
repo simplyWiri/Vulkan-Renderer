@@ -108,8 +108,7 @@ namespace Renderer::Memory
 		viewInfo.format = format;
 
 		VkImageSubresourceRange range = {};
-		if (format == VK_FORMAT_D16_UNORM || format == VK_FORMAT_D32_SFLOAT || format == VK_FORMAT_D16_UNORM_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT_S8_UINT
-		) range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		if (format == VK_FORMAT_D16_UNORM || format == VK_FORMAT_D32_SFLOAT || format == VK_FORMAT_D16_UNORM_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT_S8_UINT) range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 		else range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
 		range.baseMipLevel = 0;
@@ -177,7 +176,7 @@ namespace Renderer::Memory
 
 	void Allocator::DebugView()
 	{
-		auto& getFormattedBytes = [](const VkDeviceSize& size) -> std::string
+		auto getFormattedBytes = [](const VkDeviceSize& size) -> std::string
 		{
 			int i = 0;
 			long long usedSize = size;

@@ -95,8 +95,25 @@ namespace Renderer
 		glm::vec3 pos; // x y
 		glm::vec3 colour; // r g b
 
-		static VertexAttributes defaultVertex() { return VertexAttributes({ { sizeof(Vertex), 0 } }, { { 0, 0, VertexAttributes::Type::vec3, offsetof(Vertex, pos) }, { 0, 1, VertexAttributes::Type::vec3, offsetof(Vertex, colour) } }); }
+		static VertexAttributes defaultVertex() { return VertexAttributes(
+			{
+				{ sizeof(Vertex), 0 }
+			}, 
+   {
+				{ 0, 0, VertexAttributes::Type::vec3, offsetof(Vertex, pos) },
+				{ 0, 1, VertexAttributes::Type::vec3, offsetof(Vertex, colour) }
+			});
+		}
 		static VertexAttributes emptyVertex() { return VertexAttributes{}; }
+	};
+
+	struct TexturedVertex
+	{
+		glm::vec3 position;
+		glm::vec3 normal;
+		glm::vec3 tangent;
+		glm::vec3 biTangent;
+		glm::vec2 uv;
 	};
 }
 

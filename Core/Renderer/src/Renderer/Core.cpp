@@ -33,10 +33,10 @@ namespace Renderer
 		device.PickPhysicalDevice(swapchain.GetSurface());
 		device.BuildLogicalDevice(swapchain.GetPresentQueue());
 
+		allocator = new Memory::Allocator(GetDevice(), GetSwapchain()->GetFramesInFlight());
+
 		swapchain.BuildSwapchain(settings.vsync);
 		swapchain.BuildSyncObjects();
-
-		allocator = new Memory::Allocator(GetDevice(), GetSwapchain()->GetFramesInFlight());
 
 		framebufferCache.BuildCache(device.GetDevice(), swapchain.GetFramesInFlight());
 		renderpassCache.BuildCache(device.GetDevice());
@@ -52,7 +52,7 @@ namespace Renderer
 		auto success = vkCreateCommandPool(device, &poolCreateInfo, nullptr, &commandPool);
 		Assert(success == VK_SUCCESS, "Failed to create command pool");
 
-		rendergraph = std::make_unique<Rendergraph>(this);
+		rendergraph = std::make_unique<RenderGraph::RenderGraph>(this);
 
 		tracyContext = TracyVkContext(*device.GetPhysicalDevice(), *device.GetDevice(), device.queues.graphics, GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false));
 
@@ -83,9 +83,10 @@ namespace Renderer
 		vkDeviceWaitIdle(device);
 		vkQueueWaitIdle(device.queues.graphics);
 
-		swapchain.BuildSwapchain();
+		swapchain.BuildSwapchain(settings.vsync);
 
-		rendergraph->Rebuild();
+		__debugbreak();
+		//rendergraph->Rebuild();
 	}
 
 	void Core::SetImageLayout(VkCommandBuffer buffer, VkImage image, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)

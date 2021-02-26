@@ -1,12 +1,10 @@
 #include "GraphContext.h"
-#include "Rendergraph.h"
+#include "RenderGraph.h"
 #include "../Core.h"
 
-namespace Renderer
+namespace Renderer::RenderGraph
 {
 	RenderpassCache* GraphContext::GetRenderpassCache() { return graph->GetCore()->GetRenderpassCache(); }
-	VkExtent2D GraphContext::GetSwapchainExtent() { return graph->GetCore()->GetSwapchain()->GetExtent(); }
 	DescriptorSetCache* GraphContext::GetDescriptorSetCache() { return graph->GetCore()->GetDescriptorSetCache(); }
 	GraphicsPipelineCache* GraphContext::GetGraphicsPipelineCache() { return graph->GetCore()->GetGraphicsPipelineCache(); }
-
 }

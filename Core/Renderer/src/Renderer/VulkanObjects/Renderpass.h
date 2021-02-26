@@ -16,6 +16,10 @@ namespace Renderer
 
 	struct RenderpassKey
 	{
+		RenderpassKey()
+		{
+			depthAttachment = AttachmentDesc{VK_FORMAT_UNDEFINED};
+		}
 		RenderpassKey(std::vector<AttachmentDesc> colourAttachments, AttachmentDesc depthAttachment) : colourAttachments(std::move(colourAttachments)), depthAttachment(depthAttachment) { }
 
 		std::vector<AttachmentDesc> colourAttachments;

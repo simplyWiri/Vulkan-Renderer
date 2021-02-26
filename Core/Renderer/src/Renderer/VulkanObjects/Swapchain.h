@@ -8,9 +8,17 @@ struct GLFWwindow;
 
 namespace Renderer
 {
+	namespace Memory {
+		class Allocator;
+	}
+
+	namespace RenderGraph
+	{
+		class PassDesc;
+	}
+	
 	class Core;
 	struct FrameInfo;
-	struct PassDesc;
 	
 	struct FrameInfo
 	{
@@ -25,7 +33,7 @@ namespace Renderer
 
 	class Swapchain
 	{
-		friend void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<PassDesc>& passes);
+		friend void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<std::unique_ptr<RenderGraph::PassDesc>>& passes);
 	public:
 		~Swapchain();
 
@@ -46,6 +54,7 @@ namespace Renderer
 		GLFWwindow* window;
 		VkSurfaceKHR surface;
 		VkSwapchainKHR swapchain = nullptr;
+		
 		std::vector<VkImage> images;
 		std::vector<VkImageView> views;
 		std::vector<FrameResources> frames;
@@ -79,9 +88,9 @@ namespace Renderer
 		VkSwapchainKHR* GetSwapchain() { return &swapchain; }
 		VkQueue* GetPresentQueue() { return &presentQueue; }
 		std::vector<VkImageView>& GetImageViews() { return views; }
-		VkExtent2D GetExtent() { return extent; }
-		uint32_t GetIndex() { return currentIndex; }
-		uint32_t GetFramesInFlight() { return framesInFlight; }
+		VkExtent2D GetExtent() const { return extent; }
+		uint32_t GetIndex() const { return currentIndex; }
+		uint32_t GetFramesInFlight() const { return framesInFlight; }
 
 	public:
 

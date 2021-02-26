@@ -63,8 +63,8 @@ namespace Renderer
 
 			auto program = core->GetShaderManager()->getProgram(
 			{
-				core->GetShaderManager()->get(ShaderType::Vertex, "../Core/Renderer/resources/ImguiVertex.vert"),
-				core->GetShaderManager()->get(ShaderType::Fragment, "../Core/Renderer/resources/ImguiFragment.frag")
+				core->GetShaderManager()->Get(ShaderType::Vertex, "../Core/Renderer/resources/ImguiVertex.vert"),
+				core->GetShaderManager()->Get(ShaderType::Fragment, "../Core/Renderer/resources/ImguiFragment.frag")
 			});
 			program->InitialiseResources(core->GetDevice()->GetDevice());
 
@@ -135,9 +135,10 @@ namespace Renderer
 			buffers->Unmap();
 		}
 
-		void AddToGraph(Rendergraph* graph)
+		void AddToGraph(RenderGraph::RenderGraph* graph)
 		{
-			graph->AddPass(PassDesc().SetName("ImGui-CPU").SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& info, GraphContext& context)
+			graph->AddPass("ImGui-CPU", RenderGraph::QueueType::Graphics)
+			.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& info, RenderGraph::GraphContext& context)
 			{
 				ZoneScopedN("IMGUI Updating Buffers")
 
@@ -164,11 +165,15 @@ namespace Renderer
 
 				pushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
 				pushConstBlock.translate = glm::vec2(-1.0f);
-			}));
+			});
 
-			graph->AddPass(
-				PassDesc().SetName("ImGui-Render").SetInitialisationFunc([&](Tether& tether) { tether.GetDescriptorCache()->WriteSampler(key, "sTexture", fontImage, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); }).SetRecordFunc(
-					[&](VkCommandBuffer buffer, const FrameInfo& info, GraphContext& context)
+			graph->AddPass("ImGui-Render", RenderGraph::QueueType::Graphics)
+				//.SetInitialisationFunc([&](Tether& tether)
+				//{
+				//	tether.GetDescriptorCache()->WriteSampler(key, "sTexture", fontImage, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				//})
+				.SetRecordFunc(
+					[&](VkCommandBuffer buffer, const FrameInfo& info, RenderGraph::GraphContext& context)
 					{
 						ZoneScopedN("IMGUI Draw")
 
@@ -210,7 +215,7 @@ namespace Renderer
 							}
 							vertexOffset += cmd_list->VtxBuffer.Size;
 						}
-					}));
+					});
 		}
 
 

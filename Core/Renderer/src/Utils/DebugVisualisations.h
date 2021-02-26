@@ -3,6 +3,7 @@
 
 #include "../Renderer/Core.h"
 #include "../Renderer/Memory/Allocator.h"
+#include "../RenderGraph/PassDesc.h"
 #include <map>
 #include <vector>
 #include <implot.h>
@@ -69,7 +70,7 @@ namespace Renderer
 		}
 	}
 
-	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<PassDesc>& passes)
+	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<std::unique_ptr<RenderGraph::PassDesc>>& passes)
 	{
 		ImGui::NewFrame();
 
@@ -107,7 +108,7 @@ namespace Renderer
 			{
 				ImGui::BeginGroup();
 				char label[32];
-				sprintf_s(label, "%s", pass.taskName.c_str());
+				sprintf_s(label, "%s", pass->GetName().c_str());
 				if (ImGui::Selectable(label, selected == i, ImGuiSelectableFlags_SpanAllColumns)) selected = selected == i ? -1 : i;
 
 				if (ImGui::IsItemHovered()) ImGui::SetTooltip("View Statistics");
@@ -128,7 +129,7 @@ namespace Renderer
 	}
 
 #else
-	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<PassDesc> passes)
+	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<RenderGraph::PassDesc> passes)
 	{
 		ImGui::NewFrame();
 

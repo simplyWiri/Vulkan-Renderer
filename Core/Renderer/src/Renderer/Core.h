@@ -6,7 +6,7 @@
 #include "VulkanObjects/Renderpass.h"
 #include "VulkanObjects/Framebuffer.h"
 
-#include "RenderGraph/Rendergraph.h"
+#include "RenderGraph/RenderGraph.h"
 #include "Resources/ShaderManager.h"
 #include "VulkanObjects/DescriptorSet.h"
 #include "TracyVulkan.hpp"
@@ -44,7 +44,7 @@ namespace Renderer
 		Settings settings;
 
 		Device device;
-		Swapchain swapchain; // VkSwapchainKHR
+		Swapchain swapchain; 
 		Memory::Allocator* allocator;
 		FrameInfo frameInfo;
 		InputHandler inputHandler;
@@ -57,7 +57,7 @@ namespace Renderer
 		ShaderManager* shaderManager;
 
 		VkCommandPool commandPool;
-		std::unique_ptr<Rendergraph> rendergraph;
+		std::unique_ptr<RenderGraph::RenderGraph> rendergraph;
 		tracy::VkCtx* tracyContext;
 
 	private:
@@ -69,10 +69,10 @@ namespace Renderer
 
 	public:
 
-		Rendergraph* GetRendergraph() { return rendergraph.get(); }
+		RenderGraph::RenderGraph* GetRenderGraph() { return rendergraph.get(); }
+		Memory::Allocator* GetAllocator() { return allocator; }
 
 		Device* GetDevice() { return &device; }
-		Memory::Allocator* GetAllocator() { return allocator; }
 
 		Swapchain* GetSwapchain() { return &swapchain; }
 

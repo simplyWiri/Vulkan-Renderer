@@ -280,6 +280,8 @@ namespace Renderer
 			ShaderResources resource; // resources for a uniform buffer
 			resource.name = compiler.get_name(res.id); // res.name is the name of our type
 
+			// todo: should I fall through to using the res.Name (type name) if res.id is null, downsides?
+			
 			resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding); // shader binding
 			resource.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 			// This can be either UNIFORM_BUFFER or UNIFORM_BUFFER_DYNAMIC

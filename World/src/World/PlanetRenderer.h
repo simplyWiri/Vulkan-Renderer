@@ -6,10 +6,11 @@
 namespace Renderer {
 	struct DescriptorSetKey;
 	struct VertexAttributes;
-	struct GraphContext;
-}
+	namespace RenderGraph
+	{
+		struct GraphContext;
+	}
 
-namespace Renderer {
 	namespace Memory {
 		class Allocator;
 		class Buffer;
@@ -28,12 +29,12 @@ public:
 	explicit PlanetRenderer(Generation::PlanetGenerator* planet, Renderer::Memory::Allocator* alloc);
 	~PlanetRenderer();
 
-	void DrawBeachline(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
-	void DrawSweepline(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
-	void DrawSites(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
-	void DrawVoronoiEdges(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
-	void DrawDelanuayEdges(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
-	void DrawVoronoiFaces(VkCommandBuffer buffer, Renderer::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
+	void DrawBeachline(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
+	void DrawSweepline(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
+	void DrawSites(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
+	void DrawVoronoiEdges(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
+	void DrawDelanuayEdges(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
+	void DrawVoronoiFaces(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
 	
 	void Reset(Generation::PlanetGenerator* newGenerator)
 	{

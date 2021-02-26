@@ -191,5 +191,67 @@ project ("World Generator")
 
 
 
-
+project ("Prototyping") 
+		location ("Prototyping/")
+		kind "ConsoleApp"
+		language "C++"
+		cppdialect "C++17"
+		staticruntime "on"
+		editAndContinue "off"
+	
+		targetdir "Prototyping/bin/"
+		objdir "Prototyping/bin-int/"
+	
+		files
+		{
+			("Prototyping/resources/**"),
+			("Prototyping/src/**.h"),
+			("Prototyping/src/**.cpp"),
+			("Prototyping/**.md")
+		}
+	
+		includedirs
+		{
+			"Core/Renderer/src/",
+			"external/",
+			"externals/glfw/include/GLFW",
+			"externals/imgui",
+			"externals/implot",
+			"externals/glm",
+			"externals/stb",
+			"externals/SPIRV-Cross",
+			"externals/spdlog/include",
+			"externals/glslang",
+			"externals/tracy",
+			(_OPTIONS["vulkanPath"] .. "/Include/vulkan/"),
+			"Core/Common/src"
+		}
+	
+		links
+		{
+			"Renderer",
+			"Tracy"
+		}
+	
+		filter "configurations:Verbose"
+			defines { "VERBOSE", "TRACE", "DEBUG", "TRACY_ENABLE" }
+			runtime "Debug"
+			symbols "on"
+	
+		filter "configurations:Trace"
+			defines { "TRACE", "DEBUG", "TRACY_ENABLE"}
+			runtime "Debug"
+			symbols "on"
+	
+		filter "configurations:Debug"
+			defines { "DEBUG", "TRACY_ENABLE"}
+			runtime "Debug"
+			symbols "on"
+	
+		filter "configurations:Release"
+			defines  {"NDEBUG", "TRACY_ENABLE"}
+			runtime "Release"
+			optimize "on"
+	
+	
 

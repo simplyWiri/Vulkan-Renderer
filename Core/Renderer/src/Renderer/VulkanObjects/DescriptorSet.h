@@ -75,6 +75,7 @@ namespace Renderer
 	private:
 		VkDevice* device;
 		Memory::Allocator* allocator;
+		VkDescriptorPool pool;
 
 	public:
 		void BuildCache(VkDevice* device, Memory::Allocator* allocator, uint32_t framesInFlight);
@@ -107,4 +108,5 @@ namespace Renderer
 
 		return static_cast<T*>(descSet->GetResource(resName, currentFrame));
 	}
+	
 }

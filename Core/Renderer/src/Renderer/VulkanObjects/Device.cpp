@@ -178,6 +178,15 @@ namespace Renderer
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 
+		// Enables bindless (core in vulkan 1.2)
+		
+		VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexing{};
+		descriptorIndexing.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+		descriptorIndexing.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+		descriptorIndexing.runtimeDescriptorArray = VK_TRUE;
+		descriptorIndexing.descriptorBindingVariableDescriptorCount = VK_TRUE;
+		descriptorIndexing.descriptorBindingPartiallyBound = VK_TRUE;
+
 		VkDeviceCreateInfo deviceCreateInfo = {};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(uniqueQueueFamilies.size());
@@ -185,6 +194,7 @@ namespace Renderer
 		deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.physExtensions.size());
 		deviceCreateInfo.ppEnabledExtensionNames = extensions.physExtensions.data();
+		deviceCreateInfo.pNext = &descriptorIndexing;
 
 		if (!extensions.validationLayers.empty())
 		{

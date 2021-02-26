@@ -12,6 +12,7 @@
 #include <Utils\AnchoredCamera.h>
 
 using namespace Renderer;
+using namespace Renderer::RenderGraph;
 using namespace World::Generation;
 
 void* operator new(std :: size_t count)
@@ -50,7 +51,7 @@ int main()
 	
 	gui.initialise(renderer.get());
 
-	auto program = renderer->GetShaderManager()->getProgram({ renderer->GetShaderManager()->defaultVertex(), renderer->GetShaderManager()->defaultFragment() });
+	auto program = renderer->GetShaderManager()->getProgram({ renderer->GetShaderManager()->DefaultVertex(), renderer->GetShaderManager()->DefaultFragment() });
 	program->InitialiseResources(renderer->GetDevice()->GetDevice());
 
 	DescriptorSetKey descriptorSetKey = { program };
@@ -129,10 +130,8 @@ int main()
 	float step = twoPi / 16; // 16s to finish
 	bool random = false;
 	
-	renderer->GetRendergraph()->AddPass(PassDesc()
-		.SetName("GPU Drawing Triangle")
-		.SetInitialisationFunc([&descriptorSetKey](Tether& tether) { tether.GetDescriptorCache()->WriteBuffer(descriptorSetKey, "ubo"); })
-		.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext&context)
+	renderer->GetRenderGraph()->AddPass("Drawing Sphere", QueueType::Graphics)
+		.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
 		{
 			{
 				ZoneScopedN("Update Camera and Set Descriptor Cache")
@@ -196,8 +195,6 @@ int main()
 				context.GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
 			}
 
-			context.GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey);
-
 			if(showFaces)
 			{
 				planetRenderer->DrawVoronoiFaces(buffer, context, vert, descriptorSetKey);
@@ -232,14 +229,17 @@ int main()
 			
 			if(!pause && !gen->Finished())
 				gen->Step(( gen->sweepline > 3.14159265359f ? step * 4 : step ) * static_cast<float>(frameInfo.delta));
-		}));
+		});
 
 
-	gui.AddToGraph(renderer->GetRendergraph());
+	gui.AddToGraph(renderer->GetRenderGraph());
 
-	renderer->GetRendergraph()->Initialise();
+	renderer->GetRenderGraph()->Build();
 
-	while (renderer->Run()) { renderer->GetRendergraph()->Execute(); }
+	while (renderer->Run())
+	{
+		renderer->GetRenderGraph()->Execute();
+	}
 
 	vkDeviceWaitIdle(*renderer->GetDevice());
 

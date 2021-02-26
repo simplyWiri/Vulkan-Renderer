@@ -108,8 +108,8 @@ namespace Renderer
 		const VkDescriptorSetLayout& GetDescriptorLayout() { return descriptorSetLayout; }
 
 	private:
-		VkShaderModule Pipeline::CreateShaderModule(Shader* shader);
-		VkPipelineShaderStageCreateInfo Pipeline::CreateShaderInfo(VkShaderModule module, ShaderType type);
+		VkShaderModule CreateShaderModule(Shader* shader);
+		VkPipelineShaderStageCreateInfo CreateShaderInfo(VkShaderModule shaderModule, ShaderType type);
 	};
 
 	class GraphicsPipelineCache : public Cache<Pipeline, GraphicsPipelineKey>

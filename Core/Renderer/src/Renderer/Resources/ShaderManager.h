@@ -48,17 +48,22 @@ namespace Renderer
 			}
 		}
 
-		Shader* defaultVertex() { return shaders[defVert]; }
-		Shader* defaultFragment() { return shaders[defFrag]; }
+		Shader* DefaultVertex() { return shaders[defVert]; }
+		Shader* DefaultFragment() { return shaders[defFrag]; }
 		Shader* fullScreenTri() { return shaders[fsTri]; }
 
 
-		Shader* get(const ShaderType& type, const std::string& path)
+		Shader* Get(const ShaderType& type, const std::string& path)
 		{
 			auto& value = shaders[{ type, path }];
 			if (!value) { value = new Shader(type, path, getId()); }
 
 			return value;
+		}
+
+		ShaderProgram* MakeProgram(std::initializer_list<Shader*> shaders) const
+		{
+			return new ShaderProgram(device, shaders);
 		}
 
 		ShaderProgram* getProgram(const std::vector<Shader*>& shaders) { return new ShaderProgram(device, shaders); }

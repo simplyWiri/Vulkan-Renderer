@@ -6,22 +6,28 @@ struct GLFWwindow;
 
 namespace Renderer
 {
-	class Rendergraph;
 	class RenderpassCache;
 	class GraphicsPipelineCache;
 	class ComputePipelineCache;
 	class DescriptorSetCache;
+}
+
+namespace Renderer::RenderGraph
+{
+	class RenderGraph;
+
 
 	struct GraphContext
 	{
-		Rendergraph* graph;
+		RenderGraph* graph;
 		std::string passId;
 		GLFWwindow* window;
-		VkRenderPass defaultPass;
-
-		VkRenderPass& GetDefaultRenderpass() { return defaultPass; }
+		VkRenderPass renderPass;
+		VkExtent2D extent;
 		
-		VkExtent2D GetSwapchainExtent();
+		VkRenderPass GetRenderpass() const { return renderPass; }
+		VkExtent2D GetExtent() const { return extent; }
+		
 		RenderpassCache* GetRenderpassCache();
 		GraphicsPipelineCache* GetGraphicsPipelineCache();
 		//ComputePipelineCache* GetComputePipelineCache();

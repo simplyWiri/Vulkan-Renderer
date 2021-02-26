@@ -22,7 +22,7 @@ namespace Renderer
 		// initialise our pools
 		for (const auto& resource : key.program->getResources())
 		{
-			if (resource.type == VK_DESCRIPTOR_TYPE_MAX_ENUM) continue; // this is a push constant
+			if (resource.type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC) continue; // todo temp 
 
 			VkDescriptorPoolSize poolSize = {};
 			poolSize.type = resource.type;
@@ -65,7 +65,7 @@ namespace Renderer
 			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: WriteBuffer(resName,
 					allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 				break;
-			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: WriteBuffer(resName, allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: WriteBuffer(resName, allocator->AllocateBuffer(size * framesInFlight, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 				break;
 		}
 	}
@@ -146,9 +146,15 @@ namespace Renderer
 		return ShaderResources{};
 	}
 
-	void* DescriptorSetBundle::GetResource(const std::string& name, uint32_t offset) { return buffers[name]->Map(); }
+	void* DescriptorSetBundle::GetResource(const std::string& name, uint32_t offset)
+	{
+		return buffers[name]->Map();
+	}
 
-	void DescriptorSetBundle::SetResource(const std::string& name, void* data, const size_t size, const size_t offset) { buffers[name]->Load(data, size, std::max(size * offset, 256 * offset)); }
+	void DescriptorSetBundle::SetResource(const std::string& name, void* data, const size_t size, const size_t offset)
+	{
+		buffers[name]->Load(data, size, std::max(size * offset, 256 * offset));
+	}
 
 
 	void DescriptorSetBundle::Clear()
@@ -162,6 +168,20 @@ namespace Renderer
 		this->device = device;
 		this->allocator = allocator;
 		this->framesInFlight = framesInFlight;
+
+		std::vector<VkDescriptorPoolSize> poolSizes
+		{
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 64 * 1024},
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 64 * 1024}
+		};
+
+		VkDescriptorPoolCreateInfo poolCreateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+		poolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+		poolCreateInfo.pPoolSizes = poolSizes.data();
+		poolCreateInfo.maxSets = framesInFlight;
+
+		auto success = vkCreateDescriptorPool(*device, &poolCreateInfo, nullptr, &pool);
+		Assert(success == VK_SUCCESS, "Failed to create descriptor pool");
 	}
 
 	void DescriptorSetCache::WriteBuffer(DescriptorSetKey& key, const std::string& resName)

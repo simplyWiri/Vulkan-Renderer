@@ -175,7 +175,8 @@ namespace Renderer
 		colorBlendCreateInfo.logicOpEnable = VK_FALSE;
 		colorBlendCreateInfo.logicOp = VK_LOGIC_OP_COPY;
 		colorBlendCreateInfo.attachmentCount = static_cast<uint32_t>(key.blendSettings.size());
-		auto& colourAttachments = std::vector<VkPipelineColorBlendAttachmentState>();
+		
+		auto colourAttachments = std::vector<VkPipelineColorBlendAttachmentState>();
 		for (auto& blendSetting : key.blendSettings) { colourAttachments.push_back(blendSetting.blendState); }
 		colorBlendCreateInfo.pAttachments = colourAttachments.data();
 		colorBlendCreateInfo.blendConstants[0] = 0.0f;
@@ -253,12 +254,12 @@ namespace Renderer
 		return shaderModule;
 	}
 
-	VkPipelineShaderStageCreateInfo Pipeline::CreateShaderInfo(VkShaderModule module, ShaderType type)
+	VkPipelineShaderStageCreateInfo Pipeline::CreateShaderInfo(VkShaderModule shaderModule, ShaderType type)
 	{
 		VkPipelineShaderStageCreateInfo shaderCreateInfo = {};
 		shaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderCreateInfo.stage = getFlagBits(type);
-		shaderCreateInfo.module = module;
+		shaderCreateInfo.module = shaderModule;
 		shaderCreateInfo.pName = "main";
 
 		return shaderCreateInfo;
