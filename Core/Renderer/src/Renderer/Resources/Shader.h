@@ -1,8 +1,9 @@
 #pragma once
 #include <vector>
 #include <string>
-#include "vulkan.h"
 #include <functional>
+
+#include "volk/volk.h"
 
 namespace Renderer
 {

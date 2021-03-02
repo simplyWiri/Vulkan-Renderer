@@ -85,21 +85,15 @@ project "Renderer"
 
 	includedirs
 	{
-		"externals/glfw/include/GLFW",
-		"externals/imgui",
-		"externals/implot",
-		"externals/glm",
-		"externals/stb",
-		"externals/SPIRV-Cross",
-		"externals/spdlog/include",
-		"externals/glslang",
-		"externals/tracy",
-		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/")
+		"Core/Renderer/src",
+		"externals",
+		"externals/spdlog/include/",
+		(_OPTIONS["vulkanPath"] .. "/Include")
 	}
 
 	links
 	{
-		(_OPTIONS["vulkanPath"] .. "/Lib/vulkan-1.lib"),
+		"Volk",
 		"GLFW",
 		"ImGui",
 		"ImPlot",
@@ -147,17 +141,8 @@ project ("World Generator")
 
 	includedirs
 	{
-		"Core/Renderer/src/",
-		"external/",
-		"externals/glfw/include/GLFW",
-		"externals/imgui",
-		"externals/implot",
-		"externals/glm",
-		"externals/stb",
-		"externals/SPIRV-Cross",
-		"externals/spdlog/include",
-		"externals/glslang",
-		"externals/tracy",
+		"Core/Renderer/src",
+		"externals",
 		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/"),
 		"Core/Common/src"
 	}
@@ -212,18 +197,10 @@ project ("Prototyping")
 	
 		includedirs
 		{
-			"Core/Renderer/src/",
-			"external/",
-			"externals/glfw/include/GLFW",
-			"externals/imgui",
-			"externals/implot",
-			"externals/glm",
-			"externals/stb",
-			"externals/SPIRV-Cross",
-			"externals/spdlog/include",
-			"externals/glslang",
-			"externals/tracy",
-			(_OPTIONS["vulkanPath"] .. "/Include/vulkan/"),
+			"Core/Renderer/src",
+			"externals",
+			(_OPTIONS["vulkanPath"] .. "/Include"),
+			"externals/spdlog/include/",
 			"Core/Common/src"
 		}
 	

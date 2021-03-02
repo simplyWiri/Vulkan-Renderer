@@ -1,11 +1,10 @@
-#include "Device.h"
-
 #include <set>
 #include <string>
 
+#include "glfw/include/GLFW/glfw3.h"
 
-#include "glfw3.h"
-#include "../../Utils/Logging.h"
+#include "Device.h"
+#include "Utils/Logging.h"
 
 namespace Renderer
 {
@@ -118,7 +117,9 @@ namespace Renderer
 			createInfo.pNext = nullptr;
 		}
 
+		auto volkInit = volkInitialize();
 		auto success = vkCreateInstance(&createInfo, nullptr, &instance);
+		volkLoadInstance(instance);
 		Assert(success == VK_SUCCESS, "Failed to create instance");
 
 		if (debug)
@@ -209,6 +210,8 @@ namespace Renderer
 
 		auto success = vkCreateDevice(physDevice, &deviceCreateInfo, nullptr, &device);
 		Assert(success == VK_SUCCESS, "Failed to create logical device");
+
+		volkLoadDevice(device);
 
 		vkGetDeviceQueue(device, indices.graphicsFamily, 0, &queues.graphics);
 		vkGetDeviceQueue(device, indices.presentFamily, 0, presentQueue);

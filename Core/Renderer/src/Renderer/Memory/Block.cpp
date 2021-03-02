@@ -1,8 +1,8 @@
 #include "Allocation.h"
 #include "Block.h"
 #include "Allocator.h"
-#include "../VulkanObjects/Device.h"
-#include "../../Utils/Logging.h"
+#include "Renderer/VulkanObjects/Device.h"
+#include "Utils/Logging.h"
 
 namespace Renderer::Memory
 {

@@ -1,15 +1,17 @@
 #pragma once
+#include "volk/volk.h"
+#include "tracy/TracyVulkan.hpp"
+
 #include "InputHandler.h"
 #include "VulkanObjects/Device.h"
 #include "VulkanObjects/Swapchain.h"
 #include "VulkanObjects/Pipeline.h"
 #include "VulkanObjects/Renderpass.h"
 #include "VulkanObjects/Framebuffer.h"
-
-#include "RenderGraph/RenderGraph.h"
+#include "RenderGraph/Creation/GraphBuilder.h"
 #include "Resources/ShaderManager.h"
 #include "VulkanObjects/DescriptorSet.h"
-#include "TracyVulkan.hpp"
+
 
 namespace tracy {
 	class VkCtx;
@@ -69,7 +71,12 @@ namespace Renderer
 
 	public:
 
-		RenderGraph::RenderGraph* GetRenderGraph() { return rendergraph.get(); }
+		
+		RenderGraph::RenderGraph* CreateRenderGraph(RenderGraph::GraphBuilder& builder)
+		{
+			rendergraph = std::make_unique<RenderGraph::RenderGraph>(this, builder);
+			return rendergraph.get();
+		}
 		Memory::Allocator* GetAllocator() { return allocator; }
 
 		Device* GetDevice() { return &device; }

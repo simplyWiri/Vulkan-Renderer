@@ -1,8 +1,9 @@
 #pragma once
 #include <functional>
 
+#include "volk/volk.h"
+
 #include "MemoryResource.h"
-#include "vulkan.h"
 
 namespace Renderer::Memory
 {

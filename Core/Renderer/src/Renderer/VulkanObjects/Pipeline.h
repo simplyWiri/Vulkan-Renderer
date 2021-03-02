@@ -1,9 +1,10 @@
 #pragma once
-#include "vulkan.h"
 #include <vector>
 #include <memory>
 
-#include "../Resources/Vertex.h"
+#include "volk/volk.h"
+
+#include "Renderer/Resources/Vertex.h"
 #include "Cache.h"
 
 namespace Renderer

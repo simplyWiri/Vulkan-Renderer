@@ -1,18 +1,15 @@
 #pragma once
-#include "glm/glm.hpp"
-#include "vulkan.h"
 #include <vector>
 #include <unordered_map>
 #include <string>
 
 #include "Pass.h"
-#include "PassDesc.h"
-#include "../VulkanObjects/Renderpass.h"
 
 
 namespace Renderer
 {
 	namespace Memory {
+		class Buffer;
 		class Image;
 	}
 
@@ -25,21 +22,18 @@ namespace Renderer::RenderGraph
 	
 	class RenderGraph
 	{
+		friend class GraphBuilder;
 	private:
-		ImageResource backBuffer{ "_backBuffer"};
-
-		std::unordered_map<std::string, uint32_t> nameToPass;
-		std::vector<PassDesc> passDescriptions;
-		
+		Core* core;
 		std::vector<std::unique_ptr<Pass>> renderPasses;
 		
 		std::unordered_map<std::string, uint32_t> nameToResource;
-		std::vector<std::unique_ptr<Resource>> resources;
 
-		Core* core;
+		// n images/buffers for the amount of frames in flight
+		std::vector<std::vector<Memory::Image*>> images;
+		std::vector<std::vector<Memory::Buffer*>> buffers;
 
-		Memory::Image* depthImage;
-		std::vector<VkCommandBuffer> buffers;
+		std::vector<VkCommandBuffer> commandBuffers;
 
 		struct Queue
 		{
@@ -47,38 +41,23 @@ namespace Renderer::RenderGraph
 			int queueFamilyIndex;
 			VkCommandPool commandPool;
 		};
+		
 		struct Queues
 		{
 			Queue graphics, compute, transfer;
 		} queues;
 
 	public:
-		RenderGraph(Core* core);
+		RenderGraph(Core* core, GraphBuilder& builder);
 		~RenderGraph();
-				
-		PassDesc& AddPass(const std::string& name, QueueType type);
-		PassDesc& GetPass(const std::string& name);
-		
-		ImageResource& GetImage(const std::string& name);
-		BufferResource& GetBuffer(const std::string& name);
-		Resource& GetResource(const std::string& name);
 
-		Core* GetCore() const { return core; }
-		std::string GetBackBuffer() const { return backBuffer.name; }
-		
-		void Build();
-		void Clear();
+		std::vector<Memory::Image*>& GetImage(const std::string& name);
+		std::vector<Memory::Buffer*>& GetBuffer(const std::string& name);
 
 		void Execute();
-
+		
 	private:
 
-		void CreateGraph(); // 1.  Create the DAG from a list of passes ( assert if cyclic )
-
-		void CreateAdjacencyList(std::vector<std::vector<uint32_t>>& adjacencyList);
-		void TopologicalSort(std::vector<std::vector<uint32_t>>& adjacencyList);
-		
-		bool ValidateGraph(); // 
-		void CreateResources(); //
+		void CreatePhysicalResources();
 	};
 }

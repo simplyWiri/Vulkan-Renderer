@@ -1,9 +1,8 @@
-#include "Core.h"
+#include "glfw/include/GLFW/glfw3.h"
+#include "tracy/Tracy.hpp"
 
-#include "glfw3.h"
+#include "Core.h"
 #include "Memory/Allocator.h"
-#include "Tracy.hpp"
-#include "glslang/Public/ShaderLang.h"
 
 namespace Renderer
 {
@@ -51,8 +50,6 @@ namespace Renderer
 
 		auto success = vkCreateCommandPool(device, &poolCreateInfo, nullptr, &commandPool);
 		Assert(success == VK_SUCCESS, "Failed to create command pool");
-
-		rendergraph = std::make_unique<RenderGraph::RenderGraph>(this);
 
 		tracyContext = TracyVkContext(*device.GetPhysicalDevice(), *device.GetDevice(), device.queues.graphics, GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false));
 

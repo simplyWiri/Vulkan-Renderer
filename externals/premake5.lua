@@ -1,3 +1,23 @@
+project "Volk"
+	kind "StaticLib"
+    language "C"
+    staticruntime "on"
+
+	targetdir ("bin/%{prj.name}")
+	objdir ("bin-int/%{prj.name}")
+
+    includedirs
+    {
+        (_OPTIONS["vulkanPath"] .. "/Include")
+    }
+
+	files
+	{
+        "volk/volk.h",
+		"volk/volk.c"
+	}
+    
+
 project "ImGui"
 	kind "StaticLib"
     language "C++"
@@ -51,11 +71,6 @@ project "ImPlot"
         "implot/implot.cpp"
     }
     
-    includedirs
-    {
-        "imgui"
-    }
-
     links
     {
         "ImGui"

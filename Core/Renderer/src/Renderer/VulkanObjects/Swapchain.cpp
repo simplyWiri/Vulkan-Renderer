@@ -1,9 +1,13 @@
+#include <memory>
+#include <chrono>
+
+#include "tracy/Tracy.hpp"
+#define VK_NO_PROTOTYPES
+#define GLFW_INCLUDE_VULKAN
+#include "glfw/include/GLFW/glfw3.h"
+
 #include "Swapchain.h"
-
-#include <Tracy.hpp>
-
-#include "glfw3.h"
-#include "../../Utils/Logging.h"
+#include "Utils/Logging.h"
 
 namespace Renderer
 {

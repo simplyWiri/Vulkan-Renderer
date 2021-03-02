@@ -1,5 +1,6 @@
+#include "glfw/include/GLFW/glfw3.h"
+
 #include "InputHandler.h"
-#include "glfw3.h"
 
 namespace Renderer
 {

@@ -1,11 +1,14 @@
-#include "Shader.h"
-#include "glslang/Public/ShaderLang.h"
-#include "SPIRV/GlslangToSpv.h"
-#include "spirv_glsl.hpp"
-#include "spirv_cross.hpp"
-#include "StandAlone/DirStackFileIncluder.h"
 #include <iostream>
 #include <fstream>
+
+#include "glslang/Public/ShaderLang.h"
+#include "glslang/SPIRV/GlslangToSpv.h"
+#include "SPIRV-Cross/spirv_glsl.hpp"
+#include "SPIRV-Cross/spirv_cross.hpp"
+#include "glslang/StandAlone/DirStackFileIncluder.h"
+
+
+#include "Shader.h"
 
 namespace Renderer
 {
@@ -279,8 +282,7 @@ namespace Renderer
 
 			ShaderResources resource; // resources for a uniform buffer
 			resource.name = compiler.get_name(res.id); // res.name is the name of our type
-
-			// todo: should I fall through to using the res.Name (type name) if res.id is null, downsides?
+			if(resource.name == "") resource.name = res.name;
 			
 			resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding); // shader binding
 			resource.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -329,6 +331,8 @@ namespace Renderer
 
 			ShaderResources resource;
 			resource.name = compiler.get_name(res.id);
+			if(resource.name == "") resource.name = res.name;
+			
 			resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
 			resource.type = VK_DESCRIPTOR_TYPE_SAMPLER;
 			resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0];
@@ -346,6 +350,7 @@ namespace Renderer
 
 			ShaderResources resource;
 			resource.name = compiler.get_name(res.id);
+			if(resource.name == "") resource.name = res.name;
 			resource.binding = compiler.get_decoration(res.id, spv::DecorationBinding);
 			resource.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			resource.descriptorCount = (spirType.array.size() == 0) ? 1 : spirType.array[0];

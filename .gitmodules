@@ -26,3 +26,6 @@
 [submodule "tracy"]
 	path = externals/tracy
 	url = https://github.com/wolfpld/tracy
+[submodule "externals/volk"]
+	path = externals/volk
+	url = https://github.com/zeux/volk

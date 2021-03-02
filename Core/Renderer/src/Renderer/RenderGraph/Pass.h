@@ -1,17 +1,16 @@
 #pragma once
 #include "GraphContext.h"
-#include "Resource.h"
-#include "../Memory/Image.h"
-#include "../VulkanObjects/Renderpass.h"
-#include "../VulkanObjects/Swapchain.h"
+#include "Renderer/Memory/Image.h"
+#include "Renderer/VulkanObjects/Renderpass.h"
+#include "Renderer/VulkanObjects/Swapchain.h"
 
 namespace Renderer::RenderGraph
 {
-	class RenderGraph;
+	class GraphBuilder;
 	
 	struct Pass
 	{
-		friend class RenderGraph;
+		friend class GraphBuilder;
 
 		// a list of image view(s), one per frame in flight.
 		std::vector<std::vector<VkImageView>> views;
@@ -19,6 +18,7 @@ namespace Renderer::RenderGraph
 		std::string name;
 		RenderpassKey key;
 		VkExtent2D renderExtent;
+		std::vector<std::vector<VkImageMemoryBarrier2KHR>> imageBarriers; 
 
 		std::function<void(VkCommandBuffer, const FrameInfo&, GraphContext& context)> execute;
 

@@ -1,8 +1,9 @@
 #pragma once
-#include <glm/glm.hpp>
-#include <vulkan.h>
 #include <string>
 #include <vector>
+
+#include "glm/glm/glm.hpp"
+#include "volk/volk.h"
 
 
 namespace Renderer
@@ -22,6 +23,8 @@ namespace Renderer::RenderGraph
 		VkBufferUsageFlags usage = 0;
 		VkDeviceSize size = static_cast<VkDeviceSize>(0);
 	};
+
+	enum class QueueType : char;
 
 	struct ImageInfo
 	{
@@ -47,25 +50,27 @@ namespace Renderer::RenderGraph
 	{
 		uint32_t passId;
 
-		VkPipelineStageFlags flags;
-		VkAccessFlags access;
-		uint32_t queueFamilyIndices;
+		VkPipelineStageFlags2KHR flags;
+		VkAccessFlags2KHR access;
+		QueueType queue;
 
 		// For images, when 'using' we can also want to change the layout
 		VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
 	};
 
-	struct Resource
+	struct ResourceDescription
 	{
 		// What defines our resource
 		std::string name;
+		//uint32_t firstAccess;
+		//uint32_t lastAccess;
 
 		enum class Type { Buffer, Image } type;
 
 		std::vector<Usage> reads;
 		std::vector<Usage> writes;
 
-		explicit Resource(const std::string& name) : name(name) { }
+		explicit ResourceDescription(const std::string& name) : name(name) { }
 
 		void ReadBy(const Usage& usage) { reads.emplace_back(usage); }
 		void WrittenBy(const Usage& usage) { writes.emplace_back(usage); }
@@ -74,28 +79,19 @@ namespace Renderer::RenderGraph
 		bool IsRead() const { return !reads.empty(); }
 	};
 
-	struct BufferResource : Resource
+	struct BufferResource : ResourceDescription
 	{
-		std::vector<Memory::Buffer*> buffers;
 		BufferInfo info;
 
-		BufferResource(const std::string& name) : Resource(name) { type = Type::Buffer; }
-		~BufferResource();
+		BufferResource(const std::string& name) : ResourceDescription(name) { type = Type::Buffer; }
 		void SetInfo(BufferInfo info) { this->info = info; }
-
-		void Build(Memory::Allocator* allocator, uint32_t framesInFlight);
 	};
 
-	struct ImageResource : Resource
+	struct ImageResource : ResourceDescription
 	{
-		std::vector<Memory::Image*> images;
 		ImageInfo info;
 
-		explicit ImageResource(const std::string& name) : Resource(name) { type = Type::Image; }
-		~ImageResource();
-
+		explicit ImageResource(const std::string& name) : ResourceDescription(name) { type = Type::Image; }
 		void SetInfo(ImageInfo info) { this->info = info; }
-
-		void Build(Memory::Allocator* allocator, VkExtent2D swapchainExtent, uint32_t framesInFlight);
 	};
 }

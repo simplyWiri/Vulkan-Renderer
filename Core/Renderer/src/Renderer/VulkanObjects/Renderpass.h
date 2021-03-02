@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
-#include <vulkan_core.h>
+
+#include "volk/volk.h"
+
 #include "Cache.h"
 
 namespace Renderer

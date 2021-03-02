@@ -30,7 +30,7 @@ using TracyVkCtx = void*;
 
 #include <assert.h>
 #include <stdlib.h>
-#include "vulkan.h"
+#include "volk/volk.h"
 #include "Tracy.hpp"
 #include "client/TracyProfiler.hpp"
 #include "client/TracyCallstack.hpp"

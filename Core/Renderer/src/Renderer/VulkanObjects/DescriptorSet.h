@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
-#include <vulkan.h>
+
+#include "volk/volk.h"
 
 #include "Cache.h"
 
@@ -34,7 +35,7 @@ namespace Renderer
 		void WriteBuffer(const std::string& resName);
 		void WriteBuffer(const std::string& resName, Memory::Buffer* buffer);
 
-		void WriteSampler(const std::string& resName, Memory::Image* image, Sampler* sampler, VkImageLayout layout);
+		void WriteSampler(const std::string& resName, std::vector<Memory::Image*> images, VkSamplerAddressMode addressMode, VkFilter filter, VkSamplerMipmapMode mipFilter, VkImageLayout layout);
 		ShaderResources GetShaderResource(const std::string& resName) const;
 
 		VkDescriptorSet* Get(uint32_t offset) { return &sets[offset]; }
@@ -51,8 +52,8 @@ namespace Renderer
 		VkDevice* device;
 		Memory::Allocator* allocator;
 		std::unordered_map<std::string, Memory::Buffer*> buffers;
-		std::unordered_map<std::string, Memory::Image*> images;
-		std::unordered_map<std::string, Sampler*> samplers;
+		std::unordered_map<std::string, std::vector<Memory::Image*>> images;
+		std::unordered_map<std::string,  std::vector<Sampler*>> samplers;
 
 		std::vector<VkDescriptorSet> sets;
 		VkDescriptorPool pool;
@@ -75,7 +76,6 @@ namespace Renderer
 	private:
 		VkDevice* device;
 		Memory::Allocator* allocator;
-		VkDescriptorPool pool;
 
 	public:
 		void BuildCache(VkDevice* device, Memory::Allocator* allocator, uint32_t framesInFlight);
@@ -84,7 +84,7 @@ namespace Renderer
 		void WriteBuffer(DescriptorSetKey& key, const std::string& resName);
 		void WriteBuffer(DescriptorSetKey& key, const std::string& resName, Memory::Buffer* buffer);
 
-		void WriteSampler(DescriptorSetKey& key, const std::string& resName, Memory::Image* image, Sampler* sampler, VkImageLayout layout);
+		void WriteSampler(DescriptorSetKey& key, const std::string& resName, std::vector<Memory::Image*> images, VkSamplerAddressMode addressMode, VkFilter filter, VkSamplerMipmapMode mipFilter, VkImageLayout layout);
 
 		template <typename T>
 		T* GetResource(const DescriptorSetKey& key, std::string resName);

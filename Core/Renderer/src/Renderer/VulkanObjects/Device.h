@@ -1,5 +1,6 @@
 #pragma once
-#include "vulkan.h"
+#include "volk/volk.h"
+
 #include <vector>
 
 namespace Renderer
@@ -38,11 +39,12 @@ namespace Renderer
 		struct
 		{
 			std::vector<const char*> physExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-			std::vector<const char*> instanceExtensions = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
+			std::vector<const char*> instanceExtensions = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME/*, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME */};
 			const std::vector<const char*> validationLayers = {
 #ifdef DEBUG
-				"VK_LAYER_KHRONOS_validation"
+				"VK_LAYER_KHRONOS_validation",
 #endif
+				"VK_LAYER_KHRONOS_synchronization2"
 			};
 		} extensions;
 

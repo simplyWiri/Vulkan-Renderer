@@ -1,8 +1,8 @@
 #pragma once
-#include "glm/glm.hpp"
-#include "vulkan.h"
-#include <array>
-#include "../../Utils/Logging.h"
+#include "volk/volk.h"
+#include "glm/glm/glm.hpp"
+
+#include "Utils/Logging.h"
 
 namespace Renderer
 {

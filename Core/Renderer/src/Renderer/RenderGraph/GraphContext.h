@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
-#include <vulkan.h>
+
+#include "volk/volk.h"
 
 struct GLFWwindow;
 
@@ -27,10 +28,5 @@ namespace Renderer::RenderGraph
 		
 		VkRenderPass GetRenderpass() const { return renderPass; }
 		VkExtent2D GetExtent() const { return extent; }
-		
-		RenderpassCache* GetRenderpassCache();
-		GraphicsPipelineCache* GetGraphicsPipelineCache();
-		//ComputePipelineCache* GetComputePipelineCache();
-		DescriptorSetCache* GetDescriptorSetCache();
 	};
 }

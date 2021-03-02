@@ -1,15 +1,13 @@
+#include "tracy/Tracy.hpp"
+#include "imgui/imgui.h"
+
 #include "Allocator.h"
-
-#include <Tracy.hpp>
-
-
 #include "Allocation.h"
 #include "Block.h"
-#include "../../Utils/Logging.h"
-#include "../VulkanObjects/Device.h"
+#include "Utils/Logging.h"
+#include "Renderer/VulkanObjects/Device.h"
 #include "Buffer.h"
 #include "Image.h"
-#include "imgui.h"
 
 namespace Renderer::Memory
 {

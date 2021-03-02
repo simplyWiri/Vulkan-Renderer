@@ -1,8 +1,7 @@
 #pragma once
-#include <implot.h>
-
-#include "glfw3.h"
-#include "imgui.h"
+#include "implot/implot.h"
+#include "glfw/include/GLFW/glfw3.h"
+#include "imgui/imgui.h"
 #include "Renderer/Core.h"
 #include "Renderer/Memory/Allocator.h"
 #include "Renderer/Resources/Sampler.h"
@@ -10,7 +9,6 @@
 #include "Renderer/Memory/Image.h"
 
 namespace Renderer
-
 {
 	class GUI
 	{

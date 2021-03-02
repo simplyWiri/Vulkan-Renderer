@@ -1,8 +1,7 @@
 #pragma once
-#include "vulkan.h"
 #include <vector>
-#include <memory>
-#include <chrono>
+
+#include "volk/volk.h"
 
 struct GLFWwindow;
 
@@ -12,11 +11,6 @@ namespace Renderer
 		class Allocator;
 	}
 
-	namespace RenderGraph
-	{
-		class PassDesc;
-	}
-	
 	class Core;
 	struct FrameInfo;
 	
@@ -33,7 +27,6 @@ namespace Renderer
 
 	class Swapchain
 	{
-		friend void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<std::unique_ptr<RenderGraph::PassDesc>>& passes);
 	public:
 		~Swapchain();
 

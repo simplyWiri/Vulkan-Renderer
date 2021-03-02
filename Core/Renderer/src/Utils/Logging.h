@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
-#include <spdlog/logger.h>
+
+#include <spdlog/include/spdlog/logger.h>
+
 #undef min
 #undef max
 

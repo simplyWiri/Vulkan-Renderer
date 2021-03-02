@@ -1,7 +1,6 @@
+#include "tracy/Tracy.hpp"
+
 #include "Framebuffer.h"
-
-#include <Tracy.hpp>
-
 #include "Renderpass.h"
 
 namespace Renderer
@@ -50,8 +49,10 @@ namespace Renderer
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = extent;
 
-		renderPassInfo.clearValueCount = 2;
-		renderPassInfo.pClearValues = clearColors.data();
+		renderPassInfo.clearValueCount = views.size();
+
+		std::vector<VkClearValue> clearColours(views.size(), clearColor);
+		renderPassInfo.pClearValues = clearColours.data();
 
 		VkViewport viewport = {};
 		viewport.width = static_cast<float>(extent.width);

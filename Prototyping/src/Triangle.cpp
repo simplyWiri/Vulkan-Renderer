@@ -1,4 +1,5 @@
 #include "Renderer/Core.h"
+#include "Renderer/RenderGraph/Creation/GraphBuilder.h"
 
 using namespace Renderer;
 
@@ -8,7 +9,7 @@ public:
 	
 	void Start()
 	{
-		Renderer::Settings s = {};
+		/*Renderer::Settings s = {};
 		s.width = 1280;
 		s.height = 720;
 		s.vsync = true;
@@ -25,10 +26,14 @@ public:
 		const auto vert = VertexAttributes{};
 
 		float fov = 45.0f;
-		
-		
-		renderer->GetRenderGraph()->AddPass("Triangle", RenderGraph::QueueType::Graphics)
-			.WriteToBackbuffer(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT)
+
+		auto rgBuilder = RenderGraph::GraphBuilder{};
+
+		rgBuilder.AddPass("Triangle", RenderGraph::QueueType::Graphics)
+			.SetInitialisationFunc([&](const GraphBuilder& pass)
+			{
+				
+			})
 			.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& frameInfo, RenderGraph::GraphContext& context)
 			{
 				context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetRenderpass(), context.GetExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, descriptorSetKey.program);
@@ -45,7 +50,7 @@ public:
 
 		vkDeviceWaitIdle(*renderer->GetDevice());
 
-		delete program;
+		delete program;*/
 	}
 
 };

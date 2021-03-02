@@ -52,7 +52,7 @@ public:
 	
 	void Start()
 	{
-		Settings s = {};
+		/*Settings s = {};
 		s.width = 1280;
 		s.height = 720;
 		s.vsync = true;
@@ -120,7 +120,7 @@ public:
 
 		vkDeviceWaitIdle(*renderer->GetDevice());
 
-		delete program;
+		delete program;*/
 	}
 
 };

@@ -1,5 +1,5 @@
-#include "Triangle.cpp"
-#include "Cube.hpp"
+//#include "Triangle.cpp"
+//#include "Cube.hpp"
 #include "DeferredCube.h"
 
 void* operator new(std :: size_t count)

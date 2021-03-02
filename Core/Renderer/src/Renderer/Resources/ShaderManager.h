@@ -1,9 +1,10 @@
 #pragma once
-#include "Shader.h"
 #include <unordered_map>
 
-#include "ShaderProgram.h"
 #include "glslang/Public/ShaderLang.h"
+
+#include "Shader.h"
+#include "ShaderProgram.h"
 
 namespace std
 {

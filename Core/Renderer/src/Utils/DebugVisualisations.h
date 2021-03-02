@@ -1,13 +1,9 @@
 #pragma once
-#include <imgui.h>
-
-#include "../Renderer/Core.h"
-#include "../Renderer/Memory/Allocator.h"
-#include "../RenderGraph/PassDesc.h"
 #include <map>
 #include <vector>
-#include <implot.h>
 
+#include "implot/implot.h"
+#include "imgui/imgui.h"
 
 namespace Renderer
 {
@@ -70,62 +66,62 @@ namespace Renderer
 		}
 	}
 
-	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<std::unique_ptr<RenderGraph::PassDesc>>& passes)
+	void DrawDebugVisualisations(/*Core* core, FrameInfo& frameInfo, const std::vector<std::unique_ptr<RenderGraph::PassDesc>>& passes*/)
 	{
-		ImGui::NewFrame();
+		//ImGui::NewFrame();
 
-		ImGui::SetNextWindowPos({ 5, 5 });
-		ImGui::Begin("Information");
+		//ImGui::SetNextWindowPos({ 5, 5 });
+		//ImGui::Begin("Information");
 
-		ImGui::Text("Width: %d, Height: %d, VSync: %s", core->GetSettings()->width, core->GetSettings()->height, core->GetSettings()->vsync ? "True" : "False");
-		ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / static_cast<float>(frameInfo.fps)), frameInfo.fps);
+		//ImGui::Text("Width: %d, Height: %d, VSync: %s", core->GetSettings()->width, core->GetSettings()->height, core->GetSettings()->vsync ? "True" : "False");
+		//ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / static_cast<float>(frameInfo.fps)), frameInfo.fps);
 
-		float framesDiff = frameInfo.frameIndex - core->GetSwapchain()->prevFrames;
-		if (framesDiff >= 5)
-		{
-			long long timeDiff = frameInfo.time - core->GetSwapchain()->prevFpsSample;
-			auto frameTime = timeDiff / (framesDiff + FLT_EPSILON);
-			ImPlotVar::PlotVar("Frame Times", frameTime, FLT_MAX, FLT_MAX, 144, frameInfo.frameIndex % 7 == 0, "ms");
-		}
-		else { ImPlotVar::PlotVar("Frame Times", FLT_MAX, FLT_MAX, FLT_MAX, 144, false, "ms"); }
+		//float framesDiff = frameInfo.frameIndex - core->GetSwapchain()->prevFrames;
+		//if (framesDiff >= 5)
+		//{
+		//	long long timeDiff = frameInfo.time - core->GetSwapchain()->prevFpsSample;
+		//	auto frameTime = timeDiff / (framesDiff + FLT_EPSILON);
+		//	ImPlotVar::PlotVar("Frame Times", frameTime, FLT_MAX, FLT_MAX, 144, frameInfo.frameIndex % 7 == 0, "ms");
+		//}
+		//else { ImPlotVar::PlotVar("Frame Times", FLT_MAX, FLT_MAX, FLT_MAX, 144, false, "ms"); }
 
 
-		if (ImGui::CollapsingHeader("RenderGraph"))
-		{
-			int i = 0;
-			ImGui::BeginChild("RenderPasses");
+		//if (ImGui::CollapsingHeader("RenderGraph"))
+		//{
+		//	int i = 0;
+		//	ImGui::BeginChild("RenderPasses");
 
-			ImGui::Columns(2, "Render Passes", true);
-			ImGui::Text("Name");
-			ImGui::NextColumn();
-			ImGui::Text("Order");
-			ImGui::NextColumn();
-			ImGui::Separator();
+		//	ImGui::Columns(2, "Render Passes", true);
+		//	ImGui::Text("Name");
+		//	ImGui::NextColumn();
+		//	ImGui::Text("Order");
+		//	ImGui::NextColumn();
+		//	ImGui::Separator();
 
-			static int selected = -1;
+		//	static int selected = -1;
 
-			for (auto& pass : passes)
-			{
-				ImGui::BeginGroup();
-				char label[32];
-				sprintf_s(label, "%s", pass->GetName().c_str());
-				if (ImGui::Selectable(label, selected == i, ImGuiSelectableFlags_SpanAllColumns)) selected = selected == i ? -1 : i;
+		//	for (auto& pass : passes)
+		//	{
+		//		ImGui::BeginGroup();
+		//		char label[32];
+		//		sprintf_s(label, "%s", pass->GetName().c_str());
+		//		if (ImGui::Selectable(label, selected == i, ImGuiSelectableFlags_SpanAllColumns)) selected = selected == i ? -1 : i;
 
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("View Statistics");
+		//		if (ImGui::IsItemHovered()) ImGui::SetTooltip("View Statistics");
 
-				ImGui::NextColumn();
-				ImGui::Text("%d", i++);
-				ImGui::NextColumn();
-				ImGui::Separator();
-				ImGui::EndGroup();
-			}
+		//		ImGui::NextColumn();
+		//		ImGui::Text("%d", i++);
+		//		ImGui::NextColumn();
+		//		ImGui::Separator();
+		//		ImGui::EndGroup();
+		//	}
 
-			ImGui::EndChild();
-		}
+		//	ImGui::EndChild();
+		//}
 
-		if (ImGui::CollapsingHeader("Allocations")) { core->GetAllocator()->DebugView(); }
+		//if (ImGui::CollapsingHeader("Allocations")) { core->GetAllocator()->DebugView(); }
 
-		ImGui::End();
+		//ImGui::End();
 	}
 
 #else

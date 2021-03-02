@@ -1,13 +1,12 @@
+#include "tracy/Tracy.hpp"
+#include "Utils/Logging.h"
+
 #include "DescriptorSet.h"
-
-#include <Tracy.hpp>
-
-#include "../Resources/ShaderProgram.h"
-#include "../../Utils/Logging.h"
-#include "../Memory/Allocator.h"
-#include "../Memory/Buffer.h"
-#include "../Memory/Image.h"
-#include "../Resources/Sampler.h"
+#include "Renderer/Resources/ShaderProgram.h"
+#include "Renderer/Resources/Sampler.h"
+#include "Renderer/Memory/Allocator.h"
+#include "Renderer/Memory/Buffer.h"
+#include "Renderer/Memory/Image.h"
 
 namespace Renderer
 {
@@ -108,19 +107,22 @@ namespace Renderer
 		}
 	}
 
-	void DescriptorSetBundle::WriteSampler(const std::string& resName, Memory::Image* image, Sampler* sampler, VkImageLayout layout)
+	void DescriptorSetBundle::WriteSampler(const std::string& resName, std::vector<Memory::Image*> images, VkSamplerAddressMode addressMode, VkFilter filter, VkSamplerMipmapMode mipFilter, VkImageLayout layout)
 	{
 		const auto res = GetShaderResource(resName);
 
-		VkDescriptorImageInfo imageInfo = {};
-		imageInfo.imageView = image->GetView();
-		images.emplace(resName, image);
-		imageInfo.sampler = sampler->getSampler();
-		samplers.emplace(resName, sampler);
-		imageInfo.imageLayout = layout;
-
+		std::vector<Sampler*> newSamplers;
+		
 		for (uint32_t i = 0; i < framesInFlight; i++)
 		{
+			auto* sampler = new Sampler(device, addressMode, filter, mipFilter);
+			newSamplers.emplace_back(sampler);
+			
+			VkDescriptorImageInfo imageInfo = {};
+			imageInfo.imageView = images[i]->GetView();
+			imageInfo.sampler = sampler->getSampler();
+			imageInfo.imageLayout = layout;
+
 			std::vector<VkWriteDescriptorSet> writeSets;
 
 			VkWriteDescriptorSet writeDescSet = {};
@@ -136,6 +138,9 @@ namespace Renderer
 
 			vkUpdateDescriptorSets(*device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
 		}
+
+		samplers.emplace(resName, std::move(newSamplers));
+		this->images.emplace(resName, images);
 	}
 
 	ShaderResources DescriptorSetBundle::GetShaderResource(const std::string& resName) const
@@ -159,8 +164,12 @@ namespace Renderer
 
 	void DescriptorSetBundle::Clear()
 	{
-		for (auto& val : buffers) { delete val.second; }
-		for (auto& val : samplers) { delete val.second; }
+		for (auto& [key, val] : buffers) { delete val; }
+		for (auto& [key, val] : samplers)
+		{
+			for(auto sampler : val)
+				delete sampler;
+		}
 	}
 
 	void DescriptorSetCache::BuildCache(VkDevice* device, Memory::Allocator* allocator, uint32_t framesInFlight)
@@ -168,20 +177,6 @@ namespace Renderer
 		this->device = device;
 		this->allocator = allocator;
 		this->framesInFlight = framesInFlight;
-
-		std::vector<VkDescriptorPoolSize> poolSizes
-		{
-			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 64 * 1024},
-			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 64 * 1024}
-		};
-
-		VkDescriptorPoolCreateInfo poolCreateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-		poolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-		poolCreateInfo.pPoolSizes = poolSizes.data();
-		poolCreateInfo.maxSets = framesInFlight;
-
-		auto success = vkCreateDescriptorPool(*device, &poolCreateInfo, nullptr, &pool);
-		Assert(success == VK_SUCCESS, "Failed to create descriptor pool");
 	}
 
 	void DescriptorSetCache::WriteBuffer(DescriptorSetKey& key, const std::string& resName)
@@ -198,11 +193,11 @@ namespace Renderer
 		descBundle->WriteBuffer(resName, buffer);
 	}
 
-	void DescriptorSetCache::WriteSampler(DescriptorSetKey& key, const std::string& resName, Memory::Image* image, Sampler* sampler, VkImageLayout layout)
+	void DescriptorSetCache::WriteSampler(DescriptorSetKey& key, const std::string& resName, std::vector<Memory::Image*> images, VkSamplerAddressMode addressMode, VkFilter filter, VkSamplerMipmapMode mipFilter, VkImageLayout layout)
 	{
 		auto descBundle = Get(key);
 
-		descBundle->WriteSampler(resName, image, sampler, layout);
+		descBundle->WriteSampler(resName, images, addressMode, filter, mipFilter, layout);
 	}
 
 	void DescriptorSetCache::SetResource(const DescriptorSetKey& key, std::string resName, void* data, size_t size)

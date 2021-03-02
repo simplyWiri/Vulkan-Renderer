@@ -1,8 +1,7 @@
+#include "tracy/Tracy.hpp"
+
+#include "Renderer/Resources/ShaderProgram.h"
 #include "Pipeline.h"
-
-#include <Tracy.hpp>
-
-#include "../Resources/ShaderProgram.h"
 
 namespace Renderer
 {

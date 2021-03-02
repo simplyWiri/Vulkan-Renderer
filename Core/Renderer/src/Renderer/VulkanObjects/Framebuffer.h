@@ -1,6 +1,6 @@
 #pragma once
-#include "vulkan.h"
-#include <vector>
+#include "volk/volk.h"
+
 #include "Cache.h"
 
 namespace Renderer
@@ -68,6 +68,6 @@ namespace Renderer
 		VkDevice* device;
 		uint32_t framesInFlight;
 
-		const std::vector<VkClearValue> clearColors = { { 0.2f, 0.2f, 0.2f, 1.0f }, { 1.0f, 0 } };
+		const VkClearValue clearColor = { 0.2f, 0.2f, 0.2f, 1.0f };
 	};
 }
