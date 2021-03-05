@@ -14,7 +14,7 @@ namespace Renderer
 
 	bool RenderpassKey::operator==(const RenderpassKey& other) const { return std::tie(colourAttachments, depthAttachment) == std::tie(other.colourAttachments, other.depthAttachment); }
 
-	Renderpass::Renderpass(VkDevice* device, RenderpassKey key) : device(device), colourAttachments(key.colourAttachments)
+	Renderpass::Renderpass(VkDevice device, RenderpassKey key) : colourAttachments(key.colourAttachments)
 	{
 		std::vector<VkAttachmentReference> attachmentRefs;
 		std::vector<VkAttachmentDescription> attachmentDescriptions;
@@ -89,12 +89,12 @@ namespace Renderer
 		createInfo.dependencyCount = 1;
 		createInfo.pDependencies = &dependency;
 
-		const auto success = vkCreateRenderPass(*device, &createInfo, nullptr, &renderpass);
+		const auto success = vkCreateRenderPass(device, &createInfo, nullptr, &renderpass);
 		Assert(success == VK_SUCCESS, "Failed to create renderpass");
 	}
 
 
-	void RenderpassCache::ClearEntry(Renderpass* renderpass) { vkDestroyRenderPass(*device, renderpass->GetHandle(), nullptr); }
+	void RenderpassCache::ClearEntry(Renderpass* renderpass) { vkDestroyRenderPass(device, renderpass->GetHandle(), nullptr); }
 
 	bool RenderpassCache::Add(const RenderpassKey& key)
 	{

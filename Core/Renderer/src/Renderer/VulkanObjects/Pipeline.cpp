@@ -92,7 +92,7 @@ namespace Renderer
 			       other.extent.height);
 	}
 
-	Pipeline::Pipeline(VkDevice* device, GraphicsPipelineKey key)
+	Pipeline::Pipeline(VkDevice device, GraphicsPipelineKey key)
 	{
 		Assert(!(device == nullptr || key.renderpass == nullptr || key.extent.width == 0 || key.extent.height == 0), "Failed to obtain required information to create the graphics pipeline");
 
@@ -100,7 +100,7 @@ namespace Renderer
 
 		
 		this->device = device;
-		key.program->InitialiseResources(device);
+		key.program->InitialiseResources();
 		this->program = key.program;
 		this->descriptorSetLayout = key.program->getDescriptorLayout();
 		this->pipelineLayout = key.program->getPipelineLayout();
@@ -214,18 +214,18 @@ namespace Renderer
 		graphicsPipelineCreateInfo.renderPass = key.renderpass;
 
 
-		auto success = vkCreateGraphicsPipelines(*device, nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline) == VK_SUCCESS;
+		auto success = vkCreateGraphicsPipelines(device, nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline) == VK_SUCCESS;
 		Assert(success, "Failed to create graphics pipeline");
 
-		for (auto shaderModule : shaderModules) { vkDestroyShaderModule(*device, shaderModule, nullptr); }
+		for (auto shaderModule : shaderModules) { vkDestroyShaderModule(device, shaderModule, nullptr); }
 	}
 
-	Pipeline::Pipeline(VkDevice* device, ComputePipelineKey key)
+	Pipeline::Pipeline(VkDevice device, ComputePipelineKey key)
 	{
 		Assert(!(device == nullptr || key.program == nullptr), "Failed to obtain required information to create the graphics pipeline");
 
 		this->device = device;
-		key.program->InitialiseResources(device);
+		key.program->InitialiseResources();
 
 		VkPipelineShaderStageCreateInfo stage = {};
 		for (const auto& shader : key.program->getShaders()) { stage = CreateShaderInfo(CreateShaderModule(shader), shader->getType()); }
@@ -234,7 +234,7 @@ namespace Renderer
 		createInfo.stage = stage;
 		createInfo.layout = key.program->getPipelineLayout();
 
-		vkCreateComputePipelines(*device, nullptr, 1, &createInfo, nullptr, &pipeline);
+		vkCreateComputePipelines(device, nullptr, 1, &createInfo, nullptr, &pipeline);
 	}
 
 	VkShaderModule Pipeline::CreateShaderModule(Shader* shader)
@@ -245,7 +245,7 @@ namespace Renderer
 		createInfo.pCode = shader->getSPV().data();
 
 		VkShaderModule shaderModule;
-		auto success = vkCreateShaderModule(*device, &createInfo, nullptr, &shaderModule) == VK_SUCCESS;
+		auto success = vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) == VK_SUCCESS;
 		Assert(success, "Failed to create shader module");
 
 		shaderModules.push_back(shaderModule);

@@ -6,7 +6,7 @@
 
 namespace Renderer::Memory
 {
-	Block::Block(Allocator* parent, uint32_t memoryTypeIndex, uint32_t heapIndex, uint32_t blockId, VkDeviceSize size) : blockId(blockId), parent(parent), device(*parent->device->GetDevice()), size(size), memoryTypeIndex(memoryTypeIndex),
+	Block::Block(Allocator* parent, uint32_t memoryTypeIndex, uint32_t heapIndex, uint32_t blockId, VkDeviceSize size) : blockId(blockId), parent(parent), device(parent->device->GetDevice()), size(size), memoryTypeIndex(memoryTypeIndex),
 	                                                                                                                     heapIndex(heapIndex)
 	{
 		VkMemoryAllocateInfo info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };

@@ -27,7 +27,7 @@ namespace Renderer
 	public:
 		ShaderManager() {}
 
-		ShaderManager(VkDevice* device) : device(device)
+		ShaderManager(VkDevice device) : device(device)
 		{
 			glslang::InitializeProcess();
 			
@@ -73,6 +73,6 @@ namespace Renderer
 
 		uint32_t uniqueId = 0;
 		std::unordered_map<std::pair<ShaderType, std::string>, Shader*> shaders;
-		VkDevice* device;
+		VkDevice device;
 	};
 }

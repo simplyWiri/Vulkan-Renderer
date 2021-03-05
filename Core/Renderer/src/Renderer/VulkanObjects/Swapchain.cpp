@@ -13,10 +13,10 @@ namespace Renderer
 {
 	Swapchain::~Swapchain()
 	{
-		for (auto image : views) vkDestroyImageView(*device, image, nullptr);
+		for (auto image : views) vkDestroyImageView(device, image, nullptr);
 
-		vkDestroySwapchainKHR(*device, swapchain, nullptr);
-		vkDestroySurfaceKHR(*instance, surface, nullptr);
+		vkDestroySwapchainKHR(device, swapchain, nullptr);
+		vkDestroySurfaceKHR(instance, surface, nullptr);
 		glfwDestroyWindow(window);
 		glfwTerminate();
 	}
@@ -25,13 +25,13 @@ namespace Renderer
 	{
 		if (device != nullptr)
 		{
-			vkDestroySemaphore(*device, imageAcquired, nullptr);
-			vkDestroySemaphore(*device, renderFinished, nullptr);
-			vkDestroyFence(*device, inFlightFence, nullptr);
+			vkDestroySemaphore(device, imageAcquired, nullptr);
+			vkDestroySemaphore(device, renderFinished, nullptr);
+			vkDestroyFence(device, inFlightFence, nullptr);
 		}
 	}
 
-	void Swapchain::Initialise(VkDevice* device, VkInstance* instance, VkPhysicalDevice* physDevice)
+	void Swapchain::Initialise(VkDevice device, VkInstance instance, VkPhysicalDevice physDevice)
 	{
 		this->device = device;
 		this->instance = instance;
@@ -49,7 +49,7 @@ namespace Renderer
 
 	void Swapchain::BuildSurface()
 	{
-		auto success = glfwCreateWindowSurface(*instance, window, nullptr, &surface);
+		auto success = glfwCreateWindowSurface(instance, window, nullptr, &surface);
 		Assert(success == VK_SUCCESS, "Failed to initialise window surface");
 	}
 
@@ -145,19 +145,19 @@ namespace Renderer
 		if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-		auto success = vkCreateSwapchainKHR(*device, &swapchainCI, nullptr, &swapchain);
+		auto success = vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapchain);
 		Assert(success == VK_SUCCESS, "Failed to create swapchain");
 
 		if (oldSwapchain != nullptr)
 		{
-			for (auto image : views) vkDestroyImageView(*device, image, nullptr);
+			for (auto image : views) vkDestroyImageView(device, image, nullptr);
 
-			vkDestroySwapchainKHR(*device, oldSwapchain, nullptr);
+			vkDestroySwapchainKHR(device, oldSwapchain, nullptr);
 		}
 
-		vkGetSwapchainImagesKHR(*device, swapchain, &framesInFlight, nullptr);
+		vkGetSwapchainImagesKHR(device, swapchain, &framesInFlight, nullptr);
 		images.resize(framesInFlight);
-		vkGetSwapchainImagesKHR(*device, swapchain, &framesInFlight, images.data());
+		vkGetSwapchainImagesKHR(device, swapchain, &framesInFlight, images.data());
 
 		// Get the swap chain buffers containing the image and imageview
 		views.resize(framesInFlight);
@@ -177,7 +177,7 @@ namespace Renderer
 			colorAttachmentView.flags = 0;
 			colorAttachmentView.image = images[i];
 
-			vkCreateImageView(*device, &colorAttachmentView, nullptr, &views[i]);
+			vkCreateImageView(device, &colorAttachmentView, nullptr, &views[i]);
 		}
 	}
 
@@ -197,9 +197,9 @@ namespace Renderer
 			auto& frame = frames[i];
 			frame = {};
 			frame.device = device;
-			vkCreateSemaphore(*device, &semaphoreInfo, nullptr, &frame.imageAcquired);
-			vkCreateSemaphore(*device, &semaphoreInfo, nullptr, &frame.renderFinished);
-			vkCreateFence(*device, &fenceInfo, nullptr, &frame.inFlightFence);
+			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &frame.imageAcquired);
+			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &frame.renderFinished);
+			vkCreateFence(device, &fenceInfo, nullptr, &frame.inFlightFence);
 		}
 	}
 
@@ -209,11 +209,11 @@ namespace Renderer
 		curFrame.buffer = buffer;
 
 		VkFence waitFences[] = { curFrame.inFlightFence };
-		vkWaitForFences(*device, 1, waitFences, VK_TRUE, UINT64_MAX);
-		vkResetFences(*device, 1, &curFrame.inFlightFence);
+		vkWaitForFences(device, 1, waitFences, VK_TRUE, UINT64_MAX);
+		vkResetFences(device, 1, &curFrame.inFlightFence);
 
 		uint32_t imageIndex = 0;
-		vkAcquireNextImageKHR(*device, swapchain, UINT64_MAX, curFrame.imageAcquired, nullptr, &imageIndex);
+		vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, curFrame.imageAcquired, nullptr, &imageIndex);
 
 		FrameInfo info = {};
 
@@ -284,25 +284,25 @@ namespace Renderer
 	void Swapchain::CheckSwapChainSupport(VkSurfaceCapabilitiesKHR* capabilities, std::vector<VkSurfaceFormatKHR>& formats, std::vector<VkPresentModeKHR>& presentModes)
 	{
 		// load device SwapChain capabilities
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*physDevice, surface, capabilities);
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physDevice, surface, capabilities);
 
 		// load device SwapChain formats
 		uint32_t formatCount;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(*physDevice, surface, &formatCount, nullptr);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(physDevice, surface, &formatCount, nullptr);
 		if (formatCount != 0)
 		{
 			formats.resize(formatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(*physDevice, surface, &formatCount, formats.data());
+			vkGetPhysicalDeviceSurfaceFormatsKHR(physDevice, surface, &formatCount, formats.data());
 		}
 
 		// load device SwapChain presentcount
 		uint32_t presentCount;
-		vkGetPhysicalDeviceSurfacePresentModesKHR(*physDevice, surface, &presentCount, nullptr);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(physDevice, surface, &presentCount, nullptr);
 
 		if (presentCount != 0)
 		{
 			presentModes.resize(presentCount);
-			vkGetPhysicalDeviceSurfacePresentModesKHR(*physDevice, surface, &presentCount, presentModes.data());
+			vkGetPhysicalDeviceSurfacePresentModesKHR(physDevice, surface, &presentCount, presentModes.data());
 		}
 	}
 }

@@ -51,7 +51,7 @@ namespace Renderer
 		auto success = vkCreateCommandPool(device, &poolCreateInfo, nullptr, &commandPool);
 		Assert(success == VK_SUCCESS, "Failed to create command pool");
 
-		tracyContext = TracyVkContext(*device.GetPhysicalDevice(), *device.GetDevice(), device.queues.graphics, GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false));
+		tracyContext = TracyVkContext(device.GetPhysicalDevice(), device.GetDevice(), device.queues.graphics, GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false));
 
 		return true;
 	}

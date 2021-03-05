@@ -10,9 +10,9 @@ namespace Renderer
 	public:
 		ShaderProgram() {}
 
-		ShaderProgram(VkDevice* device, std::vector<Shader*> shaders) : device(device)
+		ShaderProgram(VkDevice device, std::vector<Shader*> shaders) : device(device)
 		{
-			this->shaders = shaders;
+			this->shaders = std::move(shaders);
 
 			for (auto shader : shaders)
 			{
@@ -32,13 +32,13 @@ namespace Renderer
 
 		~ShaderProgram()
 		{
-			vkDestroyDescriptorSetLayout(*device, dLayout, nullptr);
-			vkDestroyPipelineLayout(*device, pLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device, dLayout, nullptr);
+			vkDestroyPipelineLayout(device, pLayout, nullptr);
 		}
 
 		bool operator ==(const ShaderProgram& other) const { return ids == other.ids; }
 
-		void InitialiseResources(VkDevice* device)
+		void InitialiseResources()
 		{
 			if (initialised) return;
 
@@ -83,7 +83,7 @@ namespace Renderer
 			desclayout.bindingCount = static_cast<uint32_t>(bindings.size());
 			desclayout.pBindings = bindings.data();
 
-			vkCreateDescriptorSetLayout(*device, &desclayout, nullptr, &dLayout);
+			vkCreateDescriptorSetLayout(device, &desclayout, nullptr, &dLayout);
 
 			VkPipelineLayoutCreateInfo layoutInfo = {};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -92,7 +92,7 @@ namespace Renderer
 			layoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size());
 			layoutInfo.pPushConstantRanges = pushConstants.data();
 
-			vkCreatePipelineLayout(*device, &layoutInfo, nullptr, &pLayout);
+			vkCreatePipelineLayout(device, &layoutInfo, nullptr, &pLayout);
 
 			initialised = true;
 		}
@@ -109,7 +109,7 @@ namespace Renderer
 	private:
 		bool initialised = false;
 
-		VkDevice* device;
+		VkDevice device;
 		VkPipelineLayout pLayout;
 		VkDescriptorSetLayout dLayout;
 

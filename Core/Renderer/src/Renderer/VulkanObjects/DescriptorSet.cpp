@@ -13,7 +13,7 @@ namespace Renderer
 	bool DescriptorSetKey::operator==(const DescriptorSetKey& other) const { return program == other.program; }
 
 
-	DescriptorSetBundle::DescriptorSetBundle(VkDevice* device, Memory::Allocator* allocator, DescriptorSetKey key, uint32_t framesInFlight) : framesInFlight(framesInFlight), resources(key.program->getResources()), device(device),
+	DescriptorSetBundle::DescriptorSetBundle(VkDevice device, Memory::Allocator* allocator, DescriptorSetKey key, uint32_t framesInFlight) : framesInFlight(framesInFlight), resources(key.program->getResources()), device(device),
 	                                                                                                                                          allocator(allocator)
 	{
 		std::vector<VkDescriptorPoolSize> poolSizes;
@@ -36,7 +36,7 @@ namespace Renderer
 		poolCreateInfo.maxSets = framesInFlight;
 		sets.resize(framesInFlight);
 
-		auto success = vkCreateDescriptorPool(*device, &poolCreateInfo, nullptr, &pool);
+		auto success = vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &pool);
 		Assert(success == VK_SUCCESS, "Failed to create descriptor pool");
 
 		std::vector<VkDescriptorSetLayout> layouts(framesInFlight, key.program->getDescriptorLayout());
@@ -48,7 +48,7 @@ namespace Renderer
 		allocInfo.pSetLayouts = layouts.data();
 
 		sets.resize(framesInFlight);
-		success = vkAllocateDescriptorSets(*device, &allocInfo, sets.data());
+		success = vkAllocateDescriptorSets(device, &allocInfo, sets.data());
 		Assert(success == VK_SUCCESS, "Failed to allocator descriptor sets");
 	}
 
@@ -103,7 +103,7 @@ namespace Renderer
 
 			writeSets.push_back(writeDescSet);
 
-			vkUpdateDescriptorSets(*device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
 		}
 	}
 
@@ -136,7 +136,7 @@ namespace Renderer
 
 			writeSets.push_back(writeDescSet);
 
-			vkUpdateDescriptorSets(*device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeSets.size()), writeSets.data(), 0, nullptr);
 		}
 
 		samplers.emplace(resName, std::move(newSamplers));
@@ -172,7 +172,7 @@ namespace Renderer
 		}
 	}
 
-	void DescriptorSetCache::BuildCache(VkDevice* device, Memory::Allocator* allocator, uint32_t framesInFlight)
+	void DescriptorSetCache::BuildCache(VkDevice device, Memory::Allocator* allocator, uint32_t framesInFlight)
 	{
 		this->device = device;
 		this->allocator = allocator;
@@ -234,7 +234,7 @@ namespace Renderer
 
 	void DescriptorSetCache::ClearEntry(DescriptorSetBundle* set)
 	{
-		vkDestroyDescriptorPool(*device, set->GetPool(), nullptr);
+		vkDestroyDescriptorPool(device, set->GetPool(), nullptr);
 		set->Clear();
 	}
 }

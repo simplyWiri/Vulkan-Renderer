@@ -39,7 +39,7 @@ namespace Renderer
 			VkFence inFlightFence;
 
 			VkCommandBuffer buffer;
-			VkDevice* device;
+			VkDevice device;
 
 			~FrameResources();
 		};
@@ -69,9 +69,9 @@ namespace Renderer
 		int width = 640;
 		int height = 400;
 
-		VkDevice* device;
-		VkInstance* instance;
-		VkPhysicalDevice* physDevice;
+		VkDevice device;
+		VkInstance instance;
+		VkPhysicalDevice physDevice;
 
 	public:
 		operator VkSwapchainKHR() { return swapchain; }
@@ -87,7 +87,7 @@ namespace Renderer
 
 	public:
 
-		void Initialise(VkDevice* device, VkInstance* instance, VkPhysicalDevice* physDevice);
+		void Initialise(VkDevice device, VkInstance instance, VkPhysicalDevice physDevice);
 		void BuildWindow(int width, int height, const char* title);
 		void BuildSurface();
 		void BuildSwapchain(bool vsync = false);

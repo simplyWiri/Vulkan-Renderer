@@ -20,12 +20,11 @@ namespace Renderer
 
 	struct FramebufferBundle
 	{
-		FramebufferBundle(VkDevice* device, FramebufferKey key, uint32_t count);
+		FramebufferBundle(VkDevice device, FramebufferKey key, uint32_t count);
 
 		std::vector<VkFramebuffer> GetHandle() { return framebuffers; }
 
 	private:
-		VkDevice* device;
 		std::vector<VkFramebuffer> framebuffers;
 	};
 }
@@ -53,7 +52,7 @@ namespace Renderer
 	class FramebufferCache : public Cache<FramebufferBundle, FramebufferKey>
 	{
 	public:
-		void BuildCache(VkDevice* device, uint32_t framesInFlight);
+		void BuildCache(VkDevice device, uint32_t framesInFlight);
 
 		void BeginPass(VkCommandBuffer buffer, uint32_t index, const std::vector<VkImageView>& views, Renderpass* renderpass, VkExtent2D extent);
 		void EndPass(VkCommandBuffer buffer);
@@ -65,7 +64,7 @@ namespace Renderer
 
 		void ClearEntry(FramebufferBundle* framebuffers) override;
 
-		VkDevice* device;
+		VkDevice device;
 		uint32_t framesInFlight;
 
 		const VkClearValue clearColor = { 0.2f, 0.2f, 0.2f, 1.0f };

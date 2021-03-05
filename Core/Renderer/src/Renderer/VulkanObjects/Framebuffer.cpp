@@ -10,7 +10,7 @@ namespace Renderer
 
 	bool FramebufferKey::operator==(const FramebufferKey& other) const { return std::tie(imageViews, extent.width, extent.height) == std::tie(other.imageViews, other.extent.width, other.extent.height); }
 
-	FramebufferBundle::FramebufferBundle(VkDevice* device, FramebufferKey key, uint32_t count) : device(device)
+	FramebufferBundle::FramebufferBundle(VkDevice device, FramebufferKey key, uint32_t count)
 	{
 		framebuffers.resize(count);
 
@@ -24,11 +24,11 @@ namespace Renderer
 			createInfo.renderPass = key.renderpass->GetHandle();
 			createInfo.layers = 1;
 
-			vkCreateFramebuffer(*device, &createInfo, nullptr, &framebuffers[i]);
+			vkCreateFramebuffer(device, &createInfo, nullptr, &framebuffers[i]);
 		}
 	}
 
-	void FramebufferCache::BuildCache(VkDevice* device, uint32_t framesInFlight)
+	void FramebufferCache::BuildCache(VkDevice device, uint32_t framesInFlight)
 	{
 		this->device = device;
 		this->framesInFlight = framesInFlight;
@@ -88,5 +88,5 @@ namespace Renderer
 		return true;
 	}
 
-	void FramebufferCache::ClearEntry(FramebufferBundle* framebuffers) { for (auto framebuffer : framebuffers->GetHandle()) { vkDestroyFramebuffer(*device, framebuffer, nullptr); } }
+	void FramebufferCache::ClearEntry(FramebufferBundle* framebuffers) { for (auto framebuffer : framebuffers->GetHandle()) { vkDestroyFramebuffer(device, framebuffer, nullptr); } }
 }

@@ -35,12 +35,11 @@ namespace Renderer
 	{
 		operator VkRenderPass() { return renderpass; }
 
-		Renderpass(VkDevice* device, RenderpassKey key);
+		Renderpass(VkDevice device, RenderpassKey key);
 
 		VkRenderPass GetHandle() { return renderpass; }
 		uint32_t GetColourAttachmentCount() { return static_cast<uint32_t>(colourAttachments.size()); }
 	private:
-		VkDevice* device;
 		VkRenderPass renderpass;
 		std::vector<AttachmentDesc> colourAttachments;
 	};
@@ -73,13 +72,13 @@ namespace Renderer
 	class RenderpassCache : public Cache<Renderpass, RenderpassKey>
 	{
 	public:
-		void BuildCache(VkDevice* device) { this->device = device; }
+		void BuildCache(VkDevice device) { this->device = device; }
 
 		Renderpass* Get(const RenderpassKey& key) override;
 		bool Add(const RenderpassKey& key) override;
 		void ClearEntry(Renderpass* renderpass) override;
 
 	private:
-		VkDevice* device;
+		VkDevice device;
 	};
 }

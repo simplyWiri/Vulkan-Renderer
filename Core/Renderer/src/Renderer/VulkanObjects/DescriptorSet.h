@@ -30,7 +30,7 @@ namespace Renderer
 	class DescriptorSetBundle
 	{
 	public:
-		DescriptorSetBundle(VkDevice* device, Memory::Allocator* allocator, DescriptorSetKey key, uint32_t framesInFlight);
+		DescriptorSetBundle(VkDevice device, Memory::Allocator* allocator, DescriptorSetKey key, uint32_t framesInFlight);
 
 		void WriteBuffer(const std::string& resName);
 		void WriteBuffer(const std::string& resName, Memory::Buffer* buffer);
@@ -49,7 +49,7 @@ namespace Renderer
 	private:
 		uint32_t framesInFlight;
 		std::vector<ShaderResources> resources;
-		VkDevice* device;
+		VkDevice device;
 		Memory::Allocator* allocator;
 		std::unordered_map<std::string, Memory::Buffer*> buffers;
 		std::unordered_map<std::string, std::vector<Memory::Image*>> images;
@@ -74,11 +74,11 @@ namespace Renderer
 	class DescriptorSetCache : public Cache<DescriptorSetBundle, DescriptorSetKey>
 	{
 	private:
-		VkDevice* device;
+		VkDevice device;
 		Memory::Allocator* allocator;
 
 	public:
-		void BuildCache(VkDevice* device, Memory::Allocator* allocator, uint32_t framesInFlight);
+		void BuildCache(VkDevice device, Memory::Allocator* allocator, uint32_t framesInFlight);
 
 		// we can actually build the buffer from what is known in the shader, in this case, we allow our descriptor bundle to also manage the buffer
 		void WriteBuffer(DescriptorSetKey& key, const std::string& resName);

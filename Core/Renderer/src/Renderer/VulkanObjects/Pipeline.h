@@ -86,7 +86,7 @@ namespace Renderer
 	class Pipeline
 	{
 	private:
-		VkDevice* device;
+		VkDevice device;
 		ShaderProgram* program;
 
 		VkPipeline pipeline;
@@ -97,10 +97,10 @@ namespace Renderer
 
 
 	public:
-		Pipeline(VkDevice* device, GraphicsPipelineKey key);
-		Pipeline(VkDevice* device, ComputePipelineKey key);
+		Pipeline(VkDevice device, GraphicsPipelineKey key);
+		Pipeline(VkDevice device, ComputePipelineKey key);
 
-		~Pipeline() { vkDestroyPipeline(*device, pipeline, nullptr); }
+		~Pipeline() { vkDestroyPipeline(device, pipeline, nullptr); }
 
 		operator VkPipeline() { return pipeline; }
 
@@ -116,10 +116,10 @@ namespace Renderer
 	class GraphicsPipelineCache : public Cache<Pipeline, GraphicsPipelineKey>
 	{
 	private:
-		VkDevice* device;
+		VkDevice device;
 
 	public:
-		void BuildCache(VkDevice* device) { this->device = device; }
+		void BuildCache(VkDevice device) { this->device = device; }
 
 		void BindGraphicsPipeline(VkCommandBuffer buffer, VkRenderPass pass, const VkExtent2D& extent, const VertexAttributes& vertexAttributes, const DepthSettings& depthSettings, const std::vector<BlendSettings>& blendSettings,
 		                          VkPrimitiveTopology topology, ShaderProgram* program);
@@ -135,10 +135,10 @@ namespace Renderer
 	class ComputePipelineCache : public Cache<Pipeline, ComputePipelineKey>
 	{
 	private:
-		VkDevice* device;
+		VkDevice device;
 
 	public:
-		void BuildCache(VkDevice* device) { this->device = device; }
+		void BuildCache(VkDevice device) { this->device = device; }
 
 		void BindComputePipeline(VkCommandBuffer buffer, ComputePipelineKey key);
 

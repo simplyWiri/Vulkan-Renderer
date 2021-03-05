@@ -63,9 +63,9 @@ namespace Renderer
 		VkPhysicalDeviceProperties properties;
 		VkPhysicalDeviceMemoryProperties memProperties;
 	public:
-		VkDevice* GetDevice() { return &device; }
-		VkPhysicalDevice* GetPhysicalDevice() { return &physDevice; }
-		VkInstance* GetInstance() { return &instance; }
+		VkDevice GetDevice() const { return device; }
+		VkPhysicalDevice GetPhysicalDevice() const { return physDevice; }
+		VkInstance GetInstance() const { return instance; }
 		QueueFamilyIndices* GetIndices() { return &indices; }
 
 		VkPhysicalDeviceFeatures GetPhysicalDeviceFeatures() { return features; }

@@ -8,13 +8,13 @@ namespace Renderer
 	{
 	private:
 		VkSampler sampler;
-		VkDevice* device;
+		VkDevice device;
 	public:
 		Sampler(const Sampler&) = delete;
 		Sampler& operator=(const Sampler&) = delete;
 		Sampler& operator=(Sampler&&) = delete;
 
-		Sampler(VkDevice* device, VkSamplerAddressMode addressMode, VkFilter filter, VkSamplerMipmapMode mipFilter) : device(device)
+		Sampler(VkDevice device, VkSamplerAddressMode addressMode, VkFilter filter, VkSamplerMipmapMode mipFilter) : device(device)
 		{
 			VkSamplerCreateInfo samplerInfo = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
 			samplerInfo.maxAnisotropy = 1.0f;
@@ -28,10 +28,10 @@ namespace Renderer
 			samplerInfo.minLod = -1000;
 			samplerInfo.maxLod = 1000;
 
-			vkCreateSampler(*device, &samplerInfo, nullptr, &sampler);
+			vkCreateSampler(device, &samplerInfo, nullptr, &sampler);
 		}
 
-		~Sampler() { if (device) vkDestroySampler(*device, sampler, nullptr); }
+		~Sampler() { if (device) vkDestroySampler(device, sampler, nullptr); }
 
 		VkSampler getSampler() { return sampler; }
 	};
