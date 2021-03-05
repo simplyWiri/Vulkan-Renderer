@@ -1,13 +1,13 @@
 ﻿#pragma once
 #include <ostream>
-#include <Tracy.hpp>
+#include "tracy/Tracy.hpp"
 #include <vector>
-#include <common/TracyColor.hpp>
-#include <glm/common.hpp>
-#include <glm/geometric.hpp>
-#include <glm/trigonometric.hpp>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
+#include <glm/glm/common.hpp>
+#include <glm/glm/geometric.hpp>
+#include <glm/glm/trigonometric.hpp>
+#include <glm/glm/vec2.hpp>
+#include <glm/glm/vec3.hpp>
+
 #include "RBtree.h"
 
 

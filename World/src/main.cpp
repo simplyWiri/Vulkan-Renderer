@@ -1,18 +1,20 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_RADIANS
+#define VK_USE_PLATFORM_WIN32_KHR
+#define VOLK_IMPLEMENTATION
 
 #include "Renderer/Core.h"
-#include "imgui.h"
-#include <glm/gtc/matrix_transform.hpp>
+#include "imgui/imgui.h"
+#include "glm/glm/gtc/matrix_transform.hpp"
 #include "GUI.h"
 #include "Utils/Camera.h"
 #include "World/Generation/PlanetGenerator.h"
 #include "World/PlanetRenderer.h"
-#include "Tracy.hpp"
+#include "tracy/Tracy.hpp"
 #include <Utils\AnchoredCamera.h>
+#include "volk/volk.h"
 
 using namespace Renderer;
-using namespace Renderer::RenderGraph;
 using namespace World::Generation;
 
 void* operator new(std :: size_t count)
@@ -52,10 +54,10 @@ int main()
 	gui.initialise(renderer.get());
 
 	auto program = renderer->GetShaderManager()->getProgram({ renderer->GetShaderManager()->DefaultVertex(), renderer->GetShaderManager()->DefaultFragment() });
-	program->InitialiseResources(renderer->GetDevice()->GetDevice());
+	program->InitialiseResources();
 
 	DescriptorSetKey descriptorSetKey = { program };
-	const auto vert = Vertex::defaultVertex();
+	auto vert = Vertex::defaultVertex();
 
 	float fov = 45.0f;
 	
@@ -129,9 +131,19 @@ int main()
 	auto twoPi = 2 * 3.14159265359f;
 	float step = twoPi / 16; // 16s to finish
 	bool random = false;
+
+	RenderGraph::GraphBuilder rgBuilder{};
+
+	gen->Step(2 * 3.14159265359f);
 	
-	renderer->GetRenderGraph()->AddPass("Drawing Sphere", QueueType::Graphics)
-		.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
+	rgBuilder.AddPass("Drawing Sphere", RenderGraph::QueueType::Graphics)
+		.WriteImage("depth", 0, VK_ATTACHMENT_LOAD_OP_CLEAR, 0, RenderGraph::ImageInfo { .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, .format = VK_FORMAT_D32_SFLOAT, .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL })
+		.WriteToBackbuffer(VK_ATTACHMENT_LOAD_OP_CLEAR)
+		.SetInitialisationFunc([&](auto* graph)	
+		{
+			renderer->GetDescriptorSetCache()->WriteBuffer(descriptorSetKey, "ubo");
+		})
+		.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& frameInfo, RenderGraph::GraphContext& context)
 		{
 			{
 				ZoneScopedN("Update Camera and Set Descriptor Cache")
@@ -192,38 +204,42 @@ int main()
 					if(gen->Finished()) ImGui::Checkbox("Draw Voronoi Faces", &showFaces);
 				}
 				
-				context.GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
+				renderer->GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
 			}
 
+			renderer->GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey);
+
+			planetRenderer->SetFrameState(renderer.get(), buffer, &context, &vert, &descriptorSetKey);
+			
 			if(showFaces)
 			{
-				planetRenderer->DrawVoronoiFaces(buffer, context, vert, descriptorSetKey);
+				planetRenderer->DrawVoronoiFaces();
 			}
 			
 			if(!gen->Finished())
 			{
 				if(showBeachline)
 				{
-					planetRenderer->DrawBeachline(buffer, context, vert, descriptorSetKey);
+					planetRenderer->DrawBeachline();
 				}
 				if(showSweepline)
 				{
-					planetRenderer->DrawSweepline(buffer, context, vert, descriptorSetKey);
+					planetRenderer->DrawSweepline();
 				}
 			}
 			
 			if(showSites)
 			{
-				planetRenderer->DrawSites(buffer, context, vert, descriptorSetKey);
+				planetRenderer->DrawSites();
 			}
 			if(showVoronoiEdges)
 			{
-				planetRenderer->DrawVoronoiEdges(buffer, context, vert, descriptorSetKey);
+				planetRenderer->DrawVoronoiEdges();
 			}
 
 			if(showDelanuayEdges)
 			{
-				planetRenderer->DrawDelanuayEdges(buffer, context, vert, descriptorSetKey);
+				planetRenderer->DrawDelanuayEdges();
 			}
 
 			
@@ -231,17 +247,16 @@ int main()
 				gen->Step(( gen->sweepline > 3.14159265359f ? step * 4 : step ) * static_cast<float>(frameInfo.delta));
 		});
 
+	gui.AddToGraph(renderer.get(), &rgBuilder);
 
-	gui.AddToGraph(renderer->GetRenderGraph());
-
-	renderer->GetRenderGraph()->Build();
+	auto* rg = renderer->CreateRenderGraph(rgBuilder);
 
 	while (renderer->Run())
 	{
-		renderer->GetRenderGraph()->Execute();
+		rg->Execute();
 	}
 
-	vkDeviceWaitIdle(*renderer->GetDevice());
+	vkDeviceWaitIdle(renderer->GetDevice()->GetDevice());
 
 	delete gen;
 	delete planetRenderer;

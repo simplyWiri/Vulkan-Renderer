@@ -14,7 +14,7 @@ namespace Renderer
 		{
 			this->shaders = std::move(shaders);
 
-			for (auto shader : shaders)
+			for (auto shader : this->shaders)
 			{
 				if (shader->getStatus() == ShaderStatus::Uninitialised)
 				{

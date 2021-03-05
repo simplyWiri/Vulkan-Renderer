@@ -143,7 +143,8 @@ project ("World Generator")
 	{
 		"Core/Renderer/src",
 		"externals",
-		(_OPTIONS["vulkanPath"] .. "/Include/vulkan/"),
+		(_OPTIONS["vulkanPath"] .. "/Include"),
+		"externals/spdlog/include/",
 		"Core/Common/src"
 	}
 

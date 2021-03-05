@@ -1,8 +1,8 @@
-//#include "Triangle.cpp"
+#include "Triangle.cpp"
 //#include "Cube.hpp"
-#include "DeferredCube.h"
+//#include "DeferredCube.h"
 
-void* operator new(std :: size_t count)
+void* operator new(std::size_t count)
 {
 	auto ptr = malloc(count);
 	TracyAlloc (ptr , count);
@@ -16,7 +16,7 @@ void operator delete(void* ptr) noexcept
 
 int main()
 {
-	DeferredCube dcube{};
+	Triangle tr{};
 
-	dcube.Start();
+	tr.Start();
 }

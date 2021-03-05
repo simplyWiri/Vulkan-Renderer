@@ -66,7 +66,5 @@ namespace Renderer
 
 		VkDevice device;
 		uint32_t framesInFlight;
-
-		const VkClearValue clearColor = { 0.2f, 0.2f, 0.2f, 1.0f };
 	};
 }

@@ -6,7 +6,7 @@ namespace Renderer
 {
 	bool AttachmentDesc::operator==(const AttachmentDesc& other) const
 	{
-		if (!(std::tie(format, loadOp) == std::tie(other.format, other.loadOp))) return false;
+		if (!(std::tie(format, loadOp, initialLayout, finalLayout) == std::tie(other.format, other.loadOp, other.initialLayout, other.finalLayout))) return false;
 
 		return std::tie(clearValue.color.int32[0], clearValue.color.int32[1], clearValue.color.int32[2], clearValue.color.int32[3]) == std::tie(other.clearValue.color.int32[0], other.clearValue.color.int32[1],
 			       other.clearValue.color.int32[2], other.clearValue.color.int32[3]);
@@ -14,7 +14,7 @@ namespace Renderer
 
 	bool RenderpassKey::operator==(const RenderpassKey& other) const { return std::tie(colourAttachments, depthAttachment) == std::tie(other.colourAttachments, other.depthAttachment); }
 
-	Renderpass::Renderpass(VkDevice device, RenderpassKey key) : colourAttachments(key.colourAttachments)
+	Renderpass::Renderpass(VkDevice device, RenderpassKey key)
 	{
 		std::vector<VkAttachmentReference> attachmentRefs;
 		std::vector<VkAttachmentDescription> attachmentDescriptions;
@@ -35,12 +35,13 @@ namespace Renderer
 			desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			if(key.writesToBackbuffer) desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-			else desc.finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+			desc.initialLayout = colourAttachment.initialLayout;
+			desc.finalLayout = colourAttachment.finalLayout;
 
 			attachmentRefs.push_back(ref);
 			attachmentDescriptions.push_back(desc);
+
+			clearValues.emplace_back(colourAttachment.clearValue);
 		}
 
 		VkSubpassDescription subpassDesc = {};
@@ -69,6 +70,8 @@ namespace Renderer
 			desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 			attachmentDescriptions.push_back(desc);
+
+			clearValues.emplace_back(key.depthAttachment.clearValue);
 		}
 		subpassDesc.colorAttachmentCount = static_cast<uint32_t>(attachmentRefs.size());
 		subpassDesc.pColorAttachments = attachmentRefs.data();

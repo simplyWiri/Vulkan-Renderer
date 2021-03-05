@@ -8,7 +8,10 @@ namespace Renderer
 	FramebufferKey::FramebufferKey(std::vector<VkImageView> imageViews, Renderpass* renderpass, VkExtent2D extent) : imageViews(std::move(imageViews)), renderpass(renderpass), extent(extent) { }
 
 
-	bool FramebufferKey::operator==(const FramebufferKey& other) const { return std::tie(imageViews, extent.width, extent.height) == std::tie(other.imageViews, other.extent.width, other.extent.height); }
+	bool FramebufferKey::operator==(const FramebufferKey& other) const
+	{
+		return std::tie(imageViews, extent.width, extent.height, *renderpass) == std::tie(other.imageViews, other.extent.width, other.extent.height, *renderpass);
+	}
 
 	FramebufferBundle::FramebufferBundle(VkDevice device, FramebufferKey key, uint32_t count)
 	{
@@ -41,18 +44,17 @@ namespace Renderer
 		FramebufferKey key = FramebufferKey(views, renderpass, extent);
 
 		auto framebuffer = Get(key);
+		auto handles = framebuffer->GetHandle();
 
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = renderpass->GetHandle();
-		renderPassInfo.framebuffer = framebuffer->GetHandle()[index];
+		renderPassInfo.framebuffer = handles[index];
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = extent;
 
 		renderPassInfo.clearValueCount = views.size();
-
-		std::vector<VkClearValue> clearColours(views.size(), clearColor);
-		renderPassInfo.pClearValues = clearColours.data();
+		renderPassInfo.pClearValues = renderpass->GetClearValues().data();
 
 		VkViewport viewport = {};
 		viewport.width = static_cast<float>(extent.width);

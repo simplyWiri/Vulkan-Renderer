@@ -22,64 +22,62 @@ namespace Renderer::RenderGraph
 		return false;
 	}
 
-	GraphBuilder::PassDesc& GraphBuilder::PassDesc::ReadBuffer(const std::string& name, VkPipelineStageFlags flags, VkAccessFlags access)
+	GraphBuilder::PassDesc& GraphBuilder::PassDesc::ReadBuffer(const std::string& name, VkPipelineStageFlags flags, VkAccessFlags accessFlags)
 	{
-		const Usage usage = { passId, flags, access, queueIndex };
+		const Access access = { this->name, flags, accessFlags | VK_ACCESS_SHADER_READ_BIT };
 
 		auto& res = graph->GetBuffer(name);
-		res.ReadBy(usage);
+		res.AccessedBy(access);
 
 		readResources.emplace(name);
 
 		return *this;
 	}
 
-	GraphBuilder::PassDesc& GraphBuilder::PassDesc::ReadImage(const std::string& name, VkPipelineStageFlags flags, VkAccessFlags access, VkImageLayout expectedLayout)
+	GraphBuilder::PassDesc& GraphBuilder::PassDesc::ReadImage(const std::string& name, VkPipelineStageFlags flags, VkImageLayout expectedLayout, VkAccessFlags accessFlags)
 	{
-		const Usage usage = { passId, flags, access, queueIndex, expectedLayout };
+		const Access access = { this->name, flags, accessFlags | VK_ACCESS_SHADER_READ_BIT, expectedLayout };
 
 		auto& res = graph->GetImage(name);
-		res.ReadBy(usage);
+		res.AccessedBy(access);
 
 		readResources.emplace(name);
 
 		return *this;
 	}
 
-	GraphBuilder::PassDesc& GraphBuilder::PassDesc::WriteBuffer(const std::string& name, VkPipelineStageFlags flags, VkAccessFlags access, const BufferInfo& info)
+	GraphBuilder::PassDesc& GraphBuilder::PassDesc::WriteBuffer(const std::string& name, VkPipelineStageFlags flags, VkAccessFlags accessFlags, const BufferInfo info)
 	{
-		const Usage usage = { passId, flags, access, queueIndex };
+		const Access access = { this->name, flags, accessFlags | VK_ACCESS_SHADER_WRITE_BIT };
 
 		auto& res = graph->GetBuffer(name);
 		res.SetInfo(info);
-		res.WrittenBy(usage);
+		res.AccessedBy(access);
 
 		writtenResources.emplace(name);
 
 		return *this;
 	}
 
-	GraphBuilder::PassDesc& GraphBuilder::PassDesc::WriteImage(const std::string& name, VkPipelineStageFlags flags, VkAccessFlags access, const ImageInfo& info)
+	GraphBuilder::PassDesc& GraphBuilder::PassDesc::WriteImage(const std::string& name, VkPipelineStageFlags flags, VkAttachmentLoadOp loadOp, VkAccessFlags accessFlags, const ImageInfo info)
 	{
-		const Usage usage = { passId, flags, access, queueIndex };
+		const Access access = { this->name, flags, accessFlags | VK_ACCESS_SHADER_WRITE_BIT, info.layout, loadOp };
 
 		auto& res = graph->GetImage(name);
 		res.SetInfo(info);
-		res.WrittenBy(usage);
-
-		if (info.layout == VK_IMAGE_LAYOUT_UNDEFINED) { res.info.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR; }
+		res.AccessedBy(access);
 
 		writtenResources.emplace(name);
 
 		return *this;
 	}
 
-	GraphBuilder::PassDesc& GraphBuilder::PassDesc::WriteToBackbuffer(VkPipelineStageFlags flags, VkAccessFlags access)
+	GraphBuilder::PassDesc& GraphBuilder::PassDesc::WriteToBackbuffer(VkAttachmentLoadOp loadOp)
 	{
-		const Usage usage = { passId, flags, access, queueIndex };
+		const Access access = { name, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, loadOp };
 
 		auto& res = graph->GetImage(graph->GetBackBuffer());
-		res.WrittenBy(usage);
+		res.AccessedBy(access);
 
 		writtenResources.emplace(graph->GetBackBuffer());
 
@@ -183,9 +181,6 @@ namespace Renderer::RenderGraph
 
 		for (int i = 0; i < passDescriptions.size(); i++)
 		{
-			auto& pass = passDescriptions[i];
-			auto& adjacenctIndices = adjacencyList[i];
-
 			// Dependent nodes have already been visited
 			if (visited[i]) continue;
 
@@ -291,6 +286,9 @@ namespace Renderer::RenderGraph
 		const auto swapchainExtent = graph->core->GetSwapchain()->GetExtent();
 		auto* allocator = graph->core->GetAllocator();
 
+		std::vector<std::string> sortedOrder;
+		for(auto& pass : passDescriptions) sortedOrder.emplace_back(pass.name);
+
 		for (auto& passDesc : passDescriptions)
 		{
 			std::vector<ImageResource*> frameBufferImages;
@@ -300,14 +298,17 @@ namespace Renderer::RenderGraph
 				auto& res = GetResource(resKey);
 
 				// Not sure when this could happen. 
-				if (res.writes.empty()) continue;
+				if (res.GetWrites().empty()) continue;
 
-				auto& writingPass = passDescriptions[res.writes.front().passId];
+				for (auto& access : res.GetWrites())
+				{
+					auto& writingPass = passDescriptions[nameToPass[access.passAlias]];
 
-				passDesc.syncs.emplace_back(SynchronisationRequirement{ &res, passDesc.queueIndex, writingPass.queueIndex, writingPass.passId, passDesc.passId });
+					passDesc.syncs.emplace_back(SynchronisationRequirement{ &res, passDesc.queueIndex, writingPass.queueIndex, writingPass.passId, passDesc.passId });
+				}
 			}
 
-			std::string depthAttach = "";
+			std::string depthAttach;
 
 			for (auto& resKey : passDesc.writtenResources)
 			{
@@ -328,28 +329,48 @@ namespace Renderer::RenderGraph
 						else if (info.sizeType == ImageInfo::SizeType::Fixed) { extent = VkExtent2D{ static_cast<uint32_t>(info.size.x), static_cast<uint32_t>(info.size.y) }; }
 						else { extent = VkExtent2D{ static_cast<uint32_t>(swapchainExtent.width * static_cast<float>(info.size.x)), static_cast<uint32_t>(swapchainExtent.height * static_cast<float>(info.size.y)) }; }
 
-						if (res.reads.size() != 0) info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+						if (!res.GetReads().empty()) info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
-						for (auto i = 0; i < framesInFlight; i++) { resourceImages[i] = allocator->AllocateImage(extent, info.format, info.usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT); }
+						for (auto i = 0; i < framesInFlight; i++)
+						{
+							resourceImages[i] = allocator->AllocateImage(extent, info.format, info.usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+						}
 
 						auto imageIndex = static_cast<uint32_t>(graph->images.size());
 						graph->images.emplace_back(std::move(resourceImages));
 						graph->nameToResource.emplace(resKey, imageIndex);
-					} else
-					{
-						passDesc.writesBackbuffer = true;
 					}
 
-					auto usage = imgRes.info.usage;
+					auto usage = info.usage;
 
 					// Presumably compute, this is not used as a framebuffer image.
 					if (usage == VK_IMAGE_USAGE_STORAGE_BIT) continue;
 
-					auto attachment = AttachmentDesc{ imgRes.info.format, VK_ATTACHMENT_LOAD_OP_CLEAR };
+					auto write = res.WrittenByPass(passDesc.name).value();
+					auto sortedAccesses = res.SortedAccesses(sortedOrder);
+					auto sortedAccessesSize = sortedAccesses.size();
+					
+					VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+
+					if(sortedAccessesSize > 1)
+					{
+						int i = 0;
+						for(; i < sortedAccessesSize; i++)
+						{
+							if(sortedAccesses[i] == write) break;
+						}
+						
+						if(i != 0) initialLayout = write.expectedLayout;
+						if(i != sortedAccessesSize - 1) finalLayout = sortedAccesses[i+1].expectedLayout;
+					}
+					if(res.name == backBuffer.name && write == sortedAccesses.back()) finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+					
+					auto attachment = AttachmentDesc{ info.format, write.loadOp, {0,0,0,0}, initialLayout, finalLayout };
 
 					// We assume the image is either a depth attachment or a color attachment.. works for now
-					if (imgRes.info.format == VK_FORMAT_D32_SFLOAT)
+					if (info.format == VK_FORMAT_D32_SFLOAT)
 					{
+						attachment.SetDepthClear(); // Add the 1.0 -> 0.0 clear value for the depth attachment.
 						passDesc.depthAttachment = attachment;
 						depthAttach = resKey;
 					}
@@ -359,10 +380,8 @@ namespace Renderer::RenderGraph
 						passDesc.framebufferImageAttachments.emplace_back(resKey);
 					}
 				}
-				
 			}
-			if(depthAttach != "")
-				passDesc.framebufferImageAttachments.emplace_back(depthAttach);
+			if (depthAttach != "") passDesc.framebufferImageAttachments.emplace_back(depthAttach);
 		}
 	}
 
@@ -379,12 +398,12 @@ namespace Renderer::RenderGraph
 
 			pass->name = passDesc.name;
 			pass->renderExtent = swapchainExtent;
-			pass->execute = std::move(passDesc.execute);
+			pass->executes.emplace_back(std::move(passDesc.execute));
 
 			// Set our renderpass key
-			auto rpKey = RenderpassKey{ passDesc.colorAttachments, passDesc.depthAttachment, passDesc.writesBackbuffer };
-			pass->key = std::move(rpKey);
+			auto rpKey = RenderpassKey{ passDesc.colorAttachments, passDesc.depthAttachment };
 
+			pass->key = std::move(rpKey);
 			pass->views.resize(framesInFlight);
 
 			for (const auto& imgRes : passDesc.framebufferImageAttachments)
@@ -396,37 +415,38 @@ namespace Renderer::RenderGraph
 					for (int i = 0; i < framesInFlight; i++) pass->views[i].emplace_back(res[i]->GetView());
 				}
 			}
+			
 
 			auto graphics = graph->queues.graphics;
 			auto compute = graph->queues.compute;
 
-			for (auto& sync : passDesc.syncs)
-			{
-				auto& imgRes = reinterpret_cast<ImageResource&>(*sync.resourceToSync);
-				auto& res = graph->GetImage(imgRes.name);
+			//for (auto& sync : passDesc.syncs)
+			//{
+			//	auto& imgRes = reinterpret_cast<ImageResource&>(*sync.resourceToSync);
+			//	auto& res = graph->GetImage(imgRes.name);
 
-				std::vector<VkImageMemoryBarrier> barriers;
+			//	std::vector<VkImageMemoryBarrier> barriers;
 
-				pass->imageBarriers.resize(framesInFlight);
+			//	pass->imageBarriers.resize(framesInFlight);
 
-				for (auto i = 0; i < framesInFlight; i++)
-				{
-					VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-					barrier.image = res[i]->GetResourceHandle();
-					barrier.oldLayout = imgRes.info.layout;
-					auto expectedLayout = imgRes.reads.front().layout;
-					barrier.newLayout = expectedLayout == VK_IMAGE_LAYOUT_UNDEFINED ? imgRes.info.layout : expectedLayout;
+			//	for (auto i = 0; i < framesInFlight; i++)
+			//	{
+			//		VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+			//		barrier.image = res[i]->GetResourceHandle();
+			//		barrier.oldLayout = imgRes.info.layout;
+			//		auto expectedLayout = imgRes.reads.front().layout;
+			//		barrier.newLayout = expectedLayout == VK_IMAGE_LAYOUT_UNDEFINED ? imgRes.info.layout : expectedLayout;
 
-					barrier.srcAccessMask = imgRes.writes.front().access;
-					barrier.dstAccessMask = imgRes.reads.front().access;
+			//		barrier.srcAccessMask = imgRes.writes.front().access;
+			//		barrier.dstAccessMask = imgRes.reads.front().access;
 
-					barrier.srcQueueFamilyIndex = passDescriptions[imgRes.writes.front().passId].GetQueueType() == QueueType::Graphics ? graphics.queueFamilyIndex : compute.queueFamilyIndex;
-					barrier.dstQueueFamilyIndex = passDescriptions[imgRes.reads.front().passId].GetQueueType() == QueueType::Graphics ? graphics.queueFamilyIndex : compute.queueFamilyIndex;
+			//		barrier.srcQueueFamilyIndex = passDescriptions[imgRes.writes.front().passId].GetQueueType() == QueueType::Graphics ? graphics.queueFamilyIndex : compute.queueFamilyIndex;
+			//		barrier.dstQueueFamilyIndex = passDescriptions[imgRes.reads.front().passId].GetQueueType() == QueueType::Graphics ? graphics.queueFamilyIndex : compute.queueFamilyIndex;
 
-					barrier.subresourceRange = res[i]->GetSubresourceRange();
-					pass->imageBarriers[i].emplace_back(barrier);
-				}
-			}
+			//		barrier.subresourceRange = res[i]->GetSubresourceRange();
+			//		pass->imageBarriers[i].emplace_back(barrier);
+			//	}
+			//}
 
 
 			graph->renderPasses.emplace_back(std::move(pass));

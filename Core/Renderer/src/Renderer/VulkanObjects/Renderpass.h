@@ -11,7 +11,12 @@ namespace Renderer
 	{
 		VkFormat format;
 		VkAttachmentLoadOp loadOp;
-		VkClearValue clearValue;
+		VkClearValue clearValue{0.2f,0.2f,0.2f,0.2f};
+
+		VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkImageLayout finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		void SetDepthClear() { clearValue = {1.0f, 0}; }
 
 		bool operator ==(const AttachmentDesc& other) const;
 	};
@@ -22,11 +27,10 @@ namespace Renderer
 		{
 			depthAttachment = AttachmentDesc{VK_FORMAT_UNDEFINED};
 		}
-		RenderpassKey(std::vector<AttachmentDesc> colourAttachments, AttachmentDesc depthAttachment, bool writesBackbuffer = false) : colourAttachments(std::move(colourAttachments)), depthAttachment(depthAttachment), writesToBackbuffer(writesBackbuffer) { }
+		RenderpassKey(std::vector<AttachmentDesc> colourAttachments, AttachmentDesc depthAttachment) : colourAttachments(std::move(colourAttachments)), depthAttachment(depthAttachment){ }
 
 		std::vector<AttachmentDesc> colourAttachments;
 		AttachmentDesc depthAttachment;
-		bool writesToBackbuffer;
 
 		bool operator ==(const RenderpassKey& other) const;
 	};
@@ -37,11 +41,13 @@ namespace Renderer
 
 		Renderpass(VkDevice device, RenderpassKey key);
 
-		VkRenderPass GetHandle() { return renderpass; }
-		uint32_t GetColourAttachmentCount() { return static_cast<uint32_t>(colourAttachments.size()); }
+		VkRenderPass GetHandle() const { return renderpass; }
+		std::vector<VkClearValue>& GetClearValues() { return clearValues; }
+
+		bool operator ==(const Renderpass& other) const { return renderpass == other.renderpass; }
 	private:
 		VkRenderPass renderpass;
-		std::vector<AttachmentDesc> colourAttachments;
+		std::vector<VkClearValue> clearValues;
 	};
 }
 

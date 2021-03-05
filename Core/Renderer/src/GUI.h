@@ -24,7 +24,7 @@ namespace Renderer
 		Core* core;
 
 		Memory::Buffer* buffers;
-		Memory::Image* fontImage;
+		std::vector<Memory::Image*> fontImages;
 
 		const VertexAttributes imguiVerts = VertexAttributes({ { sizeof(ImDrawVert), 0 } }, {
 			{ 0, 0, VertexAttributes::Type::vec2, offsetof(ImDrawVert, pos) }, { 0, 1, VertexAttributes::Type::vec2, offsetof(ImDrawVert, uv) }, { 0, 2, VertexAttributes::Type::colour32, offsetof(ImDrawVert, col) }
@@ -45,7 +45,9 @@ namespace Renderer
 			ImPlot::DestroyContext();
 			ImGui::DestroyContext();
 			delete buffers;
-			delete fontImage;
+
+			for(auto img : fontImages)
+				delete img;
 		}
 
 		void initialise(Core* core)
@@ -64,43 +66,9 @@ namespace Renderer
 				core->GetShaderManager()->Get(ShaderType::Vertex, "../Core/Renderer/resources/ImguiVertex.vert"),
 				core->GetShaderManager()->Get(ShaderType::Fragment, "../Core/Renderer/resources/ImguiFragment.frag")
 			});
-			program->InitialiseResources(core->GetDevice()->GetDevice());
+			program->InitialiseResources();
 
 			key = { program };
-
-			unsigned char* fontData;
-			int texWidth, texHeight;
-			io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
-
-			auto stagingBuffer = core->GetAllocator()->AllocateBuffer(texWidth * texHeight * 4 * sizeof(char), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-			stagingBuffer->Load(fontData, texWidth * texHeight * 4 * sizeof(char));
-
-			fontImage = core->GetAllocator()->AllocateImage(VkExtent2D{ static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight) }, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-			{
-				// transfer data from staging buffer -> image
-
-				auto cmd = core->GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-				core->SetImageLayout(cmd, fontImage->GetResourceHandle(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, fontImage->GetSubresourceRange(), VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-				VkBufferImageCopy bufferCopyRegion = {};
-				bufferCopyRegion.imageSubresource.aspectMask = fontImage->GetSubresourceRange().aspectMask;
-				bufferCopyRegion.imageSubresource.layerCount = fontImage->GetSubresourceRange().layerCount;
-				bufferCopyRegion.imageExtent = fontImage->GetExtent3D();
-
-				vkCmdCopyBufferToImage(cmd, stagingBuffer->GetResourceHandle(), fontImage->GetResourceHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
-
-				core->SetImageLayout(cmd, fontImage->GetResourceHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, fontImage->GetSubresourceRange(), VK_PIPELINE_STAGE_TRANSFER_BIT,
-					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-
-				core->FlushCommandBuffer(cmd);
-				delete stagingBuffer;
-			}
-
-			sampler = new Sampler(core->GetDevice()->GetDevice(), VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR);
 
 			buffers = core->GetAllocator()->AllocateBuffer(1024 * sizeof(float), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		}
@@ -133,46 +101,79 @@ namespace Renderer
 			buffers->Unmap();
 		}
 
-		void AddToGraph(RenderGraph::RenderGraph* graph)
+		void AddToGraph(Core* renderer, RenderGraph::GraphBuilder* rgBuilder)
 		{
-			graph->AddPass("ImGui-CPU", RenderGraph::QueueType::Graphics)
-			.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& info, RenderGraph::GraphContext& context)
-			{
-				ZoneScopedN("IMGUI Updating Buffers")
+			rgBuilder->AddPass("ImGui-Render", RenderGraph::QueueType::Graphics)
+				.WriteToBackbuffer(VK_ATTACHMENT_LOAD_OP_LOAD)
+				.SetInitialisationFunc([&](RenderGraph::RenderGraph* graph)
+				{
+					auto& io = ImGui::GetIO();
 
-				ImGuiIO& io = ImGui::GetIO();
-				io.DisplaySize = ImVec2(static_cast<float>(context.GetSwapchainExtent().width), static_cast<float>(context.GetSwapchainExtent().height));
+					unsigned char* fontData;
+					int texWidth, texHeight;
+					io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
 
-				auto window = core->GetSwapchain()->GetWindow();
+					auto stagingBuffer = core->GetAllocator()->AllocateBuffer(texWidth * texHeight * 4 * sizeof(char), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-				double mouseX, mouseY;
-				glfwGetCursorPos(window, &mouseX, &mouseY);
+					stagingBuffer->Load(fontData, texWidth * texHeight * 4 * sizeof(char));
 
-				io.MousePos = ImVec2(static_cast<float>(mouseX), static_cast<float>(mouseY));
-				//io.KeyCtrl = io.KeysDown[GLFW_KEY_LEFT_CONTROL] || io.KeysDown[GLFW_KEY_RIGHT_CONTROL];
-				//io.KeyShift = io.KeysDown[GLFW_KEY_LEFT_SHIFT] || io.KeysDown[GLFW_KEY_RIGHT_SHIFT];
-				//io.KeyAlt = io.KeysDown[GLFW_KEY_LEFT_ALT] || io.KeysDown[GLFW_KEY_RIGHT_ALT];
-				//io.KeySuper = io.KeysDown[GLFW_KEY_LEFT_SUPER] || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
+					for(int i = 0; i < core->GetSwapchain()->GetFramesInFlight(); i++)
+					{
+						fontImages.emplace_back(core->GetAllocator()->AllocateImage(VkExtent2D{ static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight) }, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+						
+						// transfer data from staging buffer -> image
+						auto cmd = core->GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-				glfwSetInputMode(window, GLFW_CURSOR, io.MouseDrawCursor ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL);
+						core->SetImageLayout(cmd, fontImages[i]->GetResourceHandle(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, fontImages[i]->GetSubresourceRange(), VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-				ImGui::Render();
+						VkBufferImageCopy bufferCopyRegion = {};
+						bufferCopyRegion.imageSubresource.aspectMask = fontImages[i]->GetSubresourceRange().aspectMask;
+						bufferCopyRegion.imageSubresource.layerCount = fontImages[i]->GetSubresourceRange().layerCount;
+						bufferCopyRegion.imageExtent = fontImages[i]->GetExtent3D();
 
-				auto* drawData = ImGui::GetDrawData();
-				updateBuffers(drawData);
+						vkCmdCopyBufferToImage(cmd, stagingBuffer->GetResourceHandle(), fontImages[i]->GetResourceHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
 
-				pushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
-				pushConstBlock.translate = glm::vec2(-1.0f);
-			});
+						core->SetImageLayout(cmd, fontImages[i]->GetResourceHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, fontImages[i]->GetSubresourceRange(), VK_PIPELINE_STAGE_TRANSFER_BIT,
+							VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
-			graph->AddPass("ImGui-Render", RenderGraph::QueueType::Graphics)
-				//.SetInitialisationFunc([&](Tether& tether)
-				//{
-				//	tether.GetDescriptorCache()->WriteSampler(key, "sTexture", fontImage, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-				//})
+						core->FlushCommandBuffer(cmd);
+					}
+
+					delete stagingBuffer;
+
+					core->GetDescriptorSetCache()->WriteSampler(key, "sTexture", fontImages, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				})
 				.SetRecordFunc(
 					[&](VkCommandBuffer buffer, const FrameInfo& info, RenderGraph::GraphContext& context)
 					{
+						{
+							ZoneScopedN("IMGUI Updating Buffers")
+
+							ImGuiIO& io = ImGui::GetIO();
+							io.DisplaySize = ImVec2(static_cast<float>(context.GetExtent().width), static_cast<float>(context.GetExtent().height));
+
+							auto window = core->GetSwapchain()->GetWindow();
+
+							double mouseX, mouseY;
+							glfwGetCursorPos(window, &mouseX, &mouseY);
+
+							io.MousePos = ImVec2(static_cast<float>(mouseX), static_cast<float>(mouseY));
+							//io.KeyCtrl = io.KeysDown[GLFW_KEY_LEFT_CONTROL] || io.KeysDown[GLFW_KEY_RIGHT_CONTROL];
+							//io.KeyShift = io.KeysDown[GLFW_KEY_LEFT_SHIFT] || io.KeysDown[GLFW_KEY_RIGHT_SHIFT];
+							//io.KeyAlt = io.KeysDown[GLFW_KEY_LEFT_ALT] || io.KeysDown[GLFW_KEY_RIGHT_ALT];
+							//io.KeySuper = io.KeysDown[GLFW_KEY_LEFT_SUPER] || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
+
+							glfwSetInputMode(window, GLFW_CURSOR, io.MouseDrawCursor ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL);
+
+							ImGui::Render();
+
+							auto* drawData = ImGui::GetDrawData();
+							updateBuffers(drawData);
+
+							pushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
+							pushConstBlock.translate = glm::vec2(-1.0f);
+						}
 						ZoneScopedN("IMGUI Draw")
 
 						ImDrawData* imDrawData = ImGui::GetDrawData();
@@ -180,10 +181,10 @@ namespace Renderer
 
 						core->GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, key);
 
-						core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), imguiVerts, DepthSettings::Disabled(), { BlendSettings::AlphaBlend() },
+						core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetRenderpass(), context.GetExtent(), imguiVerts, DepthSettings::Disabled(), { BlendSettings::AlphaBlend() },
 							VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, key.program);
 
-						VkViewport viewport = { 0, 0, static_cast<float>(context.GetSwapchainExtent().width), static_cast<float>(context.GetSwapchainExtent().height), 0.0f, 1.0f };
+						VkViewport viewport = { 0, 0, static_cast<float>(context.GetExtent().width), static_cast<float>(context.GetExtent().height), 0.0f, 1.0f };
 						vkCmdSetViewport(buffer, 0, 1, &viewport);
 
 						vkCmdPushConstants(buffer, key.program->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);

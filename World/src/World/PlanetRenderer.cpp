@@ -1,7 +1,7 @@
 #include "PlanetRenderer.h"
 
-#include <vulkan_core.h>
 #include "Planet.h"
+#include "Renderer/Core.h"
 #include "Renderer/Memory/Allocator.h"
 #include "Renderer/Memory/Buffer.h"
 #include "Renderer/RenderGraph/GraphContext.h"
@@ -37,11 +37,20 @@ namespace World
 		delete voronoiFaces;
 	}
 
-	void PlanetRenderer::DrawBeachline(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::SetFrameState(Renderer::Core* core, VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext* context, Renderer::VertexAttributes* vert, Renderer::DescriptorSetKey* descriptorKey)
+	{
+		this->core = core;
+		this->buffer = buffer;
+		this->context = context;
+		this->vert = vert;
+		this->descriptorKey = descriptorKey;
+	}
+
+	void PlanetRenderer::DrawBeachline()
 	{
 		if(generator->beach.Count() < 3) return;
 
-		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_STRIP, descriptorKey.program);
+		core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context->GetRenderpass(), context->GetExtent(), *vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_STRIP, descriptorKey->program);
 
 		auto* current = generator->beach.First();
 
@@ -62,7 +71,7 @@ namespace World
 		vkCmdDraw(buffer, vertices.size(), 1, 0, 0);
 	}
 
-	void PlanetRenderer::DrawSweepline(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::DrawSweepline()
 	{
 		const float PI = 3.14159265359f;
 		static const int detail = 30;
@@ -86,14 +95,14 @@ namespace World
 		if(sweeplineBuffer->GetSize() < sizeof(Vertex) * vertices.size() ) sweeplineBuffer = Memory::Buffer::Resize(alloc, sweeplineBuffer, sizeof(Vertex) * vertices.size() * 2);
 		sweeplineBuffer->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
 
-		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_STRIP, descriptorKey.program);
+		core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context->GetRenderpass(), context->GetExtent(), *vert, DepthSettings::Disabled(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_STRIP, descriptorKey->program);
 
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(buffer, 0, 1, &sweeplineBuffer->GetResourceHandle(), offsets);
 		vkCmdDraw(buffer, vertices.size(), 1, 0, 0);
 	}
 
-	void PlanetRenderer::DrawSites(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::DrawSites()
 	{
 		if(generator->planet->cells.empty()) return;
 
@@ -112,14 +121,14 @@ namespace World
 
 			sitesCache = vertices.size();
 		}
-		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST, descriptorKey.program);
+		core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context->GetRenderpass(), context->GetExtent(), *vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST, descriptorKey->program);
 		
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(buffer, 0, 1, &sitesBuffer->GetResourceHandle(), offsets);
 		vkCmdDraw(buffer, sitesCache, 1, 0, 0);
 	}
 
-	void PlanetRenderer::DrawVoronoiEdges(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const VertexAttributes& vert, const DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::DrawVoronoiEdges()
 	{
 		auto planet = this->generator->planet;
 
@@ -148,14 +157,14 @@ namespace World
 
 		if(voronoiEdgeVertices == 0) return;
 
-		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey.program);
+		core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context->GetRenderpass(), context->GetExtent(), *vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey->program);
 
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(buffer, 0, 1, &voronoiEdges->GetResourceHandle(), offsets);
 		vkCmdDraw(buffer, voronoiEdgeVertices, 1, 0, 0);
 	}
 
-	void PlanetRenderer::DrawDelanuayEdges(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::DrawDelanuayEdges()
 	{
 		auto planet = this->generator->planet;
 
@@ -185,14 +194,14 @@ namespace World
 		
 		if(delanuayEdgeVertices == 0) return;
 		
-		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey.program);
+		core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context->GetRenderpass(), context->GetExtent(), *vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey->program);
 
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(buffer, 0, 1, &delauneyEdges->GetResourceHandle(), offsets);
 		vkCmdDraw(buffer, delanuayEdgeVertices, 1, 0, 0);
 	}
 
-	void PlanetRenderer::DrawVoronoiFaces(VkCommandBuffer buffer, RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey)
+	void PlanetRenderer::DrawVoronoiFaces()
 	{
 		if(generator->Finished() == false) return;
 
@@ -221,9 +230,7 @@ namespace World
 			voronoiFaces->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
 		}
 		
-		context.GetGraphicsPipelineCache()->BindGraphicsPipeline(
-			buffer, context.GetDefaultRenderpass(), context.GetSwapchainExtent(), 
-			vert, DepthSettings::DepthTest(), { BlendSettings::Opaque() }, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, descriptorKey.program);
+		core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context->GetRenderpass(), context->GetExtent(), *vert, DepthSettings::DepthTest(), { BlendSettings::Opaque() }, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, descriptorKey->program);
 
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(buffer, 0, 1, &voronoiFaces->GetResourceHandle(), offsets);

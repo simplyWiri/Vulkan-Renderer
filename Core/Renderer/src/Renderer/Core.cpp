@@ -18,7 +18,6 @@ namespace Renderer
 		/*
 			This will initialise the (mostly) static states of the renderer, customisation can come later.
 		*/
-		swapchain.Initialise(device.GetDevice(), device.GetInstance(), device.GetPhysicalDevice());
 
 		swapchain.BuildWindow(settings.width, settings.height, settings.name);
 		inputHandler.Setup(swapchain.GetWindow());
@@ -28,9 +27,12 @@ namespace Renderer
 #elif DEBUG
 		device.BuildInstance(true);
 #endif
+
+		swapchain.Initialise(device.GetDevice(), device.GetInstance(), device.GetPhysicalDevice());
 		swapchain.BuildSurface();
 		device.PickPhysicalDevice(swapchain.GetSurface());
 		device.BuildLogicalDevice(swapchain.GetPresentQueue());
+		swapchain.Initialise(device.GetDevice(), device.GetInstance(), device.GetPhysicalDevice());
 
 		allocator = new Memory::Allocator(GetDevice(), GetSwapchain()->GetFramesInFlight());
 

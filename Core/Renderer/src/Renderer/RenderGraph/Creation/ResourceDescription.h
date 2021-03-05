@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -18,13 +19,13 @@ namespace Renderer
 
 namespace Renderer::RenderGraph
 {
+	enum class QueueType : char;
+	
 	struct BufferInfo
 	{
 		VkBufferUsageFlags usage = 0;
 		VkDeviceSize size = static_cast<VkDeviceSize>(0);
 	};
-
-	enum class QueueType : char;
 
 	struct ImageInfo
 	{
@@ -33,50 +34,101 @@ namespace Renderer::RenderGraph
 		VkImageUsageFlags usage = 0;
 		VkFormat format = VK_FORMAT_UNDEFINED;
 		VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
-		glm::vec3 size = { -1, -1, -1 };
-		uint32_t samples = 1;
-		uint32_t levels = 1;
-		uint32_t layers = 1;
-
-		ImageInfo& SetSize(glm::vec3 size);
-		ImageInfo& SetFormat(VkFormat format);
-		ImageInfo& SetLayout(VkImageLayout layout);
-		ImageInfo& SetUsage(VkImageUsageFlags usage);
-		ImageInfo& SetSizeType(SizeType sizeType);
+		glm::vec3 size{ -1 };
 	};
 
-
-	struct Usage
+	struct Access
 	{
-		uint32_t passId;
+		Access(std::string passAlias, VkPipelineStageFlags stageFlags, VkAccessFlags accessType, VkImageLayout expectedLayout = VK_IMAGE_LAYOUT_UNDEFINED, VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_MAX_ENUM)
+		: passAlias(passAlias), stageFlags(stageFlags), accessType(accessType), expectedLayout(expectedLayout), loadOp(loadOp) { }
+		
+		std::string passAlias;
 
-		VkPipelineStageFlags2KHR flags;
-		VkAccessFlags2KHR access;
-		QueueType queue;
+		VkPipelineStageFlags stageFlags;
 
-		// For images, when 'using' we can also want to change the layout
-		VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkAccessFlags accessType;
+		
+		bool IsWrite() const { return accessType & VK_ACCESS_SHADER_WRITE_BIT;}
+		bool IsRead() const { return accessType & VK_ACCESS_SHADER_READ_BIT; }
+
+		// Image Only
+
+		// The layout this image is expected to be in when it will be accessed
+		VkImageLayout expectedLayout;
+
+		// The loadop used on the image if its being read as a color attachment
+		VkAttachmentLoadOp loadOp;
+
+		bool RequiresPriorWrite() const { return loadOp != VK_ATTACHMENT_LOAD_OP_CLEAR; }
+
+		bool operator==(const Access& other) const
+		{
+			return std::tie(passAlias, stageFlags, accessType, expectedLayout, loadOp) == 
+				   std::tie(other.passAlias, other.stageFlags, other.accessType, other.expectedLayout, other.loadOp);
+		}
 	};
-
+	
 	struct ResourceDescription
 	{
-		// What defines our resource
-		std::string name;
-		//uint32_t firstAccess;
-		//uint32_t lastAccess;
-
-		enum class Type { Buffer, Image } type;
-
-		std::vector<Usage> reads;
-		std::vector<Usage> writes;
-
 		explicit ResourceDescription(const std::string& name) : name(name) { }
 
-		void ReadBy(const Usage& usage) { reads.emplace_back(usage); }
-		void WrittenBy(const Usage& usage) { writes.emplace_back(usage); }
+		std::string name;
+		enum class Type { Buffer, Image } type;
 
-		bool IsWritten() const { return !writes.empty(); }
-		bool IsRead() const { return !reads.empty(); }
+		std::vector<Access> accesses;
+
+
+		std::optional<Access> ReadByPass(const std::string& passAlias) const
+		{
+			for(const auto& access : accesses)
+				if(access.IsRead() && access.passAlias == passAlias) return access;
+
+			return std::nullopt;
+		}
+
+		std::optional<Access> WrittenByPass(const std::string& passAlias) const
+		{
+			for(const auto& access : accesses)
+				if(access.IsWrite() && access.passAlias == passAlias) return access;
+
+			return std::nullopt;
+		}
+
+		std::vector<Access> GetWrites() const
+		{
+			std::vector<Access> writes;
+
+			for(const auto& access : accesses)
+				if(access.IsWrite()) writes.emplace_back(access);
+
+			return writes;
+		}
+
+		std::vector<Access> GetReads() const
+		{
+			std::vector<Access> reads;
+
+			for(const auto& access : accesses)
+				if(access.IsRead()) reads.emplace_back(access);
+
+			return reads;
+		}
+
+		std::vector<Access> SortedAccesses(const std::vector<std::string>& sortedPasses) const
+		{
+			std::vector<Access> sortedAccess;
+
+			for(const auto& pass : sortedPasses)
+				for(const auto& access : accesses)
+					if(access.passAlias == pass) sortedAccess.emplace_back(access);
+
+			return sortedAccess;
+		}
+		
+		void AccessedBy(const Access& access)
+		{
+			accesses.emplace_back(access);
+		}
 	};
 
 	struct BufferResource : ResourceDescription
@@ -93,5 +145,23 @@ namespace Renderer::RenderGraph
 
 		explicit ImageResource(const std::string& name) : ResourceDescription(name) { type = Type::Image; }
 		void SetInfo(ImageInfo info) { this->info = info; }
+		
+		// We assume that both passes write to this image, and one of them loads the image, the other clears
+		std::string OrderPassesByWrites(const std::string& firstAlias, const std::string& secondAlias) const
+		{
+			for(const auto& access : accesses)
+			{				
+				if(access.IsRead()) continue;
+
+				if(access.RequiresPriorWrite())
+				{
+					if(access.passAlias == firstAlias) return secondAlias;
+					if(access.passAlias == secondAlias) return firstAlias;
+				}
+			}
+			
+			return "";
+		}
 	};
+
 }

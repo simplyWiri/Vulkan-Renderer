@@ -69,12 +69,12 @@ namespace Renderer::RenderGraph
 		core->BeginFrame(buffer, frameInfo);
 
 		{
-//#if DEBUG
-//			ZoneScopedNC("Drawing Debug Visualisations", tracy::Color::Green)
-//			DrawDebugVisualisations(core, frameInfo, renderPasses);
-//#else
-//			ImGui::NewFrame();
-//#endif
+#if DEBUG
+			ZoneScopedNC("Drawing Debug Visualisations", tracy::Color::Green)
+			DrawDebugVisualisations(core, frameInfo, renderPasses);
+#else
+			ImGui::NewFrame();
+#endif
 		}
 
 		vkBeginCommandBuffer(buffer, &beginInfo);
@@ -83,25 +83,15 @@ namespace Renderer::RenderGraph
 			ZoneScopedNC("Gathering Draw Commands", tracy::Color::Green)
 			
 			for (auto& pass : renderPasses)
-			{
+			{				
 				auto* rp = core->GetRenderpassCache()->Get(pass->key);
 				core->GetFramebufferCache()->BeginPass(buffer, frameInfo.offset, pass->GetViews(frameInfo.offset), rp, pass->GetExtent());
 
-				GraphContext context{this, "", core->GetSwapchain()->GetWindow(), rp->GetHandle(), pass->GetExtent()};
+				GraphContext context{this, pass->name, core->GetSwapchain()->GetWindow(), rp->GetHandle(), pass->GetExtent()};
 
-				context.passId = pass->name;
 				pass->Execute(buffer, frameInfo, context);
 
 				core->GetFramebufferCache()->EndPass(buffer);
-
-				if(!pass->imageBarriers.empty())
-				{
-
-					vkCmdPipelineBarrier(buffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 
-						0, nullptr, 
-						0, nullptr, 
-						pass->imageBarriers[frameInfo.offset].size(), pass->imageBarriers[frameInfo.offset].data());
-				}
 			}
 		}
 

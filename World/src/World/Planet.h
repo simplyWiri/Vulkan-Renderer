@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include <glm/vec3.hpp>
+#include <glm/glm/vec3.hpp>
 
 #include "VoronoiCell.h"
 

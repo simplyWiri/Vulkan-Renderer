@@ -66,24 +66,24 @@ namespace Renderer
 		}
 	}
 
-	void DrawDebugVisualisations(/*Core* core, FrameInfo& frameInfo, const std::vector<std::unique_ptr<RenderGraph::PassDesc>>& passes*/)
+	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<std::unique_ptr<RenderGraph::Pass>>& passes)
 	{
-		//ImGui::NewFrame();
+		ImGui::NewFrame();
 
-		//ImGui::SetNextWindowPos({ 5, 5 });
-		//ImGui::Begin("Information");
+		ImGui::SetNextWindowPos({ 5, 5 });
+		ImGui::Begin("Information");
 
-		//ImGui::Text("Width: %d, Height: %d, VSync: %s", core->GetSettings()->width, core->GetSettings()->height, core->GetSettings()->vsync ? "True" : "False");
-		//ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / static_cast<float>(frameInfo.fps)), frameInfo.fps);
+		ImGui::Text("Width: %d, Height: %d, VSync: %s", core->GetSettings()->width, core->GetSettings()->height, core->GetSettings()->vsync ? "True" : "False");
+		ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / static_cast<float>(frameInfo.fps)), frameInfo.fps);
 
-		//float framesDiff = frameInfo.frameIndex - core->GetSwapchain()->prevFrames;
-		//if (framesDiff >= 5)
-		//{
-		//	long long timeDiff = frameInfo.time - core->GetSwapchain()->prevFpsSample;
-		//	auto frameTime = timeDiff / (framesDiff + FLT_EPSILON);
-		//	ImPlotVar::PlotVar("Frame Times", frameTime, FLT_MAX, FLT_MAX, 144, frameInfo.frameIndex % 7 == 0, "ms");
-		//}
-		//else { ImPlotVar::PlotVar("Frame Times", FLT_MAX, FLT_MAX, FLT_MAX, 144, false, "ms"); }
+		float framesDiff = frameInfo.frameIndex - core->GetSwapchain()->PreviousFrames();
+		if (framesDiff >= 5)
+		{
+			long long timeDiff = frameInfo.time - core->GetSwapchain()->PreviousFPSSample();
+			auto frameTime = timeDiff / (framesDiff + FLT_EPSILON);
+			ImPlotVar::PlotVar("Frame Times", frameTime, FLT_MAX, FLT_MAX, 144, frameInfo.frameIndex % 7 == 0, "ms");
+		}
+		else { ImPlotVar::PlotVar("Frame Times", FLT_MAX, FLT_MAX, FLT_MAX, 144, false, "ms"); }
 
 
 		//if (ImGui::CollapsingHeader("RenderGraph"))
@@ -119,9 +119,9 @@ namespace Renderer
 		//	ImGui::EndChild();
 		//}
 
-		//if (ImGui::CollapsingHeader("Allocations")) { core->GetAllocator()->DebugView(); }
+		if (ImGui::CollapsingHeader("Allocations")) { core->GetAllocator()->DebugView(); }
 
-		//ImGui::End();
+		ImGui::End();
 	}
 
 #else

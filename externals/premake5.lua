@@ -70,6 +70,11 @@ project "ImPlot"
         "implot/implot_items.cpp",
         "implot/implot.cpp"
     }
+
+    includedirs
+    {
+        "imgui"
+    }
     
     links
     {

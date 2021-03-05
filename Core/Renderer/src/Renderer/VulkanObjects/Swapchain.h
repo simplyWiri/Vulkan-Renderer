@@ -85,6 +85,9 @@ namespace Renderer
 		uint32_t GetIndex() const { return currentIndex; }
 		uint32_t GetFramesInFlight() const { return framesInFlight; }
 
+		uint32_t PreviousFrames() const { return prevFrames; }
+		long long PreviousFPSSample() const { return prevFpsSample; }
+
 	public:
 
 		void Initialise(VkDevice device, VkInstance instance, VkPhysicalDevice physDevice);

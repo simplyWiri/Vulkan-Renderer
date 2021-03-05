@@ -152,6 +152,9 @@ namespace Renderer
 				vkGetPhysicalDeviceProperties(physDevice, &properties);
 				vkGetPhysicalDeviceMemoryProperties(physDevice, &memProperties);
 				this->indices = GetIndices(physDevice, surface);
+
+				if(strcmp(properties.deviceName, "Intel(R) UHD Graphics 630") == 1) continue;
+				
 				return;
 			}
 		}

@@ -1,9 +1,9 @@
 #pragma once
-#include <vulkan_core.h>
-
 #include "Generation/PlanetGenerator.h"
+#include "volk/volk.h"
 
 namespace Renderer {
+	class Core;
 	struct DescriptorSetKey;
 	struct VertexAttributes;
 	namespace RenderGraph
@@ -29,12 +29,13 @@ public:
 	explicit PlanetRenderer(Generation::PlanetGenerator* planet, Renderer::Memory::Allocator* alloc);
 	~PlanetRenderer();
 
-	void DrawBeachline(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
-	void DrawSweepline(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
-	void DrawSites(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
-	void DrawVoronoiEdges(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
-	void DrawDelanuayEdges(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
-	void DrawVoronoiFaces(VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext& context, const Renderer::VertexAttributes& vert, const Renderer::DescriptorSetKey& descriptorKey);
+	void SetFrameState(Renderer::Core* core, VkCommandBuffer buffer, Renderer::RenderGraph::GraphContext* context, Renderer::VertexAttributes* vert, Renderer::DescriptorSetKey* descriptorKey);
+	void DrawBeachline();
+	void DrawSweepline();
+	void DrawSites();
+	void DrawVoronoiEdges();
+	void DrawDelanuayEdges();
+	void DrawVoronoiFaces();
 	
 	void Reset(Generation::PlanetGenerator* newGenerator)
 	{
@@ -68,8 +69,12 @@ private:
 	Renderer::Memory::Buffer* voronoiEdges = nullptr;
 	Renderer::Memory::Buffer* delauneyEdges = nullptr;
 	Renderer::Memory::Buffer* voronoiFaces = nullptr;
-	
 
+	Renderer::Core* core;
+	VkCommandBuffer buffer;
+	Renderer::RenderGraph::GraphContext* context;
+	Renderer::VertexAttributes* vert;
+	Renderer::DescriptorSetKey* descriptorKey;
 };
 
 }

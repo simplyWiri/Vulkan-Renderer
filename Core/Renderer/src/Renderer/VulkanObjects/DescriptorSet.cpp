@@ -21,7 +21,7 @@ namespace Renderer
 		// initialise our pools
 		for (const auto& resource : key.program->getResources())
 		{
-			if (resource.type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC) continue; // todo temp 
+			if (resource.type == VK_DESCRIPTOR_TYPE_MAX_ENUM) continue; // todo temp 
 
 			VkDescriptorPoolSize poolSize = {};
 			poolSize.type = resource.type;
