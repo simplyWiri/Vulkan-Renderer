@@ -335,6 +335,9 @@ namespace Renderer::RenderGraph
 						auto imageIndex = static_cast<uint32_t>(graph->images.size());
 						graph->images.emplace_back(std::move(resourceImages));
 						graph->nameToResource.emplace(resKey, imageIndex);
+					} else
+					{
+						passDesc.writesBackbuffer = true;
 					}
 
 					auto usage = imgRes.info.usage;
@@ -379,7 +382,7 @@ namespace Renderer::RenderGraph
 			pass->execute = std::move(passDesc.execute);
 
 			// Set our renderpass key
-			auto rpKey = RenderpassKey{ passDesc.colorAttachments, passDesc.depthAttachment };
+			auto rpKey = RenderpassKey{ passDesc.colorAttachments, passDesc.depthAttachment, passDesc.writesBackbuffer };
 			pass->key = std::move(rpKey);
 
 			pass->views.resize(framesInFlight);
@@ -408,7 +411,7 @@ namespace Renderer::RenderGraph
 
 				for (auto i = 0; i < framesInFlight; i++)
 				{
-					VkImageMemoryBarrier2KHR barrier{ VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+					VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 					barrier.image = res[i]->GetResourceHandle();
 					barrier.oldLayout = imgRes.info.layout;
 					auto expectedLayout = imgRes.reads.front().layout;
@@ -416,9 +419,6 @@ namespace Renderer::RenderGraph
 
 					barrier.srcAccessMask = imgRes.writes.front().access;
 					barrier.dstAccessMask = imgRes.reads.front().access;
-
-					barrier.srcStageMask = imgRes.writes.front().flags;
-					barrier.dstStageMask = imgRes.reads.front().flags;
 
 					barrier.srcQueueFamilyIndex = passDescriptions[imgRes.writes.front().passId].GetQueueType() == QueueType::Graphics ? graphics.queueFamilyIndex : compute.queueFamilyIndex;
 					barrier.dstQueueFamilyIndex = passDescriptions[imgRes.reads.front().passId].GetQueueType() == QueueType::Graphics ? graphics.queueFamilyIndex : compute.queueFamilyIndex;

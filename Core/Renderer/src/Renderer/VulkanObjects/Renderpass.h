@@ -22,10 +22,11 @@ namespace Renderer
 		{
 			depthAttachment = AttachmentDesc{VK_FORMAT_UNDEFINED};
 		}
-		RenderpassKey(std::vector<AttachmentDesc> colourAttachments, AttachmentDesc depthAttachment) : colourAttachments(std::move(colourAttachments)), depthAttachment(depthAttachment) { }
+		RenderpassKey(std::vector<AttachmentDesc> colourAttachments, AttachmentDesc depthAttachment, bool writesBackbuffer = false) : colourAttachments(std::move(colourAttachments)), depthAttachment(depthAttachment), writesToBackbuffer(writesBackbuffer) { }
 
 		std::vector<AttachmentDesc> colourAttachments;
 		AttachmentDesc depthAttachment;
+		bool writesToBackbuffer;
 
 		bool operator ==(const RenderpassKey& other) const;
 	};

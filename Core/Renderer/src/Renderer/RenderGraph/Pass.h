@@ -18,7 +18,7 @@ namespace Renderer::RenderGraph
 		std::string name;
 		RenderpassKey key;
 		VkExtent2D renderExtent;
-		std::vector<std::vector<VkImageMemoryBarrier2KHR>> imageBarriers; 
+		std::vector<std::vector<VkImageMemoryBarrier>> imageBarriers; 
 
 		std::function<void(VkCommandBuffer, const FrameInfo&, GraphContext& context)> execute;
 

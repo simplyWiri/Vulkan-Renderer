@@ -48,6 +48,7 @@ namespace Renderer::RenderGraph
 			std::function<void(RenderGraph*)> initialise;
 			std::function<void(VkCommandBuffer, const FrameInfo&, GraphContext& context)> execute;
 
+			bool writesBackbuffer;
 			std::vector<AttachmentDesc> colorAttachments;
 			AttachmentDesc depthAttachment{VK_FORMAT_UNDEFINED};
 
