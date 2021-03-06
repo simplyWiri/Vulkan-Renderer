@@ -34,9 +34,11 @@ namespace Renderer
 		static BlendSettings Add();
 		static BlendSettings Mixed();
 		static BlendSettings AlphaBlend();
-
+		
 		bool operator ==(const BlendSettings& other) const;
 	};
+
+
 
 	struct GraphicsPipelineKey
 	{

@@ -4,9 +4,9 @@
 #include "Renderer/Core.h"
 #include "Renderer/Memory/Allocator.h"
 #include "Renderer/Memory/Image.h"
-#include "Renderer/Memory/Block.h"
 #include "Utils/DebugVisualisations.h"
 #include "Creation/GraphBuilder.h"
+#include "Renderer/Memory/Buffer.h"
 
 namespace Renderer::RenderGraph
 {
@@ -32,6 +32,15 @@ namespace Renderer::RenderGraph
 			info.queueFamilyIndex = queues.transfer.queueFamilyIndex;
 			vkCreateCommandPool(*dev, &info, nullptr, &queues.transfer.commandPool);
 		}
+
+		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
+		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		commandBufferAllocInfo.commandPool = queues.graphics.commandPool;
+		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		commandBufferAllocInfo.commandBufferCount = 3u;
+
+		commandBuffers.resize(3u);
+		auto success = vkAllocateCommandBuffers(*core->GetDevice(), &commandBufferAllocInfo, commandBuffers.data());
 		
 		builder.CreateGraph(this);
 	}
@@ -39,6 +48,17 @@ namespace Renderer::RenderGraph
 	RenderGraph::~RenderGraph()
 	{
 		renderPasses.clear();
+
+		for(auto& imgs : images )
+			for(auto* img : imgs)
+				delete img;
+		
+		images.clear();
+
+		for(auto& bufs : buffers )
+			for(auto* buf : bufs)
+				delete buf;
+
 		nameToResource.clear();
 
 		vkDestroyCommandPool(*core->GetDevice(), queues.graphics.commandPool, nullptr);
@@ -61,7 +81,7 @@ namespace Renderer::RenderGraph
 		core->GetAllocator()->BeginFrame();
 
 		FrameInfo frameInfo;
-		VkCommandBuffer buffer = core->GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
+		VkCommandBuffer buffer = commandBuffers[core->GetSwapchain()->GetIndex()];
 
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -70,7 +90,6 @@ namespace Renderer::RenderGraph
 
 		{
 #if DEBUG
-			ZoneScopedNC("Drawing Debug Visualisations", tracy::Color::Green)
 			DrawDebugVisualisations(core, frameInfo, renderPasses);
 #else
 			ImGui::NewFrame();
@@ -80,7 +99,6 @@ namespace Renderer::RenderGraph
 		vkBeginCommandBuffer(buffer, &beginInfo);
 
 		{
-			ZoneScopedNC("Gathering Draw Commands", tracy::Color::Green)
 			
 			for (auto& pass : renderPasses)
 			{				

@@ -23,17 +23,17 @@ namespace Renderer
 			PlotVarData() : ID(0), lastData(0), DataInsertIdx(0), LastFrame(-1) {}
 		};
 
-		typedef std::map<ImGuiID, PlotVarData> PlotVarsMap;
-		static PlotVarsMap g_PlotVarsMap;
+		static std::map<ImGuiID, PlotVarData> g_PlotVarsMap;
 
-		void PlotVar(const char* label, float value, float scale_min = FLT_MAX, float scale_max = FLT_MAX, size_t buffer_size = 120, bool addVal = true, const char* suffix = "")
+		void PlotVar(const char* label, float value, float scale_min = FLT_MAX, float scale_max = FLT_MAX, int buffer_size = 120, bool addVal = true, const char* suffix = "")
 		{
 			ImGui::PushID(label);
-			ImGuiID id = ImGui::GetID(label);
+			const auto id = ImGui::GetID(label);
+			const auto currentFrame = ImGui::GetFrameCount();
 
-			PlotVarData& pvd = g_PlotVarsMap[id];
+			auto& pvd = g_PlotVarsMap[id];
 
-			if (pvd.Data.capacity() != buffer_size)
+			if (static_cast<int>(pvd.Data.capacity()) != buffer_size)
 			{
 				pvd.Data.resize(buffer_size);
 				pvd.x.resize(buffer_size);
@@ -50,16 +50,15 @@ namespace Renderer
 				pvd.lastData = value;
 			}
 
-			int current_frame = ImGui::GetFrameCount();
 
 			ImPlot::SetNextPlotLimits(0,buffer_size ,0,40);
 			
-			if (pvd.LastFrame != current_frame)
+			if (pvd.LastFrame != currentFrame)
 			{
-				ImGui::PlotLines("##plot", &pvd.Data[0], buffer_size, pvd.DataInsertIdx, NULL, scale_min, scale_max, ImVec2(0, 40));
+				ImGui::PlotLines("##plot", &pvd.Data[0], buffer_size, pvd.DataInsertIdx, nullptr, scale_min, scale_max, ImVec2(0, 40));
 				ImGui::SameLine();
 				ImGui::Text("%s\n%-3.4f%s", label, value, suffix);	// Display last value in buffer
-				pvd.LastFrame = current_frame;
+				pvd.LastFrame = currentFrame;
 			}
 
 			ImGui::PopID();
@@ -83,41 +82,10 @@ namespace Renderer
 			auto frameTime = timeDiff / (framesDiff + FLT_EPSILON);
 			ImPlotVar::PlotVar("Frame Times", frameTime, FLT_MAX, FLT_MAX, 144, frameInfo.frameIndex % 7 == 0, "ms");
 		}
-		else { ImPlotVar::PlotVar("Frame Times", FLT_MAX, FLT_MAX, FLT_MAX, 144, false, "ms"); }
-
-
-		//if (ImGui::CollapsingHeader("RenderGraph"))
-		//{
-		//	int i = 0;
-		//	ImGui::BeginChild("RenderPasses");
-
-		//	ImGui::Columns(2, "Render Passes", true);
-		//	ImGui::Text("Name");
-		//	ImGui::NextColumn();
-		//	ImGui::Text("Order");
-		//	ImGui::NextColumn();
-		//	ImGui::Separator();
-
-		//	static int selected = -1;
-
-		//	for (auto& pass : passes)
-		//	{
-		//		ImGui::BeginGroup();
-		//		char label[32];
-		//		sprintf_s(label, "%s", pass->GetName().c_str());
-		//		if (ImGui::Selectable(label, selected == i, ImGuiSelectableFlags_SpanAllColumns)) selected = selected == i ? -1 : i;
-
-		//		if (ImGui::IsItemHovered()) ImGui::SetTooltip("View Statistics");
-
-		//		ImGui::NextColumn();
-		//		ImGui::Text("%d", i++);
-		//		ImGui::NextColumn();
-		//		ImGui::Separator();
-		//		ImGui::EndGroup();
-		//	}
-
-		//	ImGui::EndChild();
-		//}
+		else
+		{
+			ImPlotVar::PlotVar("Frame Times", FLT_MAX, FLT_MAX, FLT_MAX, 144, false, "ms");
+		}
 
 		if (ImGui::CollapsingHeader("Allocations")) { core->GetAllocator()->DebugView(); }
 
@@ -125,7 +93,7 @@ namespace Renderer
 	}
 
 #else
-	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<RenderGraph::PassDesc> passes)
+	void DrawDebugVisualisations(Core* core, FrameInfo& frameInfo, const std::vector<std::unique_ptr<RenderGraph::Pass>>& passes)
 	{
 		ImGui::NewFrame();
 

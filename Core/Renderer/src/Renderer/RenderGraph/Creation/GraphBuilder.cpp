@@ -135,7 +135,7 @@ namespace Renderer::RenderGraph
 
 		if (val != nameToResource.end()) return reinterpret_cast<ResourceDescription&>(*resources[val->second]);
 
-		Assert(false, "Trying to retrieve resource which does not exist.")
+		Assert(false, "Trying to retrieve resource which does not exist.");
 	}
 
 	void GraphBuilder::CreateAdjacencyList(std::vector<std::vector<uint32_t>>& adjacencyList)

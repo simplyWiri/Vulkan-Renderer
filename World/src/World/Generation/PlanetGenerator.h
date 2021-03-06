@@ -51,9 +51,9 @@ namespace World::Generation
 
 	struct BeachArc
 	{
-		BeachArc(Point* cell, uint32_t cellIdx) : site(cell), circleEvent(nullptr), leftEdgeIdx(~0u), rightEdgeIdx(~0u), cellIdx(cellIdx) { }
+		BeachArc(std::shared_ptr<Point> cell, uint32_t cellIdx) : site(cell), circleEvent(nullptr), leftEdgeIdx(~0u), rightEdgeIdx(~0u), cellIdx(cellIdx) { }
 
-		Point* site;
+		std::shared_ptr<Point> site;
 		CircleEvent* circleEvent;
 
 		uint32_t leftEdgeIdx;
@@ -118,7 +118,7 @@ namespace World::Generation
 
 	struct CircleEvent
 	{
-		CircleEvent(BeachArc* leftArc, Common::LooseOrderedRbTree<BeachArc*>::Node* middleArc, BeachArc* rightArc) : leftArc(leftArc), middleArc(middleArc),  rightArc(rightArc)
+		CircleEvent(const std::shared_ptr<BeachArc>& leftArc, Common::LooseOrderedRbTree<std::shared_ptr<BeachArc>>::Node* middleArc,const std::shared_ptr<BeachArc>& rightArc) : leftArc(leftArc), middleArc(middleArc),  rightArc(rightArc)
 		{
 			auto leftPos = leftArc->site->position;
 			auto middlePos = middleArc->element->site->position;
@@ -130,13 +130,13 @@ namespace World::Generation
 			theta = acos(center.z) + acos(dot(center, middlePos));
 		}
 
-		CircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, glm::vec3 center, float theta) : leftArc(i), middleArc(j), rightArc(k) , center(center), theta(theta)
+		CircleEvent(const std::shared_ptr<BeachArc>& i, Common::LooseOrderedRbTree<std::shared_ptr<BeachArc>>::Node* j,const std::shared_ptr<BeachArc>& k, glm::vec3 center, float theta) : leftArc(i), middleArc(j), rightArc(k) , center(center), theta(theta)
 		{
 		}
 
-		BeachArc* leftArc;
-		Common::LooseOrderedRbTree<BeachArc*>::Node* middleArc;
-		BeachArc* rightArc;
+		std::shared_ptr<BeachArc> leftArc;
+		Common::LooseOrderedRbTree<std::shared_ptr<BeachArc>>::Node* middleArc;
+		std::shared_ptr<BeachArc> rightArc;
 
 		glm::vec3 center; // Circumcenter
 		float theta; // Lowest point on circle
@@ -158,9 +158,9 @@ namespace World::Generation
 
 		Planet* planet;
 
-		std::vector<Point*> siteEventQueue; // We are reaching a new point we haven't encountered yet
+		std::vector<std::shared_ptr<Point>> siteEventQueue; // We are reaching a new point we haven't encountered yet
 		std::vector<CircleEvent*> circleEventQueue; // One of the parabolas we have drawn for an existing (processed) point has disappeared
-		Common::LooseOrderedRbTree<BeachArc*> beach{nullptr};
+		Common::LooseOrderedRbTree<std::shared_ptr<BeachArc>> beach{nullptr};
 
 		void Step(float maxDeltaX);
 
@@ -175,16 +175,16 @@ namespace World::Generation
 		Point GeneratePoint(int index, int numPoints);
 		void InitialiseEvents();
 
-		void HandleSiteEvent(Point* event);
+		void HandleSiteEvent(const std::shared_ptr<Point>& event);
 		void HandleCircleEvent(CircleEvent* event);
-		void PopulateEdges(BeachArc* prev, BeachArc* succ, glm::vec3 eventCenter);
-		void FinishEdges(BeachArc* arc, uint32_t vertexId);
+		void PopulateEdges(const std::shared_ptr<BeachArc>& prev, const std::shared_ptr<BeachArc>& succ, glm::vec3 eventCenter);
+		void FinishEdges(const std::shared_ptr<BeachArc>& arc, uint32_t vertexId);
 
-		void CheckForValidCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, float sweeplineX, bool siteEvent = false);
+		void CheckForValidCircleEvent(const std::shared_ptr<BeachArc>& i, Common::LooseOrderedRbTree<std::shared_ptr<BeachArc>>::Node* j, const std::shared_ptr<BeachArc>& k, float sweeplineX, bool siteEvent = false);
 
 
-		void AddCircleEvent(BeachArc* i, Common::LooseOrderedRbTree<BeachArc*>::Node* j, BeachArc* k, glm::vec3 center, float theta);
+		void AddCircleEvent(const std::shared_ptr<BeachArc>& i, Common::LooseOrderedRbTree<std::shared_ptr<BeachArc>>::Node* j, const std::shared_ptr<BeachArc>& k, glm::vec3 center, float theta);
 		void RemoveCircleEvent(CircleEvent* event);
-		Common::LooseOrderedRbTree<BeachArc*>::Node* FindArcOnBeach(Point* site);
+		Common::LooseOrderedRbTree<std::shared_ptr<BeachArc>>::Node* FindArcOnBeach(const std::shared_ptr<Point>& site);
 	};
 }

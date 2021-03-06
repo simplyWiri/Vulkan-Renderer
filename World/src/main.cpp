@@ -14,20 +14,21 @@
 #include <Utils\AnchoredCamera.h>
 #include "volk/volk.h"
 
+
 using namespace Renderer;
 using namespace World::Generation;
 
-void* operator new(std :: size_t count)
-{
-	auto ptr = malloc(count);
-	TracyAlloc (ptr , count);
-	return ptr;
-}
-void operator delete(void* ptr) noexcept
-{
-	TracyFree(ptr);
-	free(ptr);
-}
+//void* operator new(std :: size_t count)
+//{
+//	auto ptr = malloc(count);
+//	TracyAllocS(ptr , count, 8);
+//	return ptr;
+//}
+//void operator delete(void* ptr) noexcept
+//{
+//	TracyFreeS(ptr, 8);
+//	free(ptr);
+//}
 
 struct UniformBufferObject
 {
@@ -41,15 +42,13 @@ int main()
 	Settings s = {};
 	s.width = 1280;
 	s.height = 720;
-	s.vsync = true;
+	s.vsync = false;
 
 	auto renderer = std::make_unique<Core>(s);
 	GUI gui;
+
+	renderer->Initialise();
 	
-	{
-		ZoneScopedNC("Initialise Renderer", tracy::Color::Red)
-		renderer->Initialise();
-	}
 	
 	gui.initialise(renderer.get());
 
@@ -146,7 +145,6 @@ int main()
 		.SetRecordFunc([&](VkCommandBuffer buffer, const FrameInfo& frameInfo, RenderGraph::GraphContext& context)
 		{
 			{
-				ZoneScopedN("Update Camera and Set Descriptor Cache")
 				static auto startTime = std::chrono::high_resolution_clock::now();
 
 				auto currentTime = std::chrono::high_resolution_clock::now();

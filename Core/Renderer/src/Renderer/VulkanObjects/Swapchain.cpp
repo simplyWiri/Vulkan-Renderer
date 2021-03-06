@@ -258,7 +258,6 @@ namespace Renderer
 		VkResult success;
 		
 		{
-			ZoneScopedNC("Queue Submit", tracy::Color::Red)
 			success = vkQueueSubmit(graphicsQueue, 1, &submitInfo, frame.inFlightFence);
 			Assert(success == VK_SUCCESS, "Failed to submit queue");
 		}
@@ -272,7 +271,6 @@ namespace Renderer
 		presentInfo.pImageIndices = &info.imageIndex;
 
 		{
-			ZoneScopedNC("Queue Present", tracy::Color::Red)
 			success = vkQueuePresentKHR(presentQueue, &presentInfo);
 		}
 

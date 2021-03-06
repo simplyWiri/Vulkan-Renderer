@@ -22,7 +22,7 @@ namespace Renderer
 	{
 		FramebufferBundle(VkDevice device, FramebufferKey key, uint32_t count);
 
-		std::vector<VkFramebuffer> GetHandle() { return framebuffers; }
+		std::vector<VkFramebuffer>& GetHandle() { return framebuffers; }
 
 	private:
 		std::vector<VkFramebuffer> framebuffers;
@@ -54,7 +54,7 @@ namespace Renderer
 	public:
 		void BuildCache(VkDevice device, uint32_t framesInFlight);
 
-		void BeginPass(VkCommandBuffer buffer, uint32_t index, const std::vector<VkImageView>& views, Renderpass* renderpass, VkExtent2D extent);
+		void BeginPass(VkCommandBuffer buffer, uint32_t index, const std::vector<VkImageView>& views, Renderpass* renderpass, const VkExtent2D& extent);
 		void EndPass(VkCommandBuffer buffer);
 
 		FramebufferBundle* Get(const FramebufferKey& key) override;

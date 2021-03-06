@@ -1,4 +1,6 @@
 #pragma once
+#include <tracy/Tracy.hpp>
+
 #include "implot/implot.h"
 #include "glfw/include/GLFW/glfw3.h"
 #include "imgui/imgui.h"
@@ -148,8 +150,6 @@ namespace Renderer
 					[&](VkCommandBuffer buffer, const FrameInfo& info, RenderGraph::GraphContext& context)
 					{
 						{
-							ZoneScopedN("IMGUI Updating Buffers")
-
 							ImGuiIO& io = ImGui::GetIO();
 							io.DisplaySize = ImVec2(static_cast<float>(context.GetExtent().width), static_cast<float>(context.GetExtent().height));
 
@@ -174,7 +174,6 @@ namespace Renderer
 							pushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
 							pushConstBlock.translate = glm::vec2(-1.0f);
 						}
-						ZoneScopedN("IMGUI Draw")
 
 						ImDrawData* imDrawData = ImGui::GetDrawData();
 						if (imDrawData->CmdListsCount == 0) return;

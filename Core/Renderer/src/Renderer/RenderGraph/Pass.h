@@ -22,9 +22,9 @@ namespace Renderer::RenderGraph
 
 		std::vector<std::function<void(VkCommandBuffer, const FrameInfo&, GraphContext& context)>> executes;
 
-		RenderpassKey GetRenderpassKey() const { return key; }
-		std::vector<VkImageView> GetViews(int index) const { return views[index]; }
-		VkExtent2D GetExtent() const { return renderExtent; }
+		RenderpassKey& GetRenderpassKey() { return key; }
+		std::vector<VkImageView>& GetViews(int index) { return views[index]; }
+		VkExtent2D& GetExtent() { return renderExtent; }
 		void Execute(VkCommandBuffer buffer, const FrameInfo& frameInfo, GraphContext& context)
 		{
 			for(auto& execute : executes)

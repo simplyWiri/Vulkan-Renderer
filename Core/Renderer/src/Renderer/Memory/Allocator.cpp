@@ -165,8 +165,6 @@ namespace Renderer::Memory
 
 	void Allocator::EndFrame()
 	{
-		ZoneScopedNC("Allocator::EndFrame", tracy::Color::Brown)
-
 		currentFrameOffset = (currentFrameOffset + 1) % framesInFlight;
 		for (const auto& cleanup : cleanups[currentFrameOffset]) { cleanup(*device); }
 		cleanups[currentFrameOffset].clear();

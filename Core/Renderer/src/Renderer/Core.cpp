@@ -62,8 +62,6 @@ namespace Renderer
 	{
 		if (glfwWindowShouldClose(swapchain.GetWindow())) return false;
 		{
-			ZoneScopedNC("Polling GLFW Events", tracy::Color::White)
-
 			glfwPollEvents();
 		}
 
@@ -177,8 +175,6 @@ namespace Renderer
 
 	void Core::BeginFrame(VkCommandBuffer& buffer, FrameInfo& info)
 	{
-		ZoneScopedNC("Begin Frame", tracy::Color::Purple);
-
 		info = swapchain.BeginFrame(buffer, frameInfo);
 		frameInfo = info;
 
@@ -193,7 +189,6 @@ namespace Renderer
 
 	void Core::EndFrame(FrameInfo info)
 	{
-		ZoneScopedNC("End Frame", tracy::Color::Violet);
 		const auto result = swapchain.EndFrame(info, device.queues.graphics);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) windowResize();

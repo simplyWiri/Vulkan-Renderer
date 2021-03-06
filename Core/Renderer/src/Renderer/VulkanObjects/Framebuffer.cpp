@@ -37,11 +37,9 @@ namespace Renderer
 		this->framesInFlight = framesInFlight;
 	}
 
-	void FramebufferCache::BeginPass(VkCommandBuffer buffer, uint32_t index, const std::vector<VkImageView>& views, Renderpass* renderpass, VkExtent2D extent)
+	void FramebufferCache::BeginPass(VkCommandBuffer buffer, uint32_t index, const std::vector<VkImageView>& views, Renderpass* renderpass, const VkExtent2D& extent)
 	{
-		ZoneScopedN("Beginning renderpass")
-
-		FramebufferKey key = FramebufferKey(views, renderpass, extent);
+		auto key = FramebufferKey(views, renderpass, extent);
 
 		auto framebuffer = Get(key);
 		auto handles = framebuffer->GetHandle();
