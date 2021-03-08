@@ -35,13 +35,13 @@ namespace World::Generation
 				nextX = final;
 
 				// if site event queue is not empty, and the site is before any events in the circle queue
-				if (!siteEventQueue.empty() && (circleEventQueue.empty() || siteEventQueue.front()->theta < circleEventQueue.front()->theta))
+				if (!siteEventQueue.empty() && (circleEventQueue.empty() || siteEventQueue.front().theta < circleEventQueue.front()->theta))
 				{
-					auto siteEvent = siteEventQueue.front();
+					auto& siteEvent = siteEventQueue.front();
 
-					if (siteEvent->theta <= nextX)
+					if (siteEvent.theta <= nextX)
 					{
-						sweepline = siteEvent->theta;
+						sweepline = siteEvent.theta;
 						HandleSiteEvent(siteEvent);
 						siteEventQueue.erase(siteEventQueue.begin());
 					}
@@ -49,7 +49,7 @@ namespace World::Generation
 				}
 				else if (!circleEventQueue.empty())
 				{
-					auto circleEvent = circleEventQueue.front();
+					auto* circleEvent = circleEventQueue.front();
 
 					if (circleEvent->theta <= nextX)
 					{
@@ -106,7 +106,7 @@ namespace World::Generation
 				auto u = rand() / (float)RAND_MAX;
 				auto v = rand() / (float)RAND_MAX;
 
-				siteEventQueue.emplace_back(std::make_shared<Point>( acos(2 * v - 1), 2 * PI * u ));
+				siteEventQueue.emplace_back(acos(2 * v - 1), 2 * PI * u);
 			}
 		}
 		else
@@ -122,7 +122,7 @@ namespace World::Generation
 				auto y = cos(theta) * sin(phi);
 				auto z = sin(theta);
 
-				siteEventQueue.emplace_back(std::make_shared<Point>(glm::vec3{ x, y, z }));
+				siteEventQueue.emplace_back(glm::vec3{ x, y, z });
 			}
 		}
 	}
@@ -143,11 +143,11 @@ namespace World::Generation
 	// Sort the points P, and insert into the site event queue
 	void PlanetGenerator::InitialiseEvents()
 	{
-		std::sort(siteEventQueue.begin(), siteEventQueue.end(), [](const std::shared_ptr<Point>& a, const std::shared_ptr<Point>& b) { return *a < *b; });
+		std::sort(siteEventQueue.begin(), siteEventQueue.end(), [](const auto& a, const auto& b) { return a < b; });
 
 		for(int i = 0; i < siteEventQueue.size(); i++)
 		{
-			siteEventQueue[i]->index = i;
+			siteEventQueue[i].index = i;
 		}
 	}
 
@@ -158,21 +158,21 @@ namespace World::Generation
 		return Point(atan2(a, b), phi);
 	}
 
-	void PlanetGenerator::HandleSiteEvent(const std::shared_ptr<Point>& event)
+	void PlanetGenerator::HandleSiteEvent(const Point& event)
 	{
 		if (beach.Count() <= 1)
 		{
-			auto* iter = beach.Append(std::make_shared<BeachArc>(event, planet->cells.size()));
-			planet->cells.emplace_back(VoronoiCell{ event->position });
+			auto* iter = beach.Append(BeachArc(event, planet->cells.size()));
+			planet->cells.emplace_back(VoronoiCell{ event.position });
 
 			if (beach.Count() == 2) // We need to stitch the first & second beach entries with a little more care.
 			{
-				auto root = beach.GetRoot();
+				auto* root = beach.GetRoot();
 
-				iter->element->leftEdgeIdx = root->element->rightEdgeIdx;
-				iter->element->rightEdgeIdx = root->element->leftEdgeIdx;
+				iter->element.leftEdgeIdx = root->element.rightEdgeIdx;
+				iter->element.rightEdgeIdx = root->element.leftEdgeIdx;
 
-				auto vertex = PhiToPoint(*root->element->site, event->phi, sweepline);
+				const auto vertex = PhiToPoint(root->element.site, event.phi, sweepline);
 
 				PopulateEdges(root->element, iter->element, vertex.position);
 				PopulateEdges(iter->element, root->element, vertex.position);
@@ -185,27 +185,28 @@ namespace World::Generation
 			auto* curr = FindArcOnBeach(event);
 			if (curr == nullptr) return;
 
-			auto pred = curr->Predecessor() ? curr->Predecessor() : beach.Last();
-			auto succ = curr->Successor() ? curr->Successor() : beach.First();
+			const auto* pred = curr->Predecessor() ? curr->Predecessor() : beach.Last();
+			const auto* succ = curr->Successor() ? curr->Successor() : beach.First();
 
 			// false alarm, remove the event from the circleEventQueue
-			if (curr->element->circleEvent)
+			if (curr->element.circleEvent)
 			{
-				RemoveCircleEvent(curr->element->circleEvent);
-				curr->element->circleEvent = nullptr;
+				RemoveCircleEvent(curr->element.circleEvent);
+				curr->element.circleEvent = nullptr;
 			}
 
 			// Duplicate arc a and insert the new arc for `event` between them in the skiplist
-			auto duplicatedArc = std::make_shared<BeachArc>(curr->element->site, curr->element->cellIdx);
-			auto newArc = std::make_shared<BeachArc>(event, static_cast<uint32_t>(planet->cells.size()));
-			duplicatedArc->rightEdgeIdx = curr->element->rightEdgeIdx;
+			auto duplicatedArc = BeachArc(curr->element.site, curr->element.cellIdx);
+			const auto newArc = BeachArc(event, static_cast<uint32_t>(planet->cells.size()));
 			
-			planet->cells.emplace_back(VoronoiCell{ event->position });
+			duplicatedArc.rightEdgeIdx = curr->element.rightEdgeIdx;
+			
+			planet->cells.emplace_back(VoronoiCell{ event.position });
 
-			auto newArcLoc = beach.Insert(newArc, curr);
-			auto duplicatedArcLoc = beach.Insert(duplicatedArc, newArcLoc);
+			auto* newArcLoc = beach.Insert(newArc, curr);
+			auto* duplicatedArcLoc = beach.Insert(duplicatedArc, newArcLoc);
 
-			auto vertex = PhiToPoint(*curr->element->site, event->phi, sweepline);
+			const auto vertex = PhiToPoint(curr->element.site, event.phi, sweepline);
 
 			PopulateEdges(curr->element, newArcLoc->element, vertex.position);
 			PopulateEdges(newArcLoc->element, duplicatedArcLoc->element, vertex.position);
@@ -220,11 +221,11 @@ namespace World::Generation
 	{
 		if (beach.Count() == 2) return;
 		// Remove the site `j` which represents the disappearing arc from the skiplist and remove the circle event from the circleQueue
-		auto j = event->middleArc;
-		auto i = j->Predecessor() ? j->Predecessor() : beach.Last();
-		auto k = j->Successor() ? j->Successor() : beach.First();
-		auto arc1 = i->Predecessor() ? i->Predecessor()->element : beach.Last()->element;
-		auto arc2 = k->Successor() ? k->Successor()->element : beach.First()->element;
+		auto* j = event->middleArc;
+		auto* i = j->Predecessor() ? j->Predecessor() : beach.Last();
+		auto* k = j->Successor() ? j->Successor() : beach.First();
+		auto& arc1 = i->Predecessor() ? i->Predecessor()->element : beach.Last()->element;
+		auto& arc2 = k->Successor() ? k->Successor()->element : beach.First()->element;
 
 		// Add our event center as an edge
 		// Populate the half edges extending from the center
@@ -233,19 +234,19 @@ namespace World::Generation
 		FinishEdges(j->element, static_cast<uint32_t>(planet->edgeVertices.size() - 1));
 
 		// Remove the fading arc from the beach
-		j->element->circleEvent = nullptr;
+		j->element.circleEvent = nullptr;
 		beach.Remove(j);
 
 		// Remove all circle events associated with the triples (1, i, j) and (j, k, 2)
-		if (i->element->circleEvent)
+		if (i->element.circleEvent)
 		{
-			RemoveCircleEvent(i->element->circleEvent);
-			i->element->circleEvent = nullptr;
+			RemoveCircleEvent(i->element.circleEvent);
+			i->element.circleEvent = nullptr;
 		}
-		if (k->element->circleEvent)
+		if (k->element.circleEvent)
 		{
-			RemoveCircleEvent(k->element->circleEvent);
-			k->element->circleEvent = nullptr;
+			RemoveCircleEvent(k->element.circleEvent);
+			k->element.circleEvent = nullptr;
 		}
 
 		// Check the two new triples of consecutive arcs (1, i, k) and (i, k, 2)
@@ -253,7 +254,7 @@ namespace World::Generation
 		CheckForValidCircleEvent(i->element, k, arc2, sweepline);
 	}
 
-	void PlanetGenerator::PopulateEdges(const std::shared_ptr<BeachArc>& prev, const std::shared_ptr<BeachArc>& succ, glm::vec3 eventCenter)
+	void PlanetGenerator::PopulateEdges(BeachArc& prev, BeachArc& succ, glm::vec3 eventCenter)
 	{
 		// Add event center to vertex list `event->centers`
 		auto edgeVertexId = static_cast<uint32_t>(planet->edgeVertices.size());
@@ -265,19 +266,19 @@ namespace World::Generation
 		planet->halfEdges.emplace_back(halfEdge);
 
 		// delanuay
-		planet->delanuayEdges.emplace_back(HalfEdge{ true, prev->site->index, succ->site->index });
+		planet->delanuayEdges.emplace_back(HalfEdge{ true, prev.site.index, succ.site.index });
 
-		planet->cells[prev->cellIdx].AddEdge(halfEdgeID);
-		planet->cells[succ->cellIdx].AddEdge(halfEdgeID);
+		planet->cells[prev.cellIdx].AddEdge(halfEdgeID);
+		planet->cells[succ.cellIdx].AddEdge(halfEdgeID);
 
-		prev->rightEdgeIdx = succ->leftEdgeIdx = halfEdgeID;
+		prev.rightEdgeIdx = succ.leftEdgeIdx = halfEdgeID;
 	}
 
-	void PlanetGenerator::FinishEdges(const std::shared_ptr<BeachArc>& arc, uint32_t vertexId)
+	void PlanetGenerator::FinishEdges(const BeachArc& arc, uint32_t vertexId)
 	{
-		if (arc->leftEdgeIdx != ~0u) // We have other issues if ~0u is an actual index.
+		if (arc.leftEdgeIdx != ~0u) // We have other issues if ~0u is an actual index.
 		{
-			auto& edge = planet->halfEdges[arc->leftEdgeIdx];
+			auto& edge = planet->halfEdges[arc.leftEdgeIdx];
 			if (edge.finished == false)
 			{
 				edge.endIndex = vertexId;
@@ -285,9 +286,9 @@ namespace World::Generation
 			}
 		}
 
-		if (arc->rightEdgeIdx != ~0u)
+		if (arc.rightEdgeIdx != ~0u)
 		{
-			auto& edge = planet->halfEdges[arc->rightEdgeIdx];
+			auto& edge = planet->halfEdges[arc.rightEdgeIdx];
 			if (edge.finished == false)
 			{
 				edge.endIndex = vertexId;
@@ -297,26 +298,26 @@ namespace World::Generation
 	}
 
 
-	void PlanetGenerator::CheckForValidCircleEvent(const std::shared_ptr<BeachArc>& i, Common::LooseOrderedRbTree<std::shared_ptr<BeachArc>>::Node* j, const std::shared_ptr<BeachArc>& k, float sweeplineX, bool siteEvent)
+	void PlanetGenerator::CheckForValidCircleEvent(const BeachArc& i, Common::LooseOrderedRbTree<BeachArc>::Node* j, const BeachArc& k, float sweeplineX, bool siteEvent)
 	{
-		if (!siteEvent && (i->site == j->element->site || j->element->site == k->site || i->site == k->site)) return;
+		if (!siteEvent && (i.site == j->element.site || j->element.site == k.site || i.site == k.site)) return;
 
-		auto pij = i->site->position - j->element->site->position;
-		auto pkj = k->site->position - j->element->site->position;
+		auto pij = i.site.position - j->element.site.position;
+		auto pkj = k.site.position - j->element.site.position;
 
 		auto dir = glm::cross(pij, pkj);
 		auto circumcenter = glm::normalize(dir);
-		auto theta = acos(circumcenter.z) + acos(glm::dot(circumcenter, j->element->site->position));
+		auto theta = acos(circumcenter.z) + acos(glm::dot(circumcenter, j->element.site.position));
 
 		// not sure why this breaks the code... ?
 		//if(theta > sweepline) 
-		AddCircleEvent(i, j, k, circumcenter, theta);
+		AddCircleEvent(j, circumcenter, theta);
 	}
 
-	void PlanetGenerator::AddCircleEvent(const std::shared_ptr<BeachArc>& i, Common::LooseOrderedRbTree<std::shared_ptr<BeachArc>>::Node* j, const std::shared_ptr<BeachArc>& k, glm::vec3 center, float theta)
+	void PlanetGenerator::AddCircleEvent(Common::LooseOrderedRbTree<BeachArc>::Node* j, glm::vec3 center, float theta)
 	{
-		auto* event = new CircleEvent(i, j, k, center, theta);
-		j->element->circleEvent = event;
+		auto* event = new CircleEvent(j, center, theta);
+		j->element.circleEvent = event;
 		auto pos = upper_bound(circleEventQueue.begin(), circleEventQueue.end(), event, [](const CircleEvent* l, const CircleEvent* r) { return *l < *r; });
 		circleEventQueue.emplace(pos, event);
 	}
@@ -331,7 +332,6 @@ namespace World::Generation
 			auto it = lower_bound(circleEventQueue.begin(), circleEventQueue.end(), event, [](const CircleEvent* l, const CircleEvent* r) { return *l < *r; });
 			if (*it != event)
 			{
-				//delete event;
 				return;
 			}
 			circleEventQueue.erase(it);
@@ -341,8 +341,12 @@ namespace World::Generation
 	}
 
 	// Based on: https://github.com/kelvin13/voronoi/blob/master/sources/game/lib/voronoi.swift#L1061-L1185
-
-	Common::LooseOrderedRbTree<std::shared_ptr<BeachArc>>::Node* PlanetGenerator::FindArcOnBeach(const std::shared_ptr<Point>& site)
+	// Other reference implementations I found did not actually seem to write o(log(n)) algorithms which are required to make this entire implementation run in o(nlogn)
+	// they would use 'approximations' I.e. using a left leaning search using the arcs phi (which is not correct because arcs are duplicated on the beach line),
+	// then do intersection checks on every arc until it finds the correct arc, or simply doing a flat o(n) search through the array, this was the only impl I could find
+	// which implemented what is an o(logn) search, even if it may worse case use more intersection checks than the other implementations. 
+	
+	Common::LooseOrderedRbTree<BeachArc>::Node* PlanetGenerator::FindArcOnBeach(const Point& site)
 	{
 		auto* first = beach.First();
 		auto* last = beach.Last();
@@ -350,10 +354,10 @@ namespace World::Generation
 
 		if (first == last) return nullptr;
 
-		auto locationPhi = site->phi;
+		auto locationPhi = site.phi;
 
 		float shift;
-		last->element->Intersect(*first->element, sweepline, shift);
+		last->element.Intersect(first->element, sweepline, shift);
 		shift *= -1;
 
 		auto adjust = [&](float phi)
@@ -375,13 +379,13 @@ namespace World::Generation
 			pred = curr->Predecessor();
 			succ = curr->Successor();
 
-			if (pred != nullptr && curr->left != nullptr && pred->element->Intersect(*curr->element, sweepline, phiStart) && locationPhi < adjust(phiStart))
+			if (pred != nullptr && curr->left != nullptr && pred->element.Intersect(curr->element, sweepline, phiStart) && locationPhi < adjust(phiStart))
 			{
 				curr = curr->left;
 				continue;
 			}
 
-			if (succ != nullptr && curr->right != nullptr && curr->element->Intersect(*succ->element, sweepline, phiEnd) && locationPhi > adjust(phiEnd))
+			if (succ != nullptr && curr->right != nullptr && curr->element.Intersect(succ->element, sweepline, phiEnd) && locationPhi > adjust(phiEnd))
 			{
 				curr = curr->right;
 				continue;

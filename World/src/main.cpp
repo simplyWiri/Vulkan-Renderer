@@ -18,17 +18,17 @@
 using namespace Renderer;
 using namespace World::Generation;
 
-//void* operator new(std :: size_t count)
-//{
-//	auto ptr = malloc(count);
-//	TracyAllocS(ptr , count, 8);
-//	return ptr;
-//}
-//void operator delete(void* ptr) noexcept
-//{
-//	TracyFreeS(ptr, 8);
-//	free(ptr);
-//}
+void* operator new(std :: size_t count)
+{
+	auto ptr = malloc(count);
+	TracyAllocS(ptr , count, 12);
+	return ptr;
+}
+void operator delete(void* ptr) noexcept
+{
+	TracyFreeS(ptr, 12);
+	free(ptr);
+}
 
 struct UniformBufferObject
 {

@@ -57,7 +57,7 @@ namespace World
 		std::vector<Vertex> vertices;
 		do
 		{
-			vertices.emplace_back(Vertex{ current->element->site->position, { .5 , .5 ,0 }});
+			vertices.emplace_back(Vertex{ current->element.site.position, { .5 , .5 ,0 }});
 			current = current->Successor();
 		} while (current != nullptr);
 
@@ -214,9 +214,8 @@ namespace World
 
 			for(int i = 0; i < voronoiCells.size(); i++)
 			{
-				auto cell = voronoiCells[i];
-
-				auto color = glm::vec3{0.25 } + cell.GetCenter() * 0.5f;
+				auto& cell = voronoiCells[i];
+				const auto color = glm::vec3{0.25 } + cell.GetCenter() * 0.5f;
 
 				auto verts = cell.GetFaceVertices(halfEdges, edgeVertices);
 				
