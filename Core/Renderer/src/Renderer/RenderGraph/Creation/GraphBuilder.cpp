@@ -138,39 +138,54 @@ namespace Renderer::RenderGraph
 		Assert(false, "Trying to retrieve resource which does not exist.");
 	}
 
-	void GraphBuilder::CreateAdjacencyList(std::vector<std::vector<uint32_t>>& adjacencyList)
+	void GraphBuilder::CreateAdjacencyList(std::vector<std::unordered_set<uint32_t>>& adjacencyList)
 	{
 		// We want to build a list of passes which consume resources written to by a given pass.
 		// allowing us to determine read after write dependencies within our graph
 
 		for (int i = 0; i < passDescriptions.size(); i++)
 		{
-			auto& pass = passDescriptions[i];
-			auto& adjacentIndices = adjacencyList[i];
+			const auto& pass = passDescriptions[i];
+			const auto& writtenResources = pass.writtenResources;
 
-			auto& writtenResources = pass.writtenResources;
+			auto& passAdjacentIndices = adjacencyList[i];
 
 			for (int j = 0; i < passDescriptions.size(); i++)
 			{
 				if (i == j) continue; // Do not evaluate self
 
-				auto& otherPass = passDescriptions[j];
-				auto& readResources = otherPass.readResources;
+				const auto& otherPass = passDescriptions[j];
+				const auto& readResources = otherPass.readResources;
+
+				// Handling multiple writes.
+				for(const auto& writtenResource : writtenResources)
+				{
+					auto& resource = GetResource(writtenResource);
+
+					if(resource.GetWrites().size() == 1) continue;
+
+					if(resource.OrderPassesByWrites(pass.name, otherPass.name) == otherPass.name)
+					{
+						passAdjacentIndices.emplace(otherPass.GetPassId());
+						break;
+					}
+				}
+				
 
 				for (const auto& readResource : readResources)
 				{
-					if (writtenResources.contains(readResource))
-					{
-						adjacentIndices.emplace_back(otherPass.GetPassId());
-						// We do not need duplicate entries for multiple reads 
-						break;
-					}
+					if (!writtenResources.contains(readResource)) continue;
+
+					passAdjacentIndices.emplace(otherPass.GetPassId());
+					
+					// We do not need duplicate entries in the case of multiple reads 
+					break;	
 				}
 			}
 		}
 	}
 
-	std::vector<uint32_t> GraphBuilder::TopologicalSort(std::vector<std::vector<uint32_t>>& adjacencyList)
+	std::vector<uint32_t> GraphBuilder::TopologicalSort(std::vector<std::unordered_set<uint32_t>>& adjacencyList)
 	{
 		// Using the previously created adjacency list, we aim to create a sorted
 		// list wherein no pass (A) is before another pass (B) which writes to a resource
@@ -192,7 +207,7 @@ namespace Renderer::RenderGraph
 		return sortedPassOrder;
 	}
 
-	void GraphBuilder::DepthFirstSearch(int currentIndex, std::vector<bool>& visited, std::vector<uint32_t>& sortedPassOrder, std::vector<std::vector<uint32_t>>& adjacencyList)
+	void GraphBuilder::DepthFirstSearch(int currentIndex, std::vector<bool>& visited, std::vector<uint32_t>& sortedPassOrder, std::vector<std::unordered_set<uint32_t>>& adjacencyList)
 	{
 		visited[currentIndex] = true;
 
@@ -208,28 +223,35 @@ namespace Renderer::RenderGraph
 		sortedPassOrder.emplace_back(currentIndex);
 	}
 
-	void GraphBuilder::DependencyLevelSort(std::vector<uint32_t> sortedOrder, std::vector<std::vector<uint32_t>>& adjacencyList)
+	// Sorted order is a list of integers which correspond to the current idx of the pass in the `passDescriptions` array
+	// After this function, the passId for a pass *will likely change* this is something to fix in the future.
+	void GraphBuilder::DependencyLevelSort(const std::vector<uint32_t>& sortedOrder, std::vector<std::unordered_set<uint32_t>>& adjacencyList)
 	{
 		// first entry is the pass idx, second is the distance.
 		std::vector<std::pair<int, int>> distances(sortedOrder.size(), { 0, 0 });
 
-		for (auto& node : sortedOrder)
+		for (const auto& pass : sortedOrder)
 		{
-			distances[node].first = node;
+			auto& [passIdx, passDistance] = distances[pass];
+			passIdx = pass;
 
-			auto nodeDist = distances[node].second + 1;
-			for (auto& adj : adjacencyList[node]) { if (distances[adj].second < nodeDist) distances[adj].second = nodeDist; }
+			const auto nodeDistance = passDistance + 1;
+			for (const auto& adj : adjacencyList[pass])
+			{
+				if (distances[adj].second < nodeDistance) 
+					distances[adj].second = nodeDistance;
+			}
 		}
 
 		// We now sort by dependency level
-		std::sort(distances.begin(), distances.end(), [](std::pair<int, int>& a, std::pair<int, int> b) { return a.second < b.second; });
+		std::sort(distances.begin(), distances.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
 
-		auto copyPasses = std::vector<PassDesc>();
+		std::vector<PassDesc> copyPasses;
 
-		for (auto& pass : distances)
+		for (auto& [passIndex, passDependencyLevel] : distances)
 		{
-			auto& passDesc = passDescriptions[pass.first];
-			passDesc.dependencyGraphIndex = pass.second;
+			auto& passDesc = passDescriptions[passIndex];
+			passDesc.dependencyGraphIndex = passDependencyLevel;
 
 			auto newId = static_cast<uint32_t>(copyPasses.size());
 			// Update ID's
@@ -254,16 +276,16 @@ namespace Renderer::RenderGraph
 	void GraphBuilder::CreateGraph(RenderGraph* graph)
 	{
 		// Create Adjacency list
-		auto adjacencyList = std::vector<std::vector<uint32_t>>(passDescriptions.size());
+		auto adjacencyList = std::vector<std::unordered_set<uint32_t>>(passDescriptions.size());
 		CreateAdjacencyList(adjacencyList);
 
 		// Sort
-		auto sortedOrder = TopologicalSort(adjacencyList);
+		const auto sortedOrder = TopologicalSort(adjacencyList);
 
 		// Sort w/ Dependency Levels
 		DependencyLevelSort(sortedOrder, adjacencyList);
 
-		// todo when we have an example which could make use of resource aliasing. ping pong blur or something.
+		// todo when we have an example which could make use of resource aliasing. ping pong blur or something similar.
 		//DetermineResourceLifetimes();
 
 		// Build
@@ -293,13 +315,16 @@ namespace Renderer::RenderGraph
 		{
 			std::vector<ImageResource*> frameBufferImages;
 
-			for (auto& resKey : passDesc.readResources)
+			for (const auto& resKey : passDesc.readResources)
 			{
 				auto& res = GetResource(resKey);
 
-				// Not sure when this could happen. 
-				if (res.GetWrites().empty()) continue;
-
+				// Not sure when this could happen outside of a misconfiguration
+				if (res.GetWrites().empty()) 
+				{
+					Assert(false, "Error, resource which is never written to")
+					continue;
+				}
 				for (auto& access : res.GetWrites())
 				{
 					auto& writingPass = passDescriptions[nameToPass[access.passAlias]];
@@ -310,7 +335,7 @@ namespace Renderer::RenderGraph
 
 			std::string depthAttach;
 
-			for (auto& resKey : passDesc.writtenResources)
+			for (const auto& resKey : passDesc.writtenResources)
 			{
 				auto& res = GetResource(resKey);
 
@@ -346,11 +371,12 @@ namespace Renderer::RenderGraph
 					// Presumably compute, this is not used as a framebuffer image.
 					if (usage == VK_IMAGE_USAGE_STORAGE_BIT) continue;
 
-					auto write = res.WrittenByPass(passDesc.name).value();
+					auto optionalWrite = res.WrittenByPass(passDesc.name);
+					auto& write = optionalWrite.value();
 					auto sortedAccesses = res.SortedAccesses(sortedOrder);
 					auto sortedAccessesSize = sortedAccesses.size();
 					
-					VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+					auto initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, finalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
 
 					if(sortedAccessesSize > 1)
 					{
@@ -363,6 +389,7 @@ namespace Renderer::RenderGraph
 						if(i != 0) initialLayout = write.expectedLayout;
 						if(i != sortedAccessesSize - 1) finalLayout = sortedAccesses[i+1].expectedLayout;
 					}
+					
 					if(res.name == backBuffer.name && write == sortedAccesses.back()) finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 					
 					auto attachment = AttachmentDesc{ info.format, write.loadOp, {0,0,0,0}, initialLayout, finalLayout };
@@ -381,7 +408,7 @@ namespace Renderer::RenderGraph
 					}
 				}
 			}
-			if (depthAttach != "") passDesc.framebufferImageAttachments.emplace_back(depthAttach);
+			if (!depthAttach.empty()) passDesc.framebufferImageAttachments.emplace_back(depthAttach);
 		}
 	}
 

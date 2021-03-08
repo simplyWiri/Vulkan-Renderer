@@ -124,29 +124,9 @@ namespace Renderer::RenderGraph
 
 			return sortedAccess;
 		}
-		
-		void AccessedBy(const Access& access)
-		{
-			accesses.emplace_back(access);
-		}
-	};
 
-	struct BufferResource : ResourceDescription
-	{
-		BufferInfo info;
-
-		BufferResource(const std::string& name) : ResourceDescription(name) { type = Type::Buffer; }
-		void SetInfo(BufferInfo info) { this->info = info; }
-	};
-
-	struct ImageResource : ResourceDescription
-	{
-		ImageInfo info;
-
-		explicit ImageResource(const std::string& name) : ResourceDescription(name) { type = Type::Image; }
-		void SetInfo(ImageInfo info) { this->info = info; }
-		
 		// We assume that both passes write to this image, and one of them loads the image, the other clears
+		// The pass returned is the pass which needs to execute first.
 		std::string OrderPassesByWrites(const std::string& firstAlias, const std::string& secondAlias) const
 		{
 			for(const auto& access : accesses)
@@ -162,6 +142,27 @@ namespace Renderer::RenderGraph
 			
 			return "";
 		}
+		
+		void AccessedBy(const Access& access)
+		{
+			accesses.emplace_back(access);
+		}
+	};
+
+	struct BufferResource : ResourceDescription
+	{
+		BufferInfo info;
+
+		explicit BufferResource(const std::string& name) : ResourceDescription(name) { type = Type::Buffer; }
+		void SetInfo(BufferInfo info) { this->info = info; }
+	};
+
+	struct ImageResource : ResourceDescription
+	{
+		ImageInfo info;
+
+		explicit ImageResource(const std::string& name) : ResourceDescription(name) { type = Type::Image; }
+		void SetInfo(ImageInfo info) { this->info = info; }
 	};
 
 }

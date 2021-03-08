@@ -134,6 +134,9 @@ int main()
 	RenderGraph::GraphBuilder rgBuilder{};
 
 	gen->Step(2 * 3.14159265359f);
+
+	gui.AddToGraph(renderer.get(), &rgBuilder);
+
 	
 	rgBuilder.AddPass("Drawing Sphere", RenderGraph::QueueType::Graphics)
 		.WriteImage("depth", 0, VK_ATTACHMENT_LOAD_OP_CLEAR, 0, RenderGraph::ImageInfo { .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, .format = VK_FORMAT_D32_SFLOAT, .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL })
@@ -244,8 +247,6 @@ int main()
 			if(!pause && !gen->Finished())
 				gen->Step(( gen->sweepline > 3.14159265359f ? step * 4 : step ) * static_cast<float>(frameInfo.delta));
 		});
-
-	gui.AddToGraph(renderer.get(), &rgBuilder);
 
 	auto* rg = renderer->CreateRenderGraph(rgBuilder);
 

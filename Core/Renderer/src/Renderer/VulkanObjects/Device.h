@@ -44,7 +44,7 @@ namespace Renderer
 #ifdef DEBUG
 				"VK_LAYER_KHRONOS_validation",
 #endif
-				"VK_LAYER_KHRONOS_synchronization2"
+				//"VK_LAYER_KHRONOS_synchronization2"
 			};
 		} extensions;
 

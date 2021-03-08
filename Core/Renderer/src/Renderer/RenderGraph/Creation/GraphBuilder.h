@@ -108,10 +108,10 @@ namespace Renderer::RenderGraph
 	public:
 		// Stage 1. Organising Data about the RenderGraph
 
-		void CreateAdjacencyList(std::vector<std::vector<uint32_t>>& adjacencyList);
-		std::vector<uint32_t> TopologicalSort(std::vector<std::vector<uint32_t>>& adjacencyList);
-		void DepthFirstSearch(int currentIndex, std::vector<bool>& visited, std::vector<uint32_t>& sortedPassOrder, std::vector<std::vector<uint32_t>>& adjacencyList);
-		void DependencyLevelSort(std::vector<uint32_t> sortedOrder, std::vector<std::vector<uint32_t>>& adjacencyList);
+		void CreateAdjacencyList(std::vector<std::unordered_set<uint32_t>>& adjacencyList);
+		std::vector<uint32_t> TopologicalSort(std::vector<std::unordered_set<uint32_t>>& adjacencyList);
+		void DepthFirstSearch(int currentIndex, std::vector<bool>& visited, std::vector<uint32_t>& sortedPassOrder, std::vector<std::unordered_set<uint32_t>>& adjacencyList);
+		void DependencyLevelSort(const std::vector<uint32_t>& sortedOrder, std::vector<std::unordered_set<uint32_t>>& adjacencyList);
 
 		void DetermineResourceLifetimes();
 
