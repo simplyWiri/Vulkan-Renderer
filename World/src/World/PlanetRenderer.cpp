@@ -5,7 +5,6 @@
 #include "Renderer/Memory/Allocator.h"
 #include "Renderer/Memory/Buffer.h"
 #include "Renderer/RenderGraph/GraphContext.h"
-#include "Renderer/Resources/Vertex.h"
 #include "Renderer/VulkanObjects/DescriptorSet.h"
 #include "Renderer/VulkanObjects/Pipeline.h"
 
@@ -26,14 +25,15 @@ namespace World
 		auto usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		auto memoryType = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 
-
-		delanuayFaces = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
 		beachlineBuffer = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
 		sweeplineBuffer = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
 		sitesBuffer = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
-		voronoiEdges = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
-		delauneyEdges = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
-		voronoiFaces = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
+		
+		voronoi.edgeBuffer = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
+		voronoi.faceBuffer = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
+
+		delanuay.edgeBuffer = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
+		delanuay.faceBuffer = alloc->AllocateBuffer(sizeof(Vertex), usage, memoryType);
 	}
 
 	PlanetRenderer::~PlanetRenderer()
@@ -41,10 +41,9 @@ namespace World
 		delete beachlineBuffer;
 		delete sweeplineBuffer;
 		delete sitesBuffer;
-		delete voronoiEdges;
-		delete delauneyEdges;
-		delete voronoiFaces;
-		delete delanuayFaces;
+
+		voronoi.Cleanup();
+		delanuay.Cleanup();;
 	}
 
 	void PlanetRenderer::SetFrameState(Core* core, VkCommandBuffer buffer, RenderGraph::GraphContext* context, VertexAttributes* vert, DescriptorSetKey* descriptorKey)
@@ -121,15 +120,14 @@ namespace World
 
 		if (sitesCache != planet->cells.size())
 		{
-			std::vector<Vertex> vertices(planet->cells.size());
+			std::vector<Vertex> vertices(planet->cells.size() - sitesCache);
 
-			for (int i = 0; i < planet->cells.size(); i++) vertices[i] = Vertex{ planet->cells[i].GetCenter(), glm::vec3{ 1 } };
+			for (int i = sitesCache; i < planet->cells.size(); i++) vertices[i - sitesCache] = Vertex{ planet->cells[i].GetCenter(), glm::vec3{ 1 } };
 
+			if (sitesBuffer->GetSize() < sizeof(Vertex) * planet->cells.capacity()) sitesBuffer = Memory::Buffer::Resize(alloc, sitesBuffer, sizeof(Vertex) * planet->cells.capacity());
+			sitesBuffer->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size(), sizeof(Vertex) * sitesCache);
 
-			if (sitesBuffer->GetSize() < sizeof(Vertex) * vertices.size()) sitesBuffer = Memory::Buffer::Resize(alloc, sitesBuffer, sizeof(Vertex) * vertices.size() * 2);
-			sitesBuffer->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
-
-			sitesCache = vertices.size();
+			sitesCache += vertices.size();
 		}
 		core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context->GetRenderpass(), context->GetExtent(), *vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_POINT_LIST, descriptorKey->program);
 
@@ -140,47 +138,61 @@ namespace World
 
 	void PlanetRenderer::DrawVoronoiEdges()
 	{
+		static const glm::vec3 color = glm::vec3(0.3f);
+		
 		auto planet = this->generator->planet;
 
 		if (planet->halfEdges.empty()) return;
 
-		if (planet->halfEdges.size() != voronoiEdgeCache)
+		if (planet->halfEdges.size() != voronoi.edgeVertexCount / 2)
 		{
-			std::vector<Vertex> vertices(planet->edgeVertices.size());
-			std::vector<uint16_t> indices;
+			auto& vertices = voronoi.edgeVertices;
 
-			for (int i = 0; i < planet->edgeVertices.size(); i++) vertices[i] = Vertex{ planet->edgeVertices[i] * 1.005f, glm::vec3(.3f) };
+			if(vertices.size() != planet->halfEdges.size() * 2) vertices.resize(planet->halfEdges.size() * 2, Vertex{ glm::vec3{0.0f}, glm::vec3{0.0f} });			
 
-			for (int j = 0; j < planet->halfEdges.size(); j++)
+			// Go through edges we have previously looked at, but weren't finished then, remove them if they have been finished + update vertices in the array
+			voronoi.unfinishedEdges.erase(std::remove_if(voronoi.unfinishedEdges.begin(), voronoi.unfinishedEdges.end(), [&](const auto& idx)
+			{
+				auto& edge = planet->halfEdges[idx];
+				if(edge.endIndex == ~0u) return false;
+					
+				vertices[idx * 2] = Vertex{planet->edgeVertices[edge.beginIndex] * 1.005f, color};
+				vertices[(idx * 2) + 1] = Vertex{planet->edgeVertices[edge.endIndex]  * 1.005f, color};
+
+				return true;
+			}), voronoi.unfinishedEdges.end());
+
+			// Go through the edges we have not looked at yet
+			for (int j = voronoi.currentUpatedEdgeIndex; j < planet->halfEdges.size(); j++)
 			{
 				auto& edge = planet->halfEdges[j];
 				if (edge.endIndex != ~0u)
+				{					
+					vertices[j * 2] = Vertex{planet->edgeVertices[edge.beginIndex] * 1.005f, color };
+					vertices[(j * 2) + 1] = Vertex{planet->edgeVertices[edge.endIndex] * 1.005f, color };
+				} else
 				{
-					indices.emplace_back(edge.beginIndex);
-					indices.emplace_back(edge.endIndex);
+					voronoi.unfinishedEdges.emplace_back(j);
 				}
 			}
+			
+			auto size = sizeof(Vertex) * vertices.size();
 
-			auto requiredSize = (sizeof(Vertex) * vertices.size()) + (sizeof(uint16_t) * indices.size());
+			if (voronoi.edgeBuffer->GetSize() < size) voronoi.edgeBuffer = Memory::Buffer::Resize(alloc, voronoi.edgeBuffer, size);
 
-			if (voronoiEdges->GetSize() < requiredSize) voronoiEdges = Memory::Buffer::Resize(alloc, voronoiEdges, NextPow2(requiredSize));
+			voronoi.edgeBuffer->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
 
-			voronoiEdges->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
-			voronoiEdges->Load(static_cast<void*>(indices.data()), sizeof(uint16_t) * indices.size(), sizeof(Vertex) * vertices.size());
-
-			voronoiEdgeCache = planet->halfEdges.size();
-			voronoiEdgeVertices = vertices.size();
-			voronoiEdgeIndexCount = indices.size();
+			voronoi.edgeVertexCount = vertices.size() - voronoi.unfinishedEdges.size() * 2;
+			voronoi.currentUpatedEdgeIndex = planet->halfEdges.size();
 		}
 
-		if (voronoiEdgeVertices == 0 || voronoiEdgeIndexCount == 0) return;
+		if (voronoi.edgeVertexCount == 0) return;
 
 		core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context->GetRenderpass(), context->GetExtent(), *vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey->program);
 
 		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(buffer, 0, 1, &voronoiEdges->GetResourceHandle(), offsets);
-		vkCmdBindIndexBuffer(buffer, voronoiEdges->GetResourceHandle(), sizeof(Vertex) * voronoiEdgeVertices, VK_INDEX_TYPE_UINT16);
-		vkCmdDrawIndexed(buffer, voronoiEdgeIndexCount, 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(buffer, 0, 1, &voronoi.edgeBuffer->GetResourceHandle(), offsets);
+		vkCmdDraw(buffer, voronoi.edgeVertices.size(), 1, 0, 0);
 	}
 
 	void PlanetRenderer::DrawDelanuayEdges()
@@ -189,46 +201,62 @@ namespace World
 
 		if (planet->delanuayEdges.empty()) return;
 
-		if (planet->delanuayEdges.size() != delanuayEdgeCache)
+		if (planet->delanuayEdges.size() != delanuay.edgeVertexCount / 2)
 		{
-			std::vector<Vertex> vertices;
+			auto& vertices = delanuay.edgeVertices;
 
-			for (int j = 0; j < planet->delanuayEdges.size(); j++)
+			if(vertices.size() != planet->delanuayEdges.size() * 2) vertices.resize(planet->delanuayEdges.size() * 2, Vertex{ glm::vec3{0.0f}, glm::vec3{0.0f} });			
+
+			// Go through edges we have previously looked at, but weren't finished then, remove them if they have been finished + update vertices in the array
+			delanuay.unfinishedEdges.erase(std::remove_if(delanuay.unfinishedEdges.begin(), delanuay.unfinishedEdges.end(), [&](const auto& idx)
+			{
+				auto& edge = planet->delanuayEdges[idx];
+				if(edge.endIndex == ~0u) return false;
+					
+				vertices[idx * 2] = Vertex{planet->cells[edge.beginIndex].GetCenter() * 1.005f, glm::vec3(.8f * (edge.beginIndex / static_cast<float>(planet->cells.capacity())), .3, .3) };
+				vertices[(idx * 2) + 1] = Vertex{planet->cells[edge.endIndex].GetCenter() * 1.005f, glm::vec3(.8f * (edge.endIndex / static_cast<float>(planet->cells.capacity())), .3, .3)};
+
+				return true;
+			}), delanuay.unfinishedEdges.end());
+
+			// Go through the edges we have not looked at yet
+			for (int j = delanuay.currentUpatedEdgeIndex; j < planet->delanuayEdges.size(); j++)
 			{
 				auto& edge = planet->delanuayEdges[j];
 				if (edge.endIndex != ~0u)
 				{
+					// Alternate colouring glm::vec3{0.25 } + planet->cells[edge.beginIndex].GetCenter() * 0.5f
+					
 					// extrude these a little bit to draw them ontop of the faces.
-					vertices.emplace_back(Vertex{
-						planet->cells[edge.beginIndex].GetCenter() * 1.005f, glm::vec3(.8f * edge.beginIndex / (float)planet->cells.size(), .3, .3) /*glm::vec3{0.25 } + planet->cells[edge.beginIndex].GetCenter() * 0.5f*/
-					});
-					vertices.emplace_back(Vertex{
-						planet->cells[edge.endIndex].GetCenter() * 1.005f, glm::vec3(.8f * edge.endIndex / (float)planet->cells.size(), .3, .3) /*glm::vec3{0.25 } + planet->cells[edge.endIndex].GetCenter() * 0.5f*/
-					});
+					vertices[j * 2] = Vertex{planet->cells[edge.beginIndex].GetCenter() * 1.005f, glm::vec3(.8f * (edge.beginIndex / static_cast<float>(planet->cells.capacity())), .3, .3) };
+					vertices[(j * 2) + 1] = Vertex{planet->cells[edge.endIndex].GetCenter() * 1.005f, glm::vec3(.8f * (edge.endIndex / static_cast<float>(planet->cells.capacity())), .3, .3)};
+				} else
+				{
+					delanuay.unfinishedEdges.emplace_back(j);
 				}
 			}
 
-			if (delauneyEdges->GetSize() < sizeof(Vertex) * vertices.size()) delauneyEdges = Memory::Buffer::Resize(alloc, delauneyEdges, sizeof(Vertex) * vertices.size() * 2);
-			delauneyEdges->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
+			if (delanuay.edgeBuffer->GetSize() < sizeof(Vertex) * vertices.size()) delanuay.edgeBuffer = Memory::Buffer::Resize(alloc, delanuay.edgeBuffer, sizeof(Vertex) * vertices.size() * 2);
+			delanuay.edgeBuffer->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
 
-			delanuayEdgeCache = planet->delanuayEdges.size();
-			delanuayEdgeVertices = vertices.size();
+			delanuay.edgeVertexCount = vertices.size() - delanuay.unfinishedEdges.size() * 2;
+			delanuay.currentUpatedEdgeIndex = planet->delanuayEdges.size();
 		}
 
-		if (delanuayEdgeVertices == 0) return;
+		if (delanuay.edgeVertexCount == 0) return;
 
 		core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context->GetRenderpass(), context->GetExtent(), *vert, DepthSettings::DepthTest(), { BlendSettings::Add() }, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, descriptorKey->program);
 
 		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(buffer, 0, 1, &delauneyEdges->GetResourceHandle(), offsets);
-		vkCmdDraw(buffer, delanuayEdgeVertices, 1, 0, 0);
+		vkCmdBindVertexBuffers(buffer, 0, 1, &delanuay.edgeBuffer->GetResourceHandle(), offsets);
+		vkCmdDraw(buffer, delanuay.edgeVertices.size(), 1, 0, 0);
 	}
 
 	void PlanetRenderer::DrawVoronoiFaces()
 	{
 		if (generator->Finished() == false) return;
 
-		if (facesCache == - 1)
+		if (voronoi.faceVertexCount == - 1)
 		{
 			std::vector<Vertex> vertices;
 			auto& voronoiCells = generator->planet->cells;
@@ -257,18 +285,18 @@ namespace World
 				}
 			}
 
-			facesCache = vertices.size();
+			voronoi.faceVertexCount = vertices.size();
 
-			if (voronoiFaces->GetSize() < sizeof(Vertex) * vertices.size()) voronoiFaces = Memory::Buffer::Resize(alloc, voronoiFaces, sizeof(Vertex) * vertices.size());
-			voronoiFaces->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
+			if (voronoi.faceBuffer->GetSize() < sizeof(Vertex) * vertices.size()) voronoi.faceBuffer = Memory::Buffer::Resize(alloc, voronoi.faceBuffer, sizeof(Vertex) * vertices.size());
+			voronoi.faceBuffer->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
 		}
 
 		core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context->GetRenderpass(), context->GetExtent(), *vert, DepthSettings::DepthTest(), { BlendSettings::Opaque() }, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 			descriptorKey->program);
 
 		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(buffer, 0, 1, &voronoiFaces->GetResourceHandle(), offsets);
-		vkCmdDraw(buffer, facesCache, 1, 0, 0);
+		vkCmdBindVertexBuffers(buffer, 0, 1, &voronoi.faceBuffer->GetResourceHandle(), offsets);
+		vkCmdDraw(buffer, voronoi.faceVertexCount, 1, 0, 0);
 	}
 
 	void PlanetRenderer::DrawDelanuayFaces()
@@ -277,42 +305,12 @@ namespace World
 
 		auto* planet = generator->planet;
 
-		if (delanuayFacesVertices == - 1)
+		if (delanuay.faceVertexCount == - 1)
 		{
 			std::vector<Vertex> vertices;
-			//std::vector<uint16_t> indices;
 
-			//for(int i = 0; i < planet->cells.size(); i++)
-			//{				
-			//	const auto color = glm::vec3{0.25 } + planet->cells[i].GetCenter() * 0.5f;
-			//	const auto oColor = glm::vec3(.8f * i / (float)planet->cells.size(), .3, .3);
-			//	vertices[i] = Vertex{planet->cells[i].GetCenter() * .9995f, oColor};
-			//}
-			//
 			auto& voronoiCells = generator->planet->cells;
 			auto& delEdges = generator->planet->delanuayEdges;
-
-			//for(int i = 0; i < voronoiCells.size(); i++)
-			//{
-			//	auto& cellEdges = voronoiCells[i].delEdges;
-
-			//	for(int j = 0; j < cellEdges.size(); j++)
-			//	{
-			//		const auto& resolvedEdge = delEdges[cellEdges[j]];
-			//		const auto& resolvedFollowingEdge = delEdges[cellEdges[(j + 1) % cellEdges.size()]];
-
-			//		auto idx = resolvedEdge.beginIndex == i ? resolvedEdge.endIndex : resolvedEdge.beginIndex;
-			//		auto idx2 = resolvedFollowingEdge.beginIndex == i ? resolvedFollowingEdge.endIndex : resolvedFollowingEdge.beginIndex;
-			//		auto idx3 = i;
-
-			//		if(idx != idx2 && idx != idx3 && idx2 != idx3)
-			//		{
-			//			indices.emplace_back(idx);
-			//			indices.emplace_back(idx2);
-			//			indices.emplace_back(idx3);
-			//		}
-			//	}
-			//}
 
 			for (int i = 0; i < voronoiCells.size(); i++)
 			{
@@ -345,24 +343,35 @@ namespace World
 				}
 			}
 
+			delanuay.faceVertexCount = vertices.size();
 
-			delanuayFacesVertices = vertices.size();
-			//delanuayFacesIndices = indices.size();
+			auto size = sizeof(Vertex) * vertices.size();
 
-			auto size = (sizeof(Vertex) * delanuayFacesVertices)/* + (sizeof(uint16_t) * delanuayFacesIndices)*/;
-
-			if (delanuayFaces->GetSize() < size) delanuayFaces = Memory::Buffer::Resize(alloc, delanuayFaces, size);
-			//
-			delanuayFaces->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
-			//delanuayFaces->Load(static_cast<void*>(indices.data()), sizeof(uint16_t) * indices.size(), sizeof(Vertex) * delanuayFacesVertices);
+			if (delanuay.faceBuffer->GetSize() < size) delanuay.faceBuffer = Memory::Buffer::Resize(alloc, delanuay.faceBuffer, size);
+			delanuay.faceBuffer->Load(static_cast<void*>(vertices.data()), sizeof(Vertex) * vertices.size());
 		}
 
 		core->GetGraphicsPipelineCache()->BindGraphicsPipeline(buffer, context->GetRenderpass(), context->GetExtent(), *vert, DepthSettings::DepthTest(), { BlendSettings::AlphaBlend() }, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 			descriptorKey->program);
 
 		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(buffer, 0, 1, &delanuayFaces->GetResourceHandle(), offsets);
-		//vkCmdBindIndexBuffer(buffer, delanuayFaces->GetResourceHandle(), sizeof(Vertex) * delanuayFacesVertices, VK_INDEX_TYPE_UINT16);
-		vkCmdDraw(buffer, delanuayFacesVertices, 1, 0, 0);
+		vkCmdBindVertexBuffers(buffer, 0, 1, &delanuay.faceBuffer->GetResourceHandle(), offsets);
+		vkCmdDraw(buffer, delanuay.faceVertexCount, 1, 0, 0);
+	}
+
+	void PlanetRenderer::Voronoi::Cleanup()
+	{
+		edgeVertexCount = -1;
+		faceVertexCount = -1;
+		currentUpatedEdgeIndex = 0;
+	}
+	
+	void PlanetRenderer::Delanuay::Cleanup()
+	{
+		edgeVertexCount = -1;
+		faceVertexCount = -1;
+		currentUpatedEdgeIndex = 0;
+
+		if(edgeVertices.size() != 0) edgeVertices.clear();
 	}
 }
