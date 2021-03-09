@@ -18,17 +18,17 @@
 using namespace Renderer;
 using namespace World::Generation;
 
-void* operator new(std :: size_t count)
-{
-	auto ptr = malloc(count);
-	TracyAllocS(ptr , count, 12);
-	return ptr;
-}
-void operator delete(void* ptr) noexcept
-{
-	TracyFreeS(ptr, 12);
-	free(ptr);
-}
+//void* operator new(std :: size_t count)
+//{
+//	auto ptr = malloc(count);
+//	TracyAllocS(ptr , count, 12);
+//	return ptr;
+//}
+//void operator delete(void* ptr) noexcept
+//{
+//	TracyFreeS(ptr, 12);
+//	free(ptr);
+//}
 
 struct UniformBufferObject
 {
@@ -66,7 +66,7 @@ int main()
 	anchoredCam.SetProj(glm::perspective(glm::radians(fov), s.width / static_cast<float>(s.height), 0.1f, 10.0f));
 
 	auto* gen = new PlanetGenerator(500, false);
-	auto planetRenderer = new World::PlanetRenderer(gen, renderer->GetAllocator());
+	auto* planetRenderer = new World::PlanetRenderer(gen, renderer->GetAllocator());
 	UniformBufferObject ubo = {};
 
 
@@ -119,18 +119,21 @@ int main()
 	renderer->GetInputHandler()->RegisterMouseMoveCallBack(mouseMoveCallback, InputPriority::LOW_PRIORITY);
 	renderer->GetInputHandler()->RegisterMouseScrollCallBack(scrollCallback, InputPriority::LOW_PRIORITY);
 
-	bool pause = false;
-	bool showBeachline = true;
-	bool showSweepline = true;
-	bool showSites = true;
-	bool showVoronoiEdges = true;
-	bool showDelanuayEdges = false;
-	bool showFaces = false;
+	bool pause = false, showBeachline = false, showSweepline = false, showSites = false;
+	bool showVoronoiEdges = false, showDelanuayEdges = false, showFaces = false, delFaces = true;
+	
 	int points = 500;
 	auto twoPi = 2 * 3.14159265359f;
 	float step = twoPi / 16; // 16s to finish
 	bool random = false;
 
+	renderer->GetInputHandler()->RegisterKeyCallBack([&](int key, int action)
+	{
+		if(key == GLFW_KEY_SPACE && action == GLFW_PRESS) pause = !pause;
+		return false;
+	}, InputPriority::GUI);
+
+	
 	RenderGraph::GraphBuilder rgBuilder{};
 
 	gen->Step(2 * 3.14159265359f);
@@ -185,7 +188,7 @@ int main()
 					if(!gen->Finished()) 
 					{
 						ImGui::Text("Site Event Left %d\nCircle Events Left %d\nSweepline Coverage %.2f", gen->siteEventQueue.size(), gen->circleEventQueue.size(), gen->sweepline / (2.0f * 3.14159265359f));
-						ImGui::SliderFloat("Step", &step, twoPi / 40.0f, twoPi / 4.0f);
+						ImGui::SliderFloat("Step", &step, twoPi / 80.0f, twoPi / 4.0f);
 					}
 				}
 
@@ -202,7 +205,11 @@ int main()
 					ImGui::Checkbox("Draw Voronoi Edges", &showVoronoiEdges);
 					ImGui::Checkbox("Draw Delanauy", &showDelanuayEdges);
 					
-					if(gen->Finished()) ImGui::Checkbox("Draw Voronoi Faces", &showFaces);
+					if(gen->Finished()) 
+					{
+						ImGui::Checkbox("Draw Voronoi Faces", &showFaces);
+						ImGui::Checkbox("Draw Delanuay Faces", &delFaces);
+					}
 				}
 				
 				renderer->GetDescriptorSetCache()->SetResource(descriptorSetKey, "ubo", &ubo, sizeof(UniformBufferObject));
@@ -211,6 +218,12 @@ int main()
 			renderer->GetDescriptorSetCache()->BindDescriptorSet(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, descriptorSetKey);
 
 			planetRenderer->SetFrameState(renderer.get(), buffer, &context, &vert, &descriptorSetKey);
+
+
+			if(delFaces)
+			{
+				planetRenderer->DrawDelanuayFaces();
+			}
 			
 			if(showFaces)
 			{

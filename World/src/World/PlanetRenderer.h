@@ -36,6 +36,7 @@ public:
 	void DrawVoronoiEdges();
 	void DrawDelanuayEdges();
 	void DrawVoronoiFaces();
+	void DrawDelanuayFaces();
 	
 	void Reset(Generation::PlanetGenerator* newGenerator)
 	{
@@ -47,20 +48,22 @@ public:
 		delanuayEdgeCache = -1;
 		delanuayEdgeVertices = -1;
 		facesCache = -1;
+		delanuayFacesVertices = -1;
+		delanuayFacesIndices = -1;
 	}
 
 private:
 	Generation::PlanetGenerator* generator;
 	Renderer::Memory::Allocator* alloc;
 
-
 	// Not necessarily correct, because vertices may not change but their completion status may.
 	// If I wanted to do this properly I would look into using index buffers etc.
 	int sitesCache = -1;
 	int voronoiEdgeCache = -1;
-	int voronoiEdgeVertices = -1;
+	int voronoiEdgeVertices = -1, voronoiEdgeIndexCount = -1;
 	int delanuayEdgeCache = -1;
 	int delanuayEdgeVertices = -1;
+	int delanuayFacesVertices = -1, delanuayFacesIndices = -1;
 	int facesCache = -1;
 	
 	Renderer::Memory::Buffer* beachlineBuffer = nullptr;
@@ -68,6 +71,7 @@ private:
 	Renderer::Memory::Buffer* sitesBuffer = nullptr;
 	Renderer::Memory::Buffer* voronoiEdges = nullptr;
 	Renderer::Memory::Buffer* delauneyEdges = nullptr;
+	Renderer::Memory::Buffer* delanuayFaces = nullptr;
 	Renderer::Memory::Buffer* voronoiFaces = nullptr;
 
 	Renderer::Core* core;

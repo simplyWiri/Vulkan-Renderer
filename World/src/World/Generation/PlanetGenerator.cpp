@@ -267,6 +267,8 @@ namespace World::Generation
 
 		// delanuay
 		planet->delanuayEdges.emplace_back(HalfEdge{ true, prev.site.index, succ.site.index });
+		planet->cells[prev.site.index].AddDelEdge(planet->delanuayEdges.size() - 1);
+		planet->cells[succ.site.index].AddDelEdge(planet->delanuayEdges.size() - 1);
 
 		planet->cells[prev.cellIdx].AddEdge(halfEdgeID);
 		planet->cells[succ.cellIdx].AddEdge(halfEdgeID);
