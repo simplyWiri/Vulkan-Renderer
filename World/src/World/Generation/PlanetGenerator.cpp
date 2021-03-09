@@ -1,7 +1,6 @@
 ﻿#include "PlanetGenerator.h"
 #include "Renderer/Memory/Allocator.h"
 #include <algorithm>
-#include <tracy/Tracy.hpp>
 #include <Renderer\Resources\Vertex.h>
 #include <random>
 

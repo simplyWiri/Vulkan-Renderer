@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <numbers>
+#include <algorithm>
 
 namespace World
 {

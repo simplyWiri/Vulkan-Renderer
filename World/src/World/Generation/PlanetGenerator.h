@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include <ostream>
 #include "tracy/Tracy.hpp"
 #include <vector>
 #include <glm/glm/common.hpp>
@@ -62,12 +61,6 @@ namespace World::Generation
 
 		bool operator <(const BeachArc& other) const { return site < other.site; }
 
-		friend std::ostream& operator<<(std::ostream& os, const BeachArc& a)
-		{
-		    os << a.site.phi;
-		    return os;
-		}
-		
 		// returns true if the two arcs intersect, oPhi will be the phi at which the intersection occurs
 		bool Intersect(const BeachArc& other, float sweepline, float& oPhi)
 		{

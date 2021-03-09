@@ -87,7 +87,6 @@ project "Renderer"
 	{
 		"Core/Renderer/src",
 		"externals",
-		"externals/spdlog/include/",
 		(_OPTIONS["vulkanPath"] .. "/Include")
 	}
 
@@ -98,8 +97,7 @@ project "Renderer"
 		"ImGui",
 		"ImPlot",
 		"Glslang",
-		"SPIRV-Cross",
-		-- "Common"
+		"SPIRV-Cross"
 	}
 
 project "Common"
@@ -144,7 +142,6 @@ project ("World Generator")
 		"Core/Renderer/src",
 		"externals",
 		(_OPTIONS["vulkanPath"] .. "/Include"),
-		"externals/spdlog/include/",
 		"Core/Common/src"
 	}
 
@@ -201,7 +198,6 @@ project ("Prototyping")
 			"Core/Renderer/src",
 			"externals",
 			(_OPTIONS["vulkanPath"] .. "/Include"),
-			"externals/spdlog/include/",
 			"Core/Common/src"
 		}
 	

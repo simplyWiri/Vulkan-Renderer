@@ -48,13 +48,13 @@ namespace Renderer
 
 		switch (ms)
 		{
-			case 'E': LogError("[{0}]: {1}", mt, pCallbackData->pMessage);
+			case 'E': Error("[%s]: %s", mt, pCallbackData->pMessage);
 				break;
-			case 'W': LogWarning("[{0}]: {1}", mt, pCallbackData->pMessage);
+			case 'W': Warn("[%s]: %s", mt, pCallbackData->pMessage);
 				break;
-			case 'I': LogInfo("[{0}]: {1}", mt, pCallbackData->pMessage);
+			case 'I': Log("[%s]: %s", mt, pCallbackData->pMessage);
 				break;
-			default: VerboseLog("[{0}]: {1}", mt, pCallbackData->pMessage);
+			default: Log("[%s]: %s", mt, pCallbackData->pMessage);
 				break;
 		}
 
@@ -126,7 +126,7 @@ namespace Renderer
 		{
 			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 			if (func != nullptr) { func(instance, &messengerInfo, nullptr, &debugMessenger); }
-			else { LogError("Failed to initialise debug layers"); }
+			else { Error("Failed to initialise debug layers"); }
 		}
 	}
 
@@ -136,7 +136,7 @@ namespace Renderer
 		vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 		if (deviceCount == 0) // No GPU's provide support for vulkan!
 		{
-			LogError("Failed to find a GPU which supports Vulkan on your system");
+			Error("Failed to find a GPU which supports Vulkan on your system");
 			return;
 		}
 
@@ -152,8 +152,6 @@ namespace Renderer
 				vkGetPhysicalDeviceProperties(physDevice, &properties);
 				vkGetPhysicalDeviceMemoryProperties(physDevice, &memProperties);
 				this->indices = GetIndices(physDevice, surface);
-
-				if(strcmp(properties.deviceName, "Intel(R) UHD Graphics 630") == 1) continue;
 				
 				return;
 			}
@@ -220,18 +218,18 @@ namespace Renderer
 		vkGetDeviceQueue(device, indices.presentFamily, 0, presentQueue);
 
 		if (indices.transferFamily != -1) vkGetDeviceQueue(device, indices.transferFamily, 0, &queues.transfer);
-		else LogInfo("Seperate transfer command queues not supported");
+		else Log("Seperate transfer command queues not supported");
 
-		LogInfo("Using Physical Device: {}", props.deviceName);
-		LogInfo("	- Vender API version: {}", props.apiVersion);
-		LogInfo("	- Driver version:  {}", props.driverVersion);
-		LogInfo("");
+		Log("Using Physical Device: %s", props.deviceName);
+		Log("	- Vender API version: %u", props.apiVersion);
+		Log("	- Driver version:  %u", props.driverVersion);
+		Log("");
 
-		LogInfo("Queues: ");
-		LogInfo("	- Graphics Family Index {}", indices.graphicsFamily);
-		LogInfo("	- Present Family Index {}", indices.presentFamily);
-		LogInfo("	- Compute Family Index {}", indices.computeFamily);
-		LogInfo("	- Transfer Family Index {}", indices.transferFamily);
+		Log("Queues: ");
+		Log("	- Graphics Family Index %i", indices.graphicsFamily);
+		Log("	- Present Family Index %i", indices.presentFamily);
+		Log("	- Compute Family Index %i", indices.computeFamily);
+		Log("	- Transfer Family Index %i", indices.transferFamily);
 	}
 
 

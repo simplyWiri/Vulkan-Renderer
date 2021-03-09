@@ -1,8 +1,5 @@
 #pragma once
-#include <functional>
-#include <iostream>
-#include <tuple>
-
+#include <string>
 // A c++ equivalent to https://github.com/kelvin13/voronoi/blob/master/sources/game/lib/rbtree.swift
 
 namespace Common
@@ -121,21 +118,31 @@ namespace Common
 		Node* First() const { return root->Leftmost(); }
 		Node* Last() const { return root->Rightmost(); }
 
-		static void Rotate(Node* pivot, Node*& root, std::function<Node*(Node*)> rotation)
+		static void RotateLeft(Node* pivot, Node*& root)
 		{
 			auto parent = pivot->parent;
 
 			if (parent == nullptr)
 			{
-				root = rotation(pivot);
+				root = LeftRotation(pivot);
 				return;
 			}
-			if (pivot == parent->left) parent->left = rotation(pivot);
-			else parent->right = rotation(pivot);
+			if (pivot == parent->left) parent->left = LeftRotation(pivot);
+			else parent->right = LeftRotation(pivot);
 		}
 
-		static void RotateLeft(Node* pivot, Node*& root) { Rotate(pivot, root, &LeftRotation); }
-		static void RotateRight(Node* pivot, Node*& root) { Rotate(pivot, root, &RightRotation); }
+		static void RotateRight(Node* pivot, Node*& root)
+		{
+			auto parent = pivot->parent;
+
+			if (parent == nullptr)
+			{
+				root = RightRotation(pivot);
+				return;
+			}
+			if (pivot == parent->left) parent->left = RightRotation(pivot);
+			else parent->right = RightRotation(pivot);
+		}
 
 		static Node* LeftRotation(Node* pivot)
 		{
@@ -386,26 +393,26 @@ namespace Common
 
 		void PrintHelper(Node* root, std::string indent, bool last)
 		{
-			// print the tree structure on the screen
-			if (root != nullptr)
-			{
-				std::cout << indent;
-				if (last)
-				{
-					std::cout << "R----";
-					indent += "     ";
-				}
-				else
-				{
-					std::cout << "L----";
-					indent += "|    ";
-				}
+			//// print the tree structure on the screen
+			//if (root != nullptr)
+			//{
+			//	std::cout << indent;
+			//	if (last)
+			//	{
+			//		std::cout << "R----";
+			//		indent += "     ";
+			//	}
+			//	else
+			//	{
+			//		std::cout << "L----";
+			//		indent += "|    ";
+			//	}
 
-				std::string sColor = root->color == Node::Color::Red ? "RED" : "BLACK";
-				std::cout << "[" << *root->element << "]" << "(" << sColor << ")" << std::endl;
-				PrintHelper(root->left, indent, false);
-				PrintHelper(root->right, indent, true);
-			}
+			//	std::string sColor = root->color == Node::Color::Red ? "RED" : "BLACK";
+			//	std::cout << "[" << *root->element << "]" << "(" << sColor << ")" << std::endl;
+			//	PrintHelper(root->left, indent, false);
+			//	PrintHelper(root->right, indent, true);
+			//}
 		}
 
 		Node* GetRoot() const { return root; }

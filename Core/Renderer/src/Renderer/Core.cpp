@@ -1,5 +1,4 @@
 #include "glfw/include/GLFW/glfw3.h"
-#include "tracy/Tracy.hpp"
 
 #include "Core.h"
 #include "Memory/Allocator.h"
@@ -8,7 +7,6 @@ namespace Renderer
 {
 	Core::Core(Settings settings) : settings(settings)
 	{
-		TempLogger::Init();
 		frameInfo = FrameInfo{};
 		frameInfo.time = 0;
 	}
@@ -53,7 +51,7 @@ namespace Renderer
 		auto success = vkCreateCommandPool(device, &poolCreateInfo, nullptr, &commandPool);
 		Assert(success == VK_SUCCESS, "Failed to create command pool");
 
-		tracyContext = TracyVkContext(device.GetPhysicalDevice(), device.GetDevice(), device.queues.graphics, GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false));
+		//tracyContext = TracyVkContext(device.GetPhysicalDevice(), device.GetDevice(), device.queues.graphics, GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false));
 
 		return true;
 	}
@@ -183,8 +181,8 @@ namespace Renderer
 		renderpassCache.Tick();
 		framebufferCache.Tick();
 
-		if (info.frameIndex % 5 == 0)
-			TracyVkCollect(tracyContext, buffer);
+		//if (info.frameIndex % 5 == 0)
+		//	TracyVkCollect(tracyContext, buffer);
 	}
 
 	void Core::EndFrame(FrameInfo info)
@@ -193,14 +191,14 @@ namespace Renderer
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) windowResize();
 
-		FrameMark;
+		//FrameMark;
 	}
 
 	Core::~Core()
 	{		
 		rendergraph.reset();
 
-		TracyVkDestroy(tracyContext)
+		//TracyVkDestroy(tracyContext)
 
 		vkDestroyCommandPool(device, commandPool, nullptr);
 		framebufferCache.ClearCache();

@@ -1,4 +1,5 @@
 #include <unordered_set>
+#include <algorithm>
 
 #include "GraphBuilder.h"
 
@@ -6,19 +7,20 @@
 #include "Utils/Logging.h"
 #include "Renderer/Memory/Allocator.h"
 
+
 namespace Renderer::RenderGraph
 {
 	GraphBuilder::PassDesc::PassDesc(const std::string& name, GraphBuilder* graph, uint32_t passId, QueueType queue) : name(name), graph(graph), passId(passId), queueIndex(queue) { }
 
 	bool GraphBuilder::PassDesc::WritesTo(const std::string& name)
 	{
-		for (auto res : writtenResources) { if (res == name) return true; }
+		for (const auto& res : writtenResources) { if (res == name) return true; }
 		return false;
 	}
 
 	bool GraphBuilder::PassDesc::ReadsFrom(const std::string& name)
 	{
-		for (auto res : readResources) { if (res == name) return true; }
+		for (const auto& res : readResources) { if (res == name) return true; }
 		return false;
 	}
 
@@ -270,7 +272,7 @@ namespace Renderer::RenderGraph
 		// We want to arrange resource lifetimes w.r.t to dependency levels, to allow for batching of sync
 		// this being a trade-off, we could instead look pass-by-pass to achieve more fine-grain sync
 
-		LogInfo("todo");
+		Log("todo");
 	}
 
 	void GraphBuilder::CreateGraph(RenderGraph* graph)
@@ -322,7 +324,7 @@ namespace Renderer::RenderGraph
 				// Not sure when this could happen outside of a misconfiguration
 				if (res.GetWrites().empty()) 
 				{
-					Assert(false, "Error, resource which is never written to")
+					Assert(false, "Error, resource which is never written to");
 					continue;
 				}
 				for (auto& access : res.GetWrites())
@@ -480,6 +482,6 @@ namespace Renderer::RenderGraph
 		}
 
 		// Need to initialise after all resources have been created.
-		for (auto passDesc : passDescriptions) { if (passDesc.initialise) passDesc.initialise(graph); }
+		for (const auto& passDesc : passDescriptions) { if (passDesc.initialise) passDesc.initialise(graph); }
 	}
 }

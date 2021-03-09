@@ -1,6 +1,7 @@
 #pragma once
 #include "volk/volk.h"
-#include "glm/glm/glm.hpp"
+#include "glm/glm/vec3.hpp"
+#include "glm/glm/vec2.hpp"
 
 #include "Utils/Logging.h"
 

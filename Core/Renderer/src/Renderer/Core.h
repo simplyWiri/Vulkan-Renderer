@@ -1,6 +1,5 @@
 #pragma once
 #include "volk/volk.h"
-#include "tracy/TracyVulkan.hpp"
 
 #include "InputHandler.h"
 #include "VulkanObjects/Device.h"

@@ -17,9 +17,6 @@
 [submodule "externals/SPIRV-Cross"]
 	path = externals/SPIRV-Cross
 	url = https://github.com/KhronosGroup/SPIRV-Cross
-[submodule "externals/spdlog"]
-	path = externals/spdlog
-	url = https://github.com/gabime/spdlog
 [submodule "externals/implot"]
 	path = externals/implot
 	url = https://github.com/epezent/implot

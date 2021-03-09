@@ -113,7 +113,7 @@ namespace Renderer
 					// this also populates the field in Pipeline/shaderModules
 					shaderCreateInfo.push_back(CreateShaderInfo(CreateShaderModule(shader), shader->getType()));
 					break;
-				default: LogError("Tried to register currently unsupported shader type");
+				default: Error("Tried to register currently unsupported shader type");
 			}
 		}
 
