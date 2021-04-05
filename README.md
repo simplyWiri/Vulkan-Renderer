@@ -1,5 +1,5 @@
 ### Generating a Voronoi Diagram on the Surface of a Unit Sphere
-<img src=Demo.png>
+<img src=World/Demo.png>
 
 #### Credits
 - http://www.math.kent.edu/~zheng/papers/voronoi_paper_updated.pdf The paper I followed for the algorithm 
