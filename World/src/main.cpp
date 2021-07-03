@@ -45,10 +45,18 @@ int main()
 	s.height = 720;
 	s.vsync = false;
 
+	auto v = glm::vec4(1, 1, 1, 0);
+	auto r = rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0,1,0));
+	auto t = glm::translate(glm::mat4(1.0f), glm::vec3(1000, 0, 0));
+
+	auto vDash = v * t * r;
+	
 	auto renderer = std::make_unique<Core>(s);
 	GUI gui;
 
 	renderer->Initialise();
+
+	
 	
 	
 	gui.initialise(renderer.get());

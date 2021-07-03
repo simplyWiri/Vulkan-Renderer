@@ -1,0 +1,12 @@
+{
+  "ScoreSource": 1,
+  "ScoreLocation": "$(SolutionDir)out.scor",
+  "ScoreGenerator": {
+    "Compiler": 0,
+    "InputPath": "$(SolutionDir)",
+    "OutputPath": "$(SolutionDir)compileData.scor",
+    "OverviewDetail": 1,
+    "TimelineDetail": 1,
+    "TimelinePacking": 100
+  }
+}
